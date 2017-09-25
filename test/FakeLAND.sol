@@ -1,8 +1,8 @@
 pragma solidity ^0.4.15;
 
-import '../contracts/BasicNFT.sol';
+import '../contracts/LAND.sol';
 
-contract FakeLAND is BasicNFT {
+contract FakeLAND is Land {
   function create(uint tokenId, address owner) {
     _addTokenTo(owner, tokenId);
     totalTokens++;
@@ -10,3 +10,4 @@ contract FakeLAND is BasicNFT {
     TokenCreated(tokenId, owner, '');
   }
 }
+

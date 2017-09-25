@@ -1,6 +1,8 @@
 pragma solidity ^0.4.15;
 
+import './BasicNFT.sol';
+
 contract Land is BasicNFT {
-  name = 'Decentraland World';
-  symbol = 'LAND';
+  string public name = 'Decentraland World';
+  string public symbol = 'LAND';
 }

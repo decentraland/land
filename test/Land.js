@@ -24,7 +24,7 @@ contract('LAND', function(accounts) {
     let user1land = (await world.balanceOf(user).call()).toString()
     let user2land = (await world.balanceOf(user2).call()).toString()
 
-    assert (user1land == 0)
-    assert (user2land == 1)
+    assert(user1land == 0)
+    assert(user2land == 1)
   })
 });
