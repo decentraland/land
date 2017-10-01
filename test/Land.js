@@ -1,17 +1,18 @@
-const FakeLAND = artifacts.require('./FakeLAND')
+const Land = artifacts.require('./Land')
 const BigNumber = web3.BigNumber
 
 contract('LAND', function(accounts) {
   let world
   let land
-  let user = accounts[0]
-  let user2 = accounts[1]
+  let controller = accounts[0]
+  let user = accounts[1]
+  let user2 = accounts[2]
   let query
 
   beforeEach(async () => {
-    world = await FakeLAND.new()
+    world = await Land.new(controller)
     land = 1
-    await world.create(1, user, new Buffer(0))
+    await world.assignNewParcel(user, new BigNumber(1), 'Hello world')
   })
 
   it('reports that the user has the correct amount of land', async function() {
@@ -20,9 +21,9 @@ contract('LAND', function(accounts) {
   })
 
   it('handles correctly the transfer of a token', async function() {
-    await world.transfer(land, user2, { from: user })
-    let user1land = (await world.balanceOf(user).call()).toString()
-    let user2land = (await world.balanceOf(user2).call()).toString()
+    await world.transfer(user2, land, { from: user })
+    let user1land = (await world.balanceOf(user)).toString()
+    let user2land = (await world.balanceOf(user2)).toString()
 
     assert(user1land == 0)
     assert(user2land == 1)

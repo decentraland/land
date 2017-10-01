@@ -7,8 +7,8 @@ contract Land is BasicNFT {
   string public name = 'Decentraland World';
   string public symbol = 'LAND';
 
-  address claimContract;
-  mapping (uint => uint) latestPing;
+  address public claimContract;
+  mapping (uint => uint) public latestPing;
 
   event TokenPing(uint tokenId);
 
@@ -21,6 +21,7 @@ contract Land is BasicNFT {
     require(tokenOwner[tokenId] == 0);
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
+    totalTokens++;
     TokenCreated(tokenId, beneficiary, metadata);
   }
 

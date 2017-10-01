@@ -20,28 +20,28 @@ contract BasicNFT is NFT, NFTEvents {
   // Metadata associated with each token
   mapping(uint => bytes) public tokenMetadata;
 
-  function totalSupply() constant returns (uint) {
+  function totalSupply() public constant returns (uint) {
     return totalTokens;
   }
 
-  function balanceOf(address owner) constant returns (uint) {
+  function balanceOf(address owner) public constant returns (uint) {
     return _virtualLength[owner];
   }
 
-  function tokenByIndex(address owner, uint index) returns (uint) {
+  function tokenByIndex(address owner, uint index) public returns (uint) {
     return ownedTokens[owner][index];
   }
 
-  function ownerOf(uint tokenId) returns (address) {
+  function ownerOf(uint tokenId) public returns (address) {
     return tokenOwner[tokenId];
   }
 
-  function transfer(address to, uint tokenId) {
+  function transfer(address to, uint tokenId) public {
     require(msg.sender == tokenOwner[tokenId]);
     return _transfer(msg.sender, to, tokenId);
   }
 
-  function approve(address beneficiary, uint tokenId) {
+  function approve(address beneficiary, uint tokenId) public {
     require(msg.sender == beneficiary);
 
     if (allowedTransfer[tokenId] != 0) {
@@ -52,15 +52,15 @@ contract BasicNFT is NFT, NFTEvents {
     TokenTransferAllowed(tokenId, beneficiary);
   }
 
-  function transferFrom(address from, address to, uint tokenId) {
+  function transferFrom(address from, address to, uint tokenId) public {
     return _transfer(from, to, tokenId);
   }
 
-  function metadata(uint tokenId) constant returns (bytes) {
+  function metadata(uint tokenId) constant public returns (bytes) {
     return tokenMetadata[tokenId];
   }
 
-  function updateTokenMetadata(uint tokenId, bytes _metadata) {
+  function updateTokenMetadata(uint tokenId, bytes _metadata) public {
     require(msg.sender == tokenOwner[tokenId]);
     tokenMetadata[tokenId] = _metadata;
     TokenMetadataUpdated(tokenId, msg.sender, _metadata);
