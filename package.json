@@ -1,0 +1,22 @@
+{
+  "name": "land",
+  "version": "1.0.0",
+  "description": "Contract for Decentraland's LAND",
+  "scripts": {
+    "test": "scripts/test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/decentraland/land.git"
+  },
+  "author": "The Decentraland Team <hello@decentraland.org>",
+  "license": "Apache2.0",
+  "bugs": {
+    "url": "https://github.com/decentraland/land/issues"
+  },
+  "homepage": "https://github.com/decentraland/land#readme",
+  "dependencies": {
+    "mocha": "^3.5.3",
+    "truffle": "^3.4.11"
+  }
+}
