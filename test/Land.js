@@ -9,7 +9,7 @@ contract('LAND', function(accounts) {
   let query
 
   beforeEach(async () => {
-    world = await FakeLAND.new()
+    world = await FakeLAND.new({ gas: 10000000 })
     land = 1
     await world.create(1, user, new Buffer(0))
   })

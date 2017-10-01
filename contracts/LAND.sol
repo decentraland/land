@@ -12,29 +12,30 @@ contract Land is BasicNFT {
 
   event TokenPing(uint tokenId);
 
-  Land(address _claimContract) {
+  function Land(address _claimContract) {
     claimContract = _claimContract;
   }
 
-  assignNewParcel(address beneficiary, uint tokenId, bytes metadata) {
+  function assignNewParcel(address beneficiary, uint tokenId, bytes metadata) public {
     require(msg.sender == claimContract);
-    require(!tokenOwner[tokenId]);
+    require(tokenOwner[tokenId] == 0);
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     TokenCreated(tokenId, beneficiary, metadata);
   }
 
-  ping(uint tokenId) {
+  function ping(uint tokenId) public {
     require(msg.sender == tokenOwner[tokenId]);
     latestPing[tokenId] = now;
     TokenPing(tokenId);
   }
 
-  claimForgottenParcel(address beneficiary, uint tokenId) {
+  function claimForgottenParcel(address beneficiary, uint tokenId) public {
     require(tokenOwner[tokenId] != 0);
     require(latestPing[tokenId] < now);
-    require(now - latestPing[tokenId] > 1 year);
-    _transfer(tokenOwner[tokenId], beneficiary, tokenId);
-    TokenTransferred(tokenId, from, to);
+    require(now - latestPing[tokenId] > 1 years);
+    address oldOwner = tokenOwner[tokenId];
+    _transfer(oldOwner, beneficiary, tokenId);
+    TokenTransferred(tokenId, oldOwner, beneficiary);
   }
 }
