@@ -32,10 +32,12 @@ contract Land is BasicNFT {
   }
 
   function claimForgottenParcel(address beneficiary, uint tokenId) public {
+    require(msg.sender == claimContract);
     require(tokenOwner[tokenId] != 0);
     require(latestPing[tokenId] < now);
     require(now - latestPing[tokenId] > 1 years);
     address oldOwner = tokenOwner[tokenId];
+    latestPing[tokenId] = now;
     _transfer(oldOwner, beneficiary, tokenId);
     TokenTransferred(tokenId, oldOwner, beneficiary);
   }
