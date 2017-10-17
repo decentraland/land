@@ -1,15 +1,21 @@
 pragma solidity ^0.4.15;
 
-import './FAKEMana.sol';
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+
+contract BurnableToken {
+  function transferFrom(address, address, uint) public returns (bool);
+  function burn(uint) public;
+}
+
 import './Land.sol';
 
 contract SimpleLandSell is Ownable {
 
-  FAKEMana public token;
+  BurnableToken public token;
   Land public land;
 
   function SimpleLandSell(address _token) {
-    token = FAKEMana(_token);
+    token = BurnableToken(_token);
     land = deployLand();
 
     land.assignNewParcel(msg.sender, buildTokenId(0, 0), '42');
