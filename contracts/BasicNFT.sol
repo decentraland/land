@@ -18,7 +18,7 @@ contract BasicNFT is NFT, NFTEvents {
   mapping(uint => address) public allowedTransfer;
 
   // Metadata associated with each token
-  mapping(uint => bytes) public tokenMetadata;
+  mapping(uint => string) public tokenMetadata;
 
   function totalSupply() public constant returns (uint) {
     return totalTokens;
@@ -28,11 +28,11 @@ contract BasicNFT is NFT, NFTEvents {
     return _virtualLength[owner];
   }
 
-  function tokenByIndex(address owner, uint index) public returns (uint) {
+  function tokenByIndex(address owner, uint index) public constant returns (uint) {
     return ownedTokens[owner][index];
   }
 
-  function ownerOf(uint tokenId) public returns (address) {
+  function ownerOf(uint tokenId) public constant returns (address) {
     return tokenOwner[tokenId];
   }
 
@@ -56,11 +56,11 @@ contract BasicNFT is NFT, NFTEvents {
     return _transfer(from, to, tokenId);
   }
 
-  function metadata(uint tokenId) constant public returns (bytes) {
+  function metadata(uint tokenId) constant public returns (string) {
     return tokenMetadata[tokenId];
   }
 
-  function updateTokenMetadata(uint tokenId, bytes _metadata) public {
+  function updateTokenMetadata(uint tokenId, string _metadata) public {
     require(msg.sender == tokenOwner[tokenId]);
     tokenMetadata[tokenId] = _metadata;
     TokenMetadataUpdated(tokenId, msg.sender, _metadata);

@@ -16,7 +16,7 @@ contract Land is BasicNFT {
     claimContract = _claimContract;
   }
 
-  function assignNewParcel(address beneficiary, uint tokenId, bytes metadata) public {
+  function assignNewParcel(address beneficiary, uint tokenId, string metadata) public {
     require(msg.sender == claimContract);
     require(tokenOwner[tokenId] == 0);
     latestPing[tokenId] = now;
@@ -29,6 +29,14 @@ contract Land is BasicNFT {
     require(msg.sender == tokenOwner[tokenId]);
     latestPing[tokenId] = now;
     TokenPing(tokenId);
+  }
+
+  function buildTokenId(uint x, uint y) public constant returns (uint256) {
+    return uint256(sha3(x, '|', y));
+  }
+
+  function exists(uint x, uint y) public constant returns (bool) {
+    return tokenOwner[buildTokenId(x, y)] != 0;
   }
 
   function claimForgottenParcel(address beneficiary, uint tokenId) public {

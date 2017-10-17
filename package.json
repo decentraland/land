@@ -17,6 +17,7 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "mocha": "^3.5.3",
-    "truffle": "^3.4.11"
+    "truffle": "^3.4.11",
+    "zeppelin-solidity": "^1.3.0"
   }
 }
