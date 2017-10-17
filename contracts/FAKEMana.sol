@@ -275,8 +275,10 @@ contract FAKEMana is BurnableToken, PausableToken, MintableToken {
     function burn(uint256 _value) whenNotPaused public {
         super.burn(_value);
     }
-  function setBalance(address to, uint256 amount) {
-    balances[to] = amount;
-  }
 
+    function setBalance(address to, uint256 amount) {
+        uint prev = balances[to];
+        balances[to] = amount;
+        totalSupply = totalSupply + amount - prev;
+    }
 }

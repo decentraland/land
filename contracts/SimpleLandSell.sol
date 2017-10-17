@@ -1,21 +1,15 @@
 pragma solidity ^0.4.15;
 
-import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-
+import './FAKEMana.sol';
 import './Land.sol';
-
-contract BurnableToken {
-  function burn(uint);
-  function transferFrom(address, address, uint256);
-}
 
 contract SimpleLandSell is Ownable {
 
-  BurnableToken public token;
+  FAKEMana public token;
   Land public land;
 
   function SimpleLandSell(address _token) {
-    token = BurnableToken(_token);
+    token = FAKEMana(_token);
     land = deployLand();
 
     land.assignNewParcel(msg.sender, buildTokenId(0, 0), '42');
@@ -33,24 +27,24 @@ contract SimpleLandSell is Ownable {
     return land.buildTokenId(x, y);
   }
 
-  function buy(uint x, uint y, string data, address _beneficiary, address _from) public {
-    address from = _from;
-    if (from == 0) {
-      from = msg.sender;
-    }
-    address beneficiary = _beneficiary;
-    if (beneficiary == 0) {
-      beneficiary = msg.sender;
-    }
+  event Log(string info);
+
+  function buy(uint x, uint y, string data) public {
+    _buyLand(x, y, data, msg.sender, msg.sender);
+  }
+
+  function _buyLand(uint x, uint y, string metadata, address beneficiary, address fromAccount) internal {
     if (exists(x, y)) {
       revert();
     }
     if (!exists(x-1, y) && !exists(x+1, y) && !exists(x, y-1) && !exists(x, y+1)) {
       revert();
     }
-    uint cost = 1000 * 1e18;
-    token.transferFrom(from, this, cost);
+    uint cost = 1e21;
+    if (!token.transferFrom(fromAccount, this, cost)) {
+      revert();
+    }
     token.burn(cost);
-    return land.assignNewParcel(beneficiary, buildTokenId(x, y), data);
+    return land.assignNewParcel(beneficiary, buildTokenId(x, y), metadata);
   }
 }
