@@ -16,13 +16,14 @@ contract Land is BasicNFT {
     claimContract = _claimContract;
   }
 
-  function assignNewParcel(address beneficiary, uint tokenId, string metadata) public {
+  function assignNewParcel(address beneficiary, uint tokenId, string _metadata) public {
     require(msg.sender == claimContract);
     require(tokenOwner[tokenId] == 0);
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
-    TokenCreated(tokenId, beneficiary, metadata);
+    tokenMetadata[tokenId] = _metadata;
+    TokenCreated(tokenId, beneficiary, _metadata);
   }
 
   function ping(uint tokenId) public {
@@ -36,7 +37,31 @@ contract Land is BasicNFT {
   }
 
   function exists(uint x, uint y) public constant returns (bool) {
-    return tokenOwner[buildTokenId(x, y)] != 0;
+    return ownerOfLand(x, y) != 0;
+  }
+
+  function ownerOfLand(uint x, uint y) public constant returns (address) {
+    return tokenOwner[buildTokenId(x, y)];
+  }
+
+  function transferLand(address to, uint x, uint y) public {
+    return transfer(to, buildTokenId(x, y));
+  }
+
+  function approveLandTransfer(address to, uint x, uint y) public {
+    return approve(to, buildTokenId(x, y));
+  }
+
+  function transferLandFrom(address from, address to, uint x, uint y) public {
+    return transferFrom(from, to, buildTokenId(x, y));
+  }
+
+  function landMetadata(uint x, uint y) constant public returns (string) {
+    return tokenMetadata[buildTokenId(x, y)];
+  }
+
+  function updateLandMetadata(uint x, uint y, string _metadata) public {
+    return updateTokenMetadata(buildTokenId(x, y), _metadata);
   }
 
   function claimForgottenParcel(address beneficiary, uint tokenId) public {

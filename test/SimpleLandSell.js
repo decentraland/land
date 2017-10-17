@@ -21,7 +21,8 @@ contract('Simple LAND Selling', function([owner, user]) {
     await mana.approve(sell.address, 1e21, { from: user })
     await sell.buy(0, 1, 'Hello Decentraland!', { from: user })
     numberOfLand = (await world.totalSupply()).toString()
-    assert(numberOfLand == 2)
+    assert(numberOfLand == 2, 'Amount of land is incorrect')
+    assert(await world.landMetadata(0, 1) === 'Hello Decentraland!')
   })
 })
 
