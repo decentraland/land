@@ -29,7 +29,17 @@ contract BasicNFT is NFT, NFTEvents {
   }
 
   function tokenByIndex(address owner, uint index) public constant returns (uint) {
+    require(index >= 0 && index < balanceOf(owner));
     return ownedTokens[owner][index];
+  }
+  
+  function getAllTokens(address owner) public constant returns (uint[]) {
+    uint size = _virtualLength[owner];
+    uint[size] result;
+    for (uint i = 0; i < size; i++) {
+      result[i] = ownedTokens[owner][i];
+    }
+    return result;
   }
 
   function ownerOf(uint tokenId) public constant returns (address) {
