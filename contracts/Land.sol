@@ -1,23 +1,18 @@
 pragma solidity ^0.4.15;
 
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './BasicNFT.sol';
 
-contract Land is BasicNFT {
+contract Land is Ownable, BasicNFT {
 
   string public name = 'Decentraland World';
   string public symbol = 'LAND';
 
-  address public claimContract;
   mapping (uint => uint) public latestPing;
 
   event TokenPing(uint tokenId);
 
-  function Land(address _claimContract) {
-    claimContract = _claimContract;
-  }
-
-  function assignNewParcel(address beneficiary, uint tokenId, string _metadata) public {
-    require(msg.sender == claimContract);
+  function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
@@ -64,8 +59,7 @@ contract Land is BasicNFT {
     return updateTokenMetadata(buildTokenId(x, y), _metadata);
   }
 
-  function claimForgottenParcel(address beneficiary, uint tokenId) public {
-    require(msg.sender == claimContract);
+  function claimForgottenParcel(address beneficiary, uint tokenId) onlyOwner public {
     require(tokenOwner[tokenId] != 0);
     require(latestPing[tokenId] < now);
     require(now - latestPing[tokenId] > 1 years);
