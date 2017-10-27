@@ -1,6 +1,7 @@
 pragma solidity ^0.4.15;
 
 import './Land.sol';
+import "Ownable.sol";
 
 contract RentingContract is Ownable{
     uint256 land;
