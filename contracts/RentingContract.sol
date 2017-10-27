@@ -53,7 +53,7 @@ contract RentingContract is Ownable{
         costPerSecond = weeklyCost / 1 weeks;
 
         require(landContract.ownerOf(tokenId) == address(this));
-
+        
         return true
     }
 
@@ -95,6 +95,11 @@ contract RentingContract is Ownable{
 
     modifier onlyTenant {
         require(msg.sender == tenant);
+        _;
+    }
+    
+    modifier onlyTenantOrOwner {
+        require(msg.sender == tenant || msg.sender == );
         _;
     }
 
@@ -164,5 +169,9 @@ contract RentingContract is Ownable{
 
     function updateLand(string _metadata) public onlyTenant onlyIfRented {
         updateTokenMetadata(land, _metadata);
+    }
+    
+    function PingLand() public onlyTenantOrOwner {
+        landContract.ping(tokenId);
     }
 }
