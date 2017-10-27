@@ -2,14 +2,13 @@ pragma solidity ^0.4.15;
 
 import './Land.sol';
 
-contract RentingContract {
+contract RentingContract is Ownable{
     uint256 land;
     
     uint land_x;
     uint land_y;
     
     Land L = Land(0x0); //put land contract address here
-    address Owner;
     address tenant;
     
     bool Setup = false;
@@ -22,7 +21,6 @@ contract RentingContract {
     
     function RentingContract(uint PUpFrontCost, uint PCostPerWeek)
     {
-        Owner = msg.sender;
         UpFrontCost = PUpFrontCost;
         CostPerWeek = PCostPerWeek;
     }
@@ -49,11 +47,8 @@ contract RentingContract {
         }
     }
     
-    function Evict()
-    {
-        if(msg.sender != Owner)
-            return;
-        
+    function Evict() onlyOwner
+    {        
         if(lastpayed + 1 week < now)
         {
             IsVacent = true;
@@ -68,22 +63,16 @@ contract RentingContract {
         }
     }
     
-    function Reclaim() {
+    function Reclaim() onlyOwner {
         if(!IsVacent)
             return;
         
-        if(msg.sender != Owner)
-            return;
-        
         L.transferLand(Owner, land_x, land_y);
-        suicide(Owner);
+        suicide(owner);
     }
     
-    function ClaimFunds() {
-        if(msg.sender != Owner)
-            return;
-            
-        Owner.send(this.balance)
+    function ClaimFunds() onlyOwner {
+        owner.send(this.balance)
     }
     
     function EditLand(string _metadata) {
