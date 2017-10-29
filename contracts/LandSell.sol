@@ -22,10 +22,6 @@ contract LandSell {
     return land.buildTokenId(x, y);
   }
 
-  function deployLand() internal returns (Land) {
-    return new Land();
-  }
-
   function isValidLand(uint x, uint y) internal returns (bool);
 
   function _buyLand(uint x, uint y, string metadata, address beneficiary, address fromAccount, uint cost) internal {
