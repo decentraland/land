@@ -7,15 +7,15 @@ const should = require('chai')
   .should()
 
 const Mana = artifacts.require('./FAKEMana')
-const Land = artifacts.require('./Land')
-const TerraformLandSell = artifacts.require('./TerraformLandSell')
+const Land = artifacts.require('./LANDToken')
+const LANDTerraformSale = artifacts.require('./LANDTerraformSale')
 
-contract('LAND Terraform Sell', function ([owner, buyer1, buyer2]) {
+contract('LANDTerraformSale', function ([owner, buyer1, buyer2]) {
   let mana, sell, world
 
   before(async () => {
     mana = await Mana.new()
-    sell = await TerraformLandSell.new(mana.address)
+    sell = await LANDTerraformSale.new(mana.address)
     world = await Land.at(await sell.land())
     await mana.setBalance(buyer1, 1e22)
   })

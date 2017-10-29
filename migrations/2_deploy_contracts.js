@@ -1,5 +1,5 @@
-const TerraformLandSell = artifacts.require('./TerraformLandSell.sol')
+const LANDTerraformSale = artifacts.require('./LANDTerraformSale.sol')
 
 module.exports = function (deployer) {
-  deployer.deploy(TerraformLandSell)
+  deployer.deploy(LANDTerraformSale)
 }

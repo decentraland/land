@@ -3,7 +3,7 @@ pragma solidity ^0.4.15;
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './BasicNFT.sol';
 
-contract Land is Ownable, BasicNFT {
+contract LANDToken is Ownable, BasicNFT {
 
   string public name = 'Decentraland World';
   string public symbol = 'LAND';

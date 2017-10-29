@@ -5,12 +5,12 @@ contract BurnableToken {
   function burn(uint) public;
 }
 
-import './Land.sol';
+import './LANDToken.sol';
 
-contract LandSell {
+contract LANDSale {
   
   BurnableToken public token;
-  Land public land;
+  LANDToken public land;
 
   event Log(string info);
 

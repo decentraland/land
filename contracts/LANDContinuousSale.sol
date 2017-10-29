@@ -1,16 +1,16 @@
 pragma solidity ^0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import './Land.sol';
-import './LandSell.sol';
+import './LANDToken.sol';
+import './LANDSale.sol';
 
-contract SimpleLandSell is LandSell, Ownable {
+contract LANDContinuousSale is LANDSale, Ownable {
 
   uint public constant LAND_MANA_COST = 1e21;
 
-  function SimpleLandSell(address _token, address _land) {
+  function LANDContinuousSale(address _token, address _land) {
     token = BurnableToken(_token);
-    land = Land(_land);
+    land = LANDToken(_land);
   }
 
   function buy(uint x, uint y, string data) public {

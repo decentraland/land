@@ -1,14 +1,14 @@
 const Mana = artifacts.require('./FAKEMana')
-const Land = artifacts.require('./Land')
-const SimpleLandSell = artifacts.require('./SimpleLandSell')
+const Land = artifacts.require('./LANDToken')
+const LANDContinuousSale = artifacts.require('./LANDContinuousSale')
 const BigNumber = web3.BigNumber
 
-contract('Simple LAND Selling', function ([owner, user]) {
+contract('LANDContinuousSale', function ([owner, user]) {
   let mana, sell, world
 
   beforeEach(async () => {
     mana = await Mana.new()
-    sell = await SimpleLandSell.new(mana.address)
+    sell = await LANDContinuousSale.new(mana.address)
     world = await Land.at(await sell.land())
     await mana.setBalance(user, 1e22)
   })

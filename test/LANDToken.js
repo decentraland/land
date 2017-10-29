@@ -1,7 +1,7 @@
-const Land = artifacts.require('./Land')
+const Land = artifacts.require('./LANDToken')
 const BigNumber = web3.BigNumber
 
-contract('LAND', function (accounts) {
+contract('LANDToken', function (accounts) {
   let world
   let land
   let user = accounts[1]

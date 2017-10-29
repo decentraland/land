@@ -1,11 +1,11 @@
 pragma solidity ^0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import './LandSell.sol';
+import './LANDSale.sol';
 
-contract TerraformLandSell is LandSell, Ownable {
+contract LANDTerraformSale is LANDSale, Ownable {
 
-  function TerraformLandSell(address _token) {
+  function LANDTerraformSale(address _token) {
     token = BurnableToken(_token);
 
     // Start LAND and assign genesis parcel
@@ -21,8 +21,8 @@ contract TerraformLandSell is LandSell, Ownable {
     land.transferOwnership(_newOwner);
   }
 
-  function deployLand() internal returns (Land) {
-    return new Land();
+  function deployLand() internal returns (LANDToken) {
+    return new LANDToken();
   }
 
   function isValidLand(uint x, uint y) internal returns (bool) {
