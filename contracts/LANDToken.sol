@@ -14,16 +14,20 @@ contract LANDToken is Ownable, BasicNFT {
 
   function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);
+
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
     tokenMetadata[tokenId] = _metadata;
+
     TokenCreated(tokenId, beneficiary, _metadata);
   }
 
   function ping(uint tokenId) public {
     require(msg.sender == tokenOwner[tokenId]);
+
     latestPing[tokenId] = now;
+
     TokenPing(tokenId);
   }
 
@@ -63,9 +67,11 @@ contract LANDToken is Ownable, BasicNFT {
     require(tokenOwner[tokenId] != 0);
     require(latestPing[tokenId] < now);
     require(now - latestPing[tokenId] > 1 years);
+
     address oldOwner = tokenOwner[tokenId];
     latestPing[tokenId] = now;
     _transfer(oldOwner, beneficiary, tokenId);
+
     TokenTransferred(tokenId, oldOwner, beneficiary);
   }
 }

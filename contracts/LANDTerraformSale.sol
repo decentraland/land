@@ -3,18 +3,55 @@ pragma solidity ^0.4.15;
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './LANDSale.sol';
 
+contract ReturnVestingRegistry is Ownable {
+  mapping (address => address) public returnAddress;
+}
+
 contract LANDTerraformSale is LANDSale, Ownable {
 
-  function LANDTerraformSale(address _token) {
-    token = BurnableToken(_token);
+  ReturnVestingRegistry public returnRegistry;
+  address public terraformReserve;
 
-    // Start LAND and assign genesis parcel
+  string public constant EMPTY_METADATA = '';
+
+  function LANDTerraformSale(address _token, address _terraformReserve, address _returnRegistry) {
+    token = BurnableToken(_token);
+    returnRegistry = ReturnVestingRegistry(_returnRegistry);
+    terraformReserve = _terraformReserve;
+
     land = deployLand();
-    land.assignNewParcel(msg.sender, buildTokenId(0, 0), '42');
   }
 
-  function buy(uint x, uint y, string data, uint cost) public {
-    _buyLand(x, y, data, msg.sender, msg.sender, cost);
+  function buy(address _buyer, uint256 _x, uint256 _y, uint256 _cost) onlyOwner public {
+    _buyLand(_x, _y, EMPTY_METADATA, _buyer, terraformReserve, _cost);
+  }
+
+  function buyMany(address _buyer, uint256[] _x, uint256[] _y, uint256 _totalCost) onlyOwner public {
+    require(_x.length == _y.length);
+
+    // Transfer funds from reserve to this contract to allow burning MANA
+    if (!token.transferFrom(terraformReserve, this, _totalCost)) {
+      revert();
+    }
+    token.burn(_totalCost);
+
+    for (uint256 i = 0; i < _x.length; i++) {
+      land.assignNewParcel(_buyer, buildTokenId(_x[i], _y[i]), EMPTY_METADATA);
+    }
+  }
+
+  function transferBackMANA(address _address, uint256 _amount) onlyOwner public {
+    require(_address != address(0));
+    require(_amount > 0);
+
+    // Use vesting return address if present
+    address returnAddress = returnRegistry.returnAddress(_address);
+    if (returnAddress == address(0)) {
+      returnAddress = _address;
+    }
+
+    // Funds are always transferred from reserve
+    require(token.transferFrom(terraformReserve, _address, _amount));
   }
 
   function transferLandOwnership(address _newOwner) onlyOwner public {
@@ -25,7 +62,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     return new LANDToken();
   }
 
-  function isValidLand(uint x, uint y) internal returns (bool) {
+  function _isValidLand(uint256 _x, uint256 _y) internal returns (bool) {
     return true;
   }
 }

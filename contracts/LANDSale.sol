@@ -22,20 +22,18 @@ contract LANDSale {
     return land.buildTokenId(x, y);
   }
 
-  function isValidLand(uint x, uint y) internal returns (bool);
+  function _isValidLand(uint256 _x, uint256 _y) internal returns (bool);
 
   function _buyLand(uint x, uint y, string metadata, address beneficiary, address fromAccount, uint cost) internal {
-    if (exists(x, y)) {
-      revert();
-    }
-    if (!isValidLand(x, y)) {
-      revert();
-    }
+    require(!exists(x, y));
+    require(_isValidLand(x, y));
+
+    // Transfer funds to this contract to allow burning MANA
     if (!token.transferFrom(fromAccount, this, cost)) {
       revert();
     }
-
     token.burn(cost);
-    return land.assignNewParcel(beneficiary, buildTokenId(x, y), metadata);
+
+    land.assignNewParcel(beneficiary, buildTokenId(x, y), metadata);
   }
 }

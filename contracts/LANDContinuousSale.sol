@@ -17,7 +17,7 @@ contract LANDContinuousSale is LANDSale, Ownable {
     _buyLand(x, y, data, msg.sender, msg.sender, LAND_MANA_COST);
   }
 
-  function isValidLand(uint x, uint y) internal returns (bool) {
-    return exists(x-1, y) || exists(x+1, y) || exists(x, y-1) || exists(x, y+1);
+  function _isValidLand(uint256 _x, uint256 _y) internal returns (bool) {
+    return exists(_x-1, _y) || exists(_x+1, _y) || exists(_x, _y-1) || exists(_x, _y+1);
   }
 }
