@@ -44,10 +44,14 @@ contract LANDTerraformSale is LANDSale, Ownable {
     require(_address != address(0));
     require(_amount > 0);
 
+    address returnAddress = _address;
+
     // Use vesting return address if present
-    address returnAddress = returnRegistry.returnAddress(_address);
-    if (returnAddress == address(0)) {
-      returnAddress = _address;
+    if (returnRegistry != address(0)) {
+      address mappedAddress = returnRegistry.returnAddress(_address);
+      if (mappedAddress != address(0)) {
+        returnAddress = mappedAddress;
+      }
     }
 
     // Funds are always transferred from reserve
