@@ -28,7 +28,7 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
   })
 
   describe('buyer want to buy LAND', function () {
-    const landCost = 1e21
+    const landCost = 1000 * 1e18
 
     it('should assign LAND to buyer', async function () {
       await sale.buy(buyer1, 0, 0, landCost, { from: owner })
@@ -50,7 +50,7 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       const cost = Array(x.length).fill(landCost)
       const totalCost = utils.sum(cost)
 
-      const oldBalance = await mana.allowance(terraformReserve, sale.address)
+      const oldBalance = await mana.balanceOf(terraformReserve)
 
       await sale.buyMany(buyer2, x, y, totalCost)
 
@@ -59,7 +59,7 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       numberOfLand.should.be.bignumber.equal(new BigNumber(2 + x.length))
 
       // Check MANA burnt
-      const newBalance = await mana.allowance(terraformReserve, sale.address)
+      const newBalance = await mana.balanceOf(terraformReserve)
       newBalance.should.be.bignumber.equal(oldBalance - totalCost)
     })
 
