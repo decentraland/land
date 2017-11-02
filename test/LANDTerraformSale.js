@@ -57,8 +57,8 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       const totalCost = sum(cost)
 
       const oldBalance = await mana.balanceOf(terraformReserve)
-
       await sale.buyMany(buyer2, x, y, totalCost)
+      const newBalance = await mana.balanceOf(terraformReserve)
 
       // Check LAND created
       const numberOfLand = await world.totalSupply()
@@ -72,7 +72,6 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       }
 
       // Check MANA burnt
-      const newBalance = await mana.balanceOf(terraformReserve)
       newBalance.should.be.bignumber.equal(oldBalance - totalCost)
     })
 
@@ -89,6 +88,7 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
 
     it('should throw if amount to return is not positive', async function () {
       await sale.transferBackMANA(buyer1, 0).should.be.rejectedWith(EVMThrow)
+      await sale.transferBackMANA(buyer1, -1).should.be.rejectedWith(EVMThrow)
     })
 
     it('should throw if return address is invalid', async function () {
