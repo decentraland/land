@@ -2,21 +2,18 @@ pragma solidity ^0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './LANDSale.sol';
-
-contract ReturnVestingRegistry is Ownable {
-  mapping (address => address) public returnAddress;
-}
+import './ReturnVestingRegistry.sol';
 
 contract LANDTerraformSale is LANDSale, Ownable {
 
-  ReturnVestingRegistry public returnRegistry;
+  ReturnVestingRegistry public returnVesting;
   address public terraformReserve;
 
   string public constant EMPTY_METADATA = '';
 
-  function LANDTerraformSale(address _token, address _terraformReserve, address _returnRegistry) {
+  function LANDTerraformSale(address _token, address _terraformReserve, address _returnVesting) {
     token = BurnableToken(_token);
-    returnRegistry = ReturnVestingRegistry(_returnRegistry);
+    returnVesting = ReturnVestingRegistry(_returnVesting);
     terraformReserve = _terraformReserve;
 
     land = deployLand();
@@ -47,8 +44,8 @@ contract LANDTerraformSale is LANDSale, Ownable {
     address returnAddress = _address;
 
     // Use vesting return address if present
-    if (returnRegistry != address(0)) {
-      address mappedAddress = returnRegistry.returnAddress(_address);
+    if (returnVesting != address(0)) {
+      address mappedAddress = returnVesting.returnAddress(_address);
       if (mappedAddress != address(0)) {
         returnAddress = mappedAddress;
       }

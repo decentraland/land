@@ -11,17 +11,20 @@ const { EVMThrow, sum } = require('./utils')
 const Mana = artifacts.require('./FAKEMana')
 const Land = artifacts.require('./LANDToken')
 const LANDTerraformSale = artifacts.require('./LANDTerraformSale')
+const ReturnVestingRegistry = artifacts.require('./ReturnVestingRegistry')
 
-contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2]) {
+contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2, vested2]) {
   const landCost = 1000 * 1e18
   const totalMANALocked = 10000 * 1e18
-  const returnRegistry = 0x0
 
-  let mana, sale, world
+  let mana, sale, world, returnVesting
 
   beforeEach(async () => {
     mana = await Mana.new()
-    sale = await LANDTerraformSale.new(mana.address, terraformReserve, returnRegistry)
+    returnVesting = await ReturnVestingRegistry.new()
+    await returnVesting.record(buyer2, vested2)
+
+    sale = await LANDTerraformSale.new(mana.address, terraformReserve, returnVesting.address)
     world = await Land.at(await sale.land())
 
     await mana.setBalance(terraformReserve, totalMANALocked)
@@ -96,6 +99,13 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       const oldBalance = await mana.balanceOf(buyer1)
       await sale.transferBackMANA(buyer1, landCost)
       const newBalance = await mana.balanceOf(buyer1)
+      newBalance.should.be.bignumber.equal(oldBalance + landCost)
+    })
+
+    it('should return funds to vested buyer', async function () {
+      const oldBalance = await mana.balanceOf(vested2)
+      await sale.transferBackMANA(buyer2, landCost)
+      const newBalance = await mana.balanceOf(vested2)
       newBalance.should.be.bignumber.equal(oldBalance + landCost)
     })
   })
