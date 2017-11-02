@@ -78,4 +78,25 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       storedMetadata.should.be.equal('')
     })
   })
+
+  describe('return MANA back to buyers', function () {
+    it('should throw if not the owner returning funds', async function () {
+      await sale.transferBackMANA(buyer1, landCost, {from: buyer2}).should.be.rejectedWith(EVMThrow)
+    })
+
+    it('should throw if amount to return is not positive', async function () {
+      await sale.transferBackMANA(buyer1, 0).should.be.rejectedWith(EVMThrow)
+    })
+
+    it('should throw if return address is invalid', async function () {
+      await sale.transferBackMANA(0x0, landCost).should.be.rejectedWith(EVMThrow)
+    })
+
+    it('should return funds to buyer', async function () {
+      const oldBalance = await mana.balanceOf(buyer1)
+      await sale.transferBackMANA(buyer1, landCost)
+      const newBalance = await mana.balanceOf(buyer1)
+      newBalance.should.be.bignumber.equal(oldBalance + landCost)
+    })
+  })
 })
