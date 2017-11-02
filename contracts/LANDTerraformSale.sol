@@ -51,7 +51,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     }
 
     // Funds are always transferred from reserve
-    require(token.transferFrom(terraformReserve, _address, _amount));
+    require(token.transferFrom(terraformReserve, returnAddress, _amount));
   }
 
   function transferLandOwnership(address _newOwner) onlyOwner public {
