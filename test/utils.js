@@ -1,3 +1,4 @@
+export const EVMRevert = 'revert'
 export const EVMThrow = 'invalid opcode'
 
 export function sum (values) {

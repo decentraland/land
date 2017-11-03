@@ -6,7 +6,7 @@ const should = require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should()
 
-const { EVMThrow, sum } = require('./utils')
+const { EVMRevert, sum } = require('./utils')
 
 const Mana = artifacts.require('./FAKEMana')
 const Land = artifacts.require('./LANDToken')
@@ -83,16 +83,16 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
 
   describe('return MANA back to buyers', function () {
     it('should throw if not the owner returning funds', async function () {
-      await sale.transferBackMANA(buyer1, landCost, {from: buyer2}).should.be.rejectedWith(EVMThrow)
+      await sale.transferBackMANA(buyer1, landCost, {from: buyer2}).should.be.rejectedWith(EVMRevert)
     })
 
     it('should throw if amount to return is not positive', async function () {
-      await sale.transferBackMANA(buyer1, 0).should.be.rejectedWith(EVMThrow)
-      await sale.transferBackMANA(buyer1, -1).should.be.rejectedWith(EVMThrow)
+      await sale.transferBackMANA(buyer1, 0).should.be.rejectedWith(EVMRevert)
+      await sale.transferBackMANA(buyer1, -1).should.be.rejectedWith(EVMRevert)
     })
 
     it('should throw if return address is invalid', async function () {
-      await sale.transferBackMANA(0x0, landCost).should.be.rejectedWith(EVMThrow)
+      await sale.transferBackMANA(0x0, landCost).should.be.rejectedWith(EVMRevert)
     })
 
     it('should return funds to buyer', async function () {
