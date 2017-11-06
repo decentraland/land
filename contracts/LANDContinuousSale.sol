@@ -6,15 +6,16 @@ import './LANDSale.sol';
 
 contract LANDContinuousSale is LANDSale, Ownable {
 
-  uint public constant LAND_MANA_COST = 1e21;
+  // fixed MANA to LAND cost
+  uint256 public constant LAND_MANA_COST = 1e21;
 
   function LANDContinuousSale(address _token, address _land) {
     token = BurnableToken(_token);
     land = LANDToken(_land);
   }
 
-  function buy(uint x, uint y, string data) public {
-    _buyLand(x, y, data, msg.sender, msg.sender, LAND_MANA_COST);
+  function buy(uint256 _x, uint256 _y, string _data) public {
+    _buyLand(_x, _y, _data, msg.sender, msg.sender, LAND_MANA_COST);
   }
 
   function _isValidLand(uint256 _x, uint256 _y) internal returns (bool) {
