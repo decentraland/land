@@ -5,7 +5,7 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/math/Math.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-import './Land.sol';
+import './LANDToken.sol';
 
 contract RentingContract is Ownable{
     using SafeMath for uint256;
@@ -16,7 +16,7 @@ contract RentingContract is Ownable{
     uint256 public tokenId;
 
     // Land contract for Decentraland
-    Land public landContract = Land(0x0);
+    LANDToken public landContract;
 
     uint256 public upfrontCost;
     uint256 public ownerTerminationCost;
@@ -27,9 +27,10 @@ contract RentingContract is Ownable{
     uint256 public rentStartedAt;
     uint256 public tenantBalance;
 
-    function RentingContract()
+    function RentingContract(LANDToken _landContract)
     {
-        require(landContract != 0);
+        require(_landContract != 0);
+        landContract = _landContract;
     }
 
     function initRentContract(
@@ -53,8 +54,7 @@ contract RentingContract is Ownable{
         costPerSecond = weeklyCost / 1 weeks;
 
         require(landContract.ownerOf(tokenId) == address(this));
-        
-        return true
+        return true;
     }
 
     function isSetup() public returns(bool) {
@@ -97,9 +97,9 @@ contract RentingContract is Ownable{
         require(msg.sender == tenant);
         _;
     }
-    
+
     modifier onlyTenantOrOwner {
-        require(msg.sender == tenant || msg.sender == );
+        require(msg.sender == tenant || msg.sender == owner);
         _;
     }
 
@@ -170,8 +170,8 @@ contract RentingContract is Ownable{
     function updateLand(string _metadata) public onlyTenant onlyIfRented {
         updateTokenMetadata(land, _metadata);
     }
-    
-    function PingLand() public onlyTenantOrOwner {
+
+    function pingLand() public onlyTenantOrOwner {
         landContract.ping(tokenId);
     }
 }
