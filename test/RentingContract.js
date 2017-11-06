@@ -1,5 +1,6 @@
 const Mana = artifacts.require('./FAKEMana')
 const Land = artifacts.require('./LANDToken')
+const LANDContinuousSale = artifacts.require('./LANDContinuousSale')
 const Rent = artifacts.require('./RentingContract')
 const BigNumber = web3.BigNumber
 
