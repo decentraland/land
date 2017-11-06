@@ -29,7 +29,7 @@ contract RentingContract is Ownable{
 
     function RentingContract(LANDToken _landContract)
     {
-        require(_landContract != 0);
+        require(address(_landContract) != 0);
         landContract = _landContract;
     }
 
@@ -63,7 +63,7 @@ contract RentingContract is Ownable{
     }
 
     function totalDue(uint256 time) returns (uint256) {
-        return time.sub(rentStartedAt).mul(costPerSecond).sum(upfrontCost);
+        return time.sub(rentStartedAt).mul(costPerSecond).add(upfrontCost);
     }
 
     function totalDueSoFar() returns (uint256) {
@@ -74,7 +74,7 @@ contract RentingContract is Ownable{
         return tenant != 0;
     }
 
-    function isDue() public {
+    function isDue() public returns(bool) {
         return isRented() && totalDueSoFar() >= tenantBalance;
     }
 
@@ -109,7 +109,7 @@ contract RentingContract is Ownable{
     function rent() payable onlyIfSetup onlyIfNotRented {
         uint256 paid = msg.value;
         // require 1 week in advance
-        require(totalDue(now + 1 weeks) >= upfrontCost.sum(weeklyCost));
+        require(totalDue(now + 1 weeks) >= upfrontCost.add(weeklyCost));
 
         tenant = msg.sender;
         rentStartedAt = now;
@@ -121,7 +121,7 @@ contract RentingContract is Ownable{
      */
     function payRent() payable onlyIfRented {
         uint256 paid = msg.value;
-        tenantBalance = tenantBalance.sum(paid);
+        tenantBalance = tenantBalance.add(paid);
     }
 
     function evict() public returns (bool) {
@@ -151,24 +151,24 @@ contract RentingContract is Ownable{
     function cancelContract() payable public onlyOwner onlyIfRented {
         require(msg.value >= ownerTerminationCost);
         _release();
-        tenant.send(msg.value);
+        tenant.transfer(msg.value);
     }
 
     function transfer(address target) public onlyOwner onlyIfNotRented {
         _clear();
-        land.transfer(target, tokenId);
+        landContract.transfer(target, tokenId);
     }
 
     function retrieveFunds() public onlyOwner {
-        owner.send(this.balance);
+        owner.transfer(this.balance);
     }
 
     function updateLandForOwner(string _metadata) public onlyOwner onlyIfNotRented {
-        updateTokenMetadata(land, _metadata);
+        landContract.updateTokenMetadata(tokenId, _metadata);
     }
 
     function updateLand(string _metadata) public onlyTenant onlyIfRented {
-        updateTokenMetadata(land, _metadata);
+        landContract.updateTokenMetadata(tokenId, _metadata);
     }
 
     function pingLand() public onlyTenantOrOwner {
