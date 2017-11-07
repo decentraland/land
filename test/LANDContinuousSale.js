@@ -1,26 +1,62 @@
+'use strict'
+
+const BigNumber = web3.BigNumber
+const should = require('chai')
+  .use(require('chai-as-promised'))
+  .use(require('chai-bignumber')(BigNumber))
+  .should()
+
+const { EVMRevert, sum } = require('./utils')
+
 const Mana = artifacts.require('./FAKEMana')
 const Land = artifacts.require('./LANDToken')
 const LANDContinuousSale = artifacts.require('./LANDContinuousSale')
-const BigNumber = web3.BigNumber
 
-contract('LANDContinuousSale', function ([owner, user]) {
+contract('LANDContinuousSale', function ([owner, buyer1, buyer2]) {
+  const landCost = 1000 * 1e18
+  const initialBalance = 1000 * 1e18
+  const metadata = 'Hello Decentraland!'
+
   let mana, sell, world
 
   beforeEach(async () => {
+    // MANA
     mana = await Mana.new()
-    sell = await LANDContinuousSale.new(mana.address)
-    world = await Land.at(await sell.land())
-    await mana.setBalance(user, 1e22)
+    await mana.setBalance(buyer1, initialBalance)
+
+    // LAND
+    world = await Land.new()
+    const tokenId = await world.buildTokenId(0, 0)
+    await world.assignNewParcel(owner, tokenId, 'Genesis')
+
+    // SALE
+    sell = await LANDContinuousSale.new(mana.address, world.address)
+    await world.transferOwnership(sell.address)
   })
 
-  it('allows a user to buy land', async function () {
-    let numberOfLand = (await world.totalSupply()).toString()
-    assert(numberOfLand === 1)
+  it('should allows a user to buy land', async function () {
+    await mana.approve(sell.address, landCost, { from: buyer1 })
+    await sell.buy(0, 1, metadata, { from: buyer1 })
 
-    await mana.approve(sell.address, 1e21, { from: user })
-    await sell.buy(0, 1, 'Hello Decentraland!', { from: user })
-    numberOfLand = (await world.totalSupply()).toString()
-    assert(numberOfLand === 2, 'Amount of land is incorrect')
-    assert(await world.landMetadata(0, 1) === 'Hello Decentraland!')
+    const numberOfLand = await world.totalSupply()
+    numberOfLand.should.be.bignumber.equal(new BigNumber(2))
+
+    const storedMetadata = await world.landMetadata(0, 1)
+    storedMetadata.should.be.equal(metadata)
+  })
+
+  it('should throw if non-adjacent buy', async function () {
+    await mana.approve(sell.address, landCost, { from: buyer1 })
+    await sell.buy(0, 10, metadata, { from: buyer1 }).should.be.rejectedWith(EVMRevert)
+  })
+
+  it('should throw if LAND already bought', async function () {
+    await mana.approve(sell.address, landCost, { from: buyer1 })
+    await sell.buy(0, 1, metadata, { from: buyer1 })
+    await sell.buy(0, 1, metadata, { from: buyer1 }).should.be.rejectedWith(EVMRevert)
+  })
+
+  it('should throw if not enough MANA to buy LAND', async function () {
+    await sell.buy(0, 1, metadata, { from: buyer2 }).should.be.rejectedWith(EVMRevert)
   })
 })
