@@ -15,15 +15,24 @@ contract('Renting', function ([owner, user, tenant]) {
 
   beforeEach(async () => {
     mana = await Mana.new()
-    sell = await LANDContinuousSale.new(mana.address)
-    world = await Land.at(await sell.land())
+
+    // LAND
+    world = await Land.new()
+    const tokenId = await world.buildTokenId(0, 0)
+    await world.assignNewParcel(owner, tokenId, 'Genesis')
+
+    // SALE
+    sell = await LANDContinuousSale.new(mana.address, world.address)
+    await world.transferOwnership(sell.address)
+
     await mana.setBalance(user, 1e22)
     await mana.approve(sell.address, 1e21, { from: user })
-    await sell.buy(0, 1, 'Hello Decentraland!', { from: user })
-    rent = await Rent.new(world.address)
+    await sell.buy(x, y, 'Hello Decentraland!', { from: user })
+    rent = await Rent.new(world.address, { from: user })
   })
 
   it('allows a user to rent land', async function () {
-    await rent.initRentContract(x, y, upfront, ownerCost, weekly)
+    await world.transferLand(rent.address, x, y, { from: user })
+    await rent.initRentContract(x, y, upfront, ownerCost, weekly, { from: user })
   })
 })

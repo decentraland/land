@@ -45,7 +45,7 @@ contract RentingContract is Ownable{
       onlyIfNotRented
       returns (bool)
     {
-        tokenId = landContract.buildTokenId(x, y);
+        tokenId = landContract.buildTokenId(_x, _y);
         x = _x;
         y = _y;
         upfrontCost = _upfrontCost;
@@ -54,6 +54,7 @@ contract RentingContract is Ownable{
         costPerSecond = weeklyCost / 1 weeks;
 
         require(landContract.ownerOf(tokenId) == address(this));
+
         return true;
     }
 
