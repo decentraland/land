@@ -47,7 +47,7 @@ contract BasicNFT is NFT, NFTEvents {
   }
 
   function transfer(address to, uint tokenId) public {
-    require(msg.sender == tokenOwner[tokenId]);
+    require(tokenOwner[tokenId] == msg.sender || allowedTransfer[tokenId] == msg.sender);
     return _transfer(msg.sender, to, tokenId);
   }
 
@@ -60,10 +60,6 @@ contract BasicNFT is NFT, NFTEvents {
     }
     allowedTransfer[tokenId] = beneficiary;
     TokenTransferAllowed(tokenId, beneficiary);
-  }
-
-  function transferFrom(address from, address to, uint tokenId) public {
-    return _transfer(from, to, tokenId);
   }
 
   function metadata(uint tokenId) constant public returns (string) {
