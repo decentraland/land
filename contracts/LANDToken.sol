@@ -63,6 +63,12 @@ contract LANDToken is Ownable, BasicNFT {
     return updateTokenMetadata(buildTokenId(x, y), _metadata);
   }
 
+  function updateManyLandMetadata(uint[] x, uint[] y, string _metadata) public {
+    for (i = 0; i < x.length; i++) {
+      updateTokenMetadata(buildTokenId(x[i], y[i]), _metadata);
+    }
+  }
+
   function claimForgottenParcel(address beneficiary, uint tokenId) onlyOwner public {
     require(tokenOwner[tokenId] != 0);
     require(latestPing[tokenId] < now);
