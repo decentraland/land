@@ -64,7 +64,7 @@ contract LANDToken is Ownable, BasicNFT {
   }
 
   function updateManyLandMetadata(uint[] x, uint[] y, string _metadata) public {
-    for (i = 0; i < x.length; i++) {
+    for (uint i = 0; i < x.length; i++) {
       updateTokenMetadata(buildTokenId(x[i], y[i]), _metadata);
     }
   }
