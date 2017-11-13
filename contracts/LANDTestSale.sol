@@ -10,7 +10,7 @@ contract LANDTestSale {
     land = LANDToken(_land);
   }
 
-  function buy(int256 _x, int256 _y, string _data) public {
+  function buy(uint256 _x, uint256 _y, string _data) public {
     land.assignNewParcel(msg.sender, land.buildTokenId(_x, _y), _data);
   }
 

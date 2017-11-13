@@ -47,12 +47,12 @@ contract LANDToken is Ownable, BasicNFT {
     return transfer(to, buildTokenId(x, y));
   }
 
-  function approveLandTransfer(address to, uint x, uint y) public {
-    return approve(to, buildTokenId(x, y));
+  function takeLand(uint x, uint y) public {
+    return takeOwnership(buildTokenId(x, y));
   }
 
-  function transferLandFrom(address from, address to, uint x, uint y) public {
-    return transferFrom(from, to, buildTokenId(x, y));
+  function approveLandTransfer(address to, uint x, uint y) public {
+    return approve(to, buildTokenId(x, y));
   }
 
   function landMetadata(uint x, uint y) constant public returns (string) {

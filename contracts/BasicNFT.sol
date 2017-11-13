@@ -28,11 +28,11 @@ contract BasicNFT is NFT, NFTEvents {
     return _virtualLength[owner];
   }
 
-  function tokenByIndex(address owner, uint index) public constant returns (uint) {
+  function tokenOfOwnerByIndex(address owner, uint index) public constant returns (uint) {
     require(index >= 0 && index < balanceOf(owner));
     return ownedTokens[owner][index];
   }
-  
+
   function getAllTokens(address owner) public constant returns (uint[]) {
     uint size = _virtualLength[owner];
     uint[] memory result = new uint[](size);
@@ -49,6 +49,11 @@ contract BasicNFT is NFT, NFTEvents {
   function transfer(address to, uint tokenId) public {
     require(tokenOwner[tokenId] == msg.sender || allowedTransfer[tokenId] == msg.sender);
     return _transfer(tokenOwner[tokenId], to, tokenId);
+  }
+
+  function takeOwnership(uint tokenId) public {
+    require(allowedTransfer[tokenId] == msg.sender);
+    return _transfer(tokenOwner[tokenId], msg.sender, tokenId);
   }
 
   function approve(address beneficiary, uint tokenId) public {
