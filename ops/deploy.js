@@ -24,7 +24,8 @@ const run = async () => {
   const sale = await LANDTerraformSale.new(
     input.MANATokenAddress,
     input.terraformReserveAddress,
-    input.returnVestingRegistryAddress
+    input.returnVestingRegistryAddress,
+    {gas: 4000000, gasPrice: 100e9}
   )
   console.log(`Deployed contract: ${sale.address}`)
 }
