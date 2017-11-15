@@ -59,4 +59,13 @@ contract('LANDContinuousSale', function ([owner, buyer1, buyer2]) {
   it('should throw if not enough MANA to buy LAND', async function () {
     await sell.buy(0, 1, metadata, { from: buyer2 }).should.be.rejectedWith(EVMRevert)
   })
+
+  it('should allow transfering ownership of LANDToken contract', async function () {
+    const newSale = await LANDContinuousSale.new(mana.address, world.address)
+    await mana.approve(newSale.address, landCost, { from: buyer1 })
+    await newSale.buy(0, 1, metadata, { from: buyer1 }).should.be.rejectedWith(EVMRevert)
+
+    await sell.transferLandOwnership(newSale.address)
+    await newSale.buy(0, 1, metadata, { from: buyer1 }).should.not.be.rejectedWith(EVMRevert)
+  })
 })

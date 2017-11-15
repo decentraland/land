@@ -10,6 +10,7 @@ const { EVMRevert, sum } = require('./utils')
 
 const Mana = artifacts.require('./FAKEMana')
 const Land = artifacts.require('./LANDToken')
+const LANDContinuousSale = artifacts.require('./LANDContinuousSale')
 const LANDTerraformSale = artifacts.require('./LANDTerraformSale')
 const ReturnVestingRegistry = artifacts.require('./ReturnVestingRegistry')
 
@@ -107,6 +108,22 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       await sale.transferBackMANA(buyer2, landCost)
       const newBalance = await mana.balanceOf(vested2)
       newBalance.should.be.bignumber.equal(oldBalance + landCost)
+    })
+  })
+
+  describe('transfer ownership of LANDToken contract', function () {
+    it('should allow transfering ownership of LANDToken contract', async function () {
+      const metadata = ''
+    
+      await sale.buy(buyer1, 0, 0, landCost, { from: owner })
+
+      await mana.setBalance(buyer1, landCost)
+      const newSale = await LANDContinuousSale.new(mana.address, world.address)
+      await mana.approve(newSale.address, landCost, { from: buyer1 })
+      await newSale.buy(0, 1, metadata, { from: buyer1 }).should.be.rejectedWith(EVMRevert)
+
+      await sale.transferLandOwnership(newSale.address)
+      await newSale.buy(0, 1, metadata, { from: buyer1 }).should.not.be.rejectedWith(EVMRevert)
     })
   })
 })
