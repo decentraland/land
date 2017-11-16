@@ -37,14 +37,17 @@ contract('LANDToken', function ([owner, user1, user2]) {
   it('should allow updating multiple LAND updates', async function () {
     const land1 = await world.buildTokenId(1, 3)
     const land2 = await world.buildTokenId(-1, 2)
+    const land2 = await world.buildTokenId(5, 4)
     await world.assignNewParcel(user1, land1, 'Empty')
     await world.assignNewParcel(user1, land2, 'Empty')
 
-    await world.updateManyLandMetadata([1, -1], [3, 2], 'Changed', { from: user1 })
+    await world.updateManyLandMetadata([1, -1, 5], [3, 2, 4], 'Changed', { from: user1 })
 
     const resultLand1 = await world.landMetadata(1, 3)
     resultLand1.should.equal('Changed')
     const resultLand2 = await world.landMetadata(-1, 2)
+    resultLand2.should.equal('Changed')
+    const resultLand2 = await world.landMetadata(5, 4)
     resultLand2.should.equal('Changed')
   })
 })
