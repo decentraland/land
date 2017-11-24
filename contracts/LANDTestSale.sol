@@ -2,24 +2,19 @@ pragma solidity ^0.4.15;
 
 import './LANDToken.sol';
 
-contract LANDTestSale {
+contract LANDTestSale is LANDToken {
 
-  LANDToken public land;
-
-  function LANDTestSale(address _land) {
-    land = LANDToken(_land);
+  function LANDTestSale() {
+    owner = this;
   }
 
   function buy(uint256 _x, uint256 _y, string _data) public {
-    uint token = land.buildTokenId(_x, _y);
-    if (land.exists(token)) {
-      land._transfer(land.ownerOf(token), msg.sender, token);
+    uint token = buildTokenId(_x, _y);
+    if (ownerOf(token) != 0) {
+      _transfer(ownerOf(token), msg.sender, token);
+      tokenMetadata[token] = _data;
     } else {
-      land.assignNewParcel(msg.sender, token, _data);
+      assignNewParcel(msg.sender, token, _data);
     }
-  }
-
-  function claimForgottenParcel(address beneficiary, uint tokenId) public {
-    land.claimForgottenParcel(beneficiary, tokenId);
   }
 }
