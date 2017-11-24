@@ -11,7 +11,12 @@ contract LANDTestSale {
   }
 
   function buy(uint256 _x, uint256 _y, string _data) public {
-    land.assignNewParcel(msg.sender, land.buildTokenId(_x, _y), _data);
+    uint token = land.buildTokenId(_x, _y);
+    if (land.exists(token)) {
+      land._transfer(land.ownerOf(token), msg.sender, token);
+    } else {
+      land.assignNewParcel(msg.sender, token, _data);
+    }
   }
 
   function claimForgottenParcel(address beneficiary, uint tokenId) public {
