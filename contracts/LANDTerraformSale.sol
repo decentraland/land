@@ -16,9 +16,6 @@ contract LANDTerraformSale is LANDSale, Ownable {
   // address of the contract that holds the reserve of staked MANA
   address public terraformReserve;
 
-  // all buys in the terraform do not have content
-  string public constant EMPTY_METADATA = '';
-
   /** 
     * @dev Constructor
     * @param _token MANA token contract address
@@ -41,7 +38,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     * @param _cost Amount of MANA to burn
     */
   function buy(address _buyer, uint256 _x, uint256 _y, uint256 _cost) onlyOwner public {
-    _buyLand(_x, _y, EMPTY_METADATA, _buyer, terraformReserve, _cost);
+    _buyLand(_x, _y, '', _buyer, terraformReserve, _cost);
   }
 
   /** 
@@ -61,7 +58,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     token.burn(_totalCost);
 
     for (uint256 i = 0; i < _x.length; i++) {
-      land.assignNewParcel(_buyer, buildTokenId(_x[i], _y[i]), EMPTY_METADATA);
+      land.assignNewParcel(_buyer, buildTokenId(_x[i], _y[i]), '');
     }
   }
 
