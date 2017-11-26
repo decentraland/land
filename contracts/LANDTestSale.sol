@@ -14,7 +14,7 @@ contract LANDTestSale is LANDToken {
       _transfer(ownerOf(token), msg.sender, token);
       tokenMetadata[token] = _data;
     } else {
-      assignNewParcel(msg.sender, token, _data);
+      _assignNewParcel(msg.sender, token, _data);
     }
   }
 }

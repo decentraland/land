@@ -14,7 +14,10 @@ contract LANDToken is Ownable, BasicNFT {
 
   function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);
+    _assignNewParcel(beneficiary, tokenId, _metadata);
+  }
 
+  function _assignNewParcel(address beneficiary, uint tokenId, string _metadata) internal {
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
