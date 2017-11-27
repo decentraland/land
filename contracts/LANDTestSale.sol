@@ -12,7 +12,7 @@ contract LANDTestSale is LANDToken {
     uint token = buildTokenId(_x, _y);
     if (ownerOf(token) != 0) {
       _transfer(ownerOf(token), msg.sender, token);
-      tokenMetadata[token] = _data;
+      _tokenMetadata[token] = _data;
     } else {
       _assignNewParcel(msg.sender, token, _data);
     }

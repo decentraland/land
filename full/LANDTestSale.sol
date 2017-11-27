@@ -78,7 +78,7 @@ contract BasicNFT is NFT, NFTEvents {
   mapping(uint => address) public allowedTransfer;
 
   // Metadata associated with each token
-  mapping(uint => string) public tokenMetadata;
+  mapping(uint => string) public _tokenMetadata;
 
   function totalSupply() public constant returns (uint) {
     return totalTokens;
@@ -131,13 +131,17 @@ contract BasicNFT is NFT, NFTEvents {
     Approval(tokenOwner[tokenId], beneficiary, tokenId);
   }
 
+  function tokenMetadata(uint tokenId) constant public returns (string) {
+    return _tokenMetadata[tokenId];
+  }
+
   function metadata(uint tokenId) constant public returns (string) {
-    return tokenMetadata[tokenId];
+    return _tokenMetadata[tokenId];
   }
 
   function updateTokenMetadata(uint tokenId, string _metadata) public {
     require(msg.sender == tokenOwner[tokenId]);
-    tokenMetadata[tokenId] = _metadata;
+    _tokenMetadata[tokenId] = _metadata;
     MetadataUpdated(tokenId, msg.sender, _metadata);
   }
 
@@ -195,7 +199,7 @@ contract LANDToken is Ownable, BasicNFT {
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
-    tokenMetadata[tokenId] = _metadata;
+    _tokenMetadata[tokenId] = _metadata;
 
     Created(tokenId, beneficiary, _metadata);
   }
@@ -233,7 +237,7 @@ contract LANDToken is Ownable, BasicNFT {
   }
 
   function landMetadata(uint x, uint y) constant public returns (string) {
-    return tokenMetadata[buildTokenId(x, y)];
+    return _tokenMetadata[buildTokenId(x, y)];
   }
 
   function updateLandMetadata(uint x, uint y, string _metadata) public {
@@ -269,7 +273,7 @@ contract LANDTestSale is LANDToken {
     uint token = buildTokenId(_x, _y);
     if (ownerOf(token) != 0) {
       _transfer(ownerOf(token), msg.sender, token);
-      tokenMetadata[token] = _data;
+      _tokenMetadata[token] = _data;
     } else {
       _assignNewParcel(msg.sender, token, _data);
     }

@@ -21,7 +21,7 @@ contract LANDToken is Ownable, BasicNFT {
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
-    tokenMetadata[tokenId] = _metadata;
+    _tokenMetadata[tokenId] = _metadata;
 
     Created(tokenId, beneficiary, _metadata);
   }
@@ -59,7 +59,7 @@ contract LANDToken is Ownable, BasicNFT {
   }
 
   function landMetadata(uint x, uint y) constant public returns (string) {
-    return tokenMetadata[buildTokenId(x, y)];
+    return _tokenMetadata[buildTokenId(x, y)];
   }
 
   function updateLandMetadata(uint x, uint y, string _metadata) public {
