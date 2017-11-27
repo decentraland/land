@@ -10,7 +10,7 @@ contract LANDToken is Ownable, BasicNFT {
 
   mapping (uint => uint) public latestPing;
 
-  event TokenPing(uint tokenId);
+  event Ping(uint tokenId);
 
   function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);
@@ -23,7 +23,7 @@ contract LANDToken is Ownable, BasicNFT {
     totalTokens++;
     tokenMetadata[tokenId] = _metadata;
 
-    TokenCreated(tokenId, beneficiary, _metadata);
+    Created(tokenId, beneficiary, _metadata);
   }
 
   function ping(uint tokenId) public {
@@ -31,7 +31,7 @@ contract LANDToken is Ownable, BasicNFT {
 
     latestPing[tokenId] = now;
 
-    TokenPing(tokenId);
+    Ping(tokenId);
   }
 
   function buildTokenId(uint x, uint y) public constant returns (uint256) {
@@ -81,6 +81,6 @@ contract LANDToken is Ownable, BasicNFT {
     latestPing[tokenId] = now;
     _transfer(oldOwner, beneficiary, tokenId);
 
-    TokenTransferred(tokenId, oldOwner, beneficiary);
+    Transferred(tokenId, oldOwner, beneficiary);
   }
 }

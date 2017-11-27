@@ -46,20 +46,20 @@ contract NFT {
 
   function transfer(address to, uint tokenId);
   function takeOwnership(uint tokenId);
+  function transferFrom(address from, address to, uint tokenId);
   function approve(address beneficiary, uint tokenId);
 
   function metadata(uint tokenId) constant returns (string);
 }
 
 contract NFTEvents {
-  event TokenCreated(uint tokenId, address owner, string metadata);
-  event TokenDestroyed(uint tokenId, address owner);
+  event Created(uint tokenId, address owner, string metadata);
+  event Destroyed(uint tokenId, address owner);
 
-  event TokenTransferred(uint tokenId, address from, address to);
-  event TokenTransferAllowed(uint tokenId, address beneficiary);
-  event TokenTransferDisallowed(uint tokenId, address beneficiary);
+  event Transferred(uint tokenId, address from, address to);
+  event Approval(address owner, address beneficiary, uint tokenId);
 
-  event TokenMetadataUpdated(uint tokenId, address owner, string data);
+  event MetadataUpdated(uint tokenId, address owner, string data);
 }
 
 contract BasicNFT is NFT, NFTEvents {
@@ -116,15 +116,19 @@ contract BasicNFT is NFT, NFTEvents {
     return _transfer(tokenOwner[tokenId], msg.sender, tokenId);
   }
 
+  function transferFrom(address from, address to, uint tokenId) public {
+    require(allowedTransfer[tokenId] == msg.sender);
+    return _transfer(tokenOwner[tokenId], to, tokenId);
+  }
+
   function approve(address beneficiary, uint tokenId) public {
     require(msg.sender == tokenOwner[tokenId]);
 
     if (allowedTransfer[tokenId] != 0) {
       allowedTransfer[tokenId] = 0;
-      TokenTransferDisallowed(tokenId, allowedTransfer[tokenId]);
     }
     allowedTransfer[tokenId] = beneficiary;
-    TokenTransferAllowed(tokenId, beneficiary);
+    Approval(tokenOwner[tokenId], beneficiary, tokenId);
   }
 
   function metadata(uint tokenId) constant public returns (string) {
@@ -134,14 +138,19 @@ contract BasicNFT is NFT, NFTEvents {
   function updateTokenMetadata(uint tokenId, string _metadata) public {
     require(msg.sender == tokenOwner[tokenId]);
     tokenMetadata[tokenId] = _metadata;
-    TokenMetadataUpdated(tokenId, msg.sender, _metadata);
+    MetadataUpdated(tokenId, msg.sender, _metadata);
   }
 
   function _transfer(address from, address to, uint tokenId) internal {
-    allowedTransfer[tokenId] = 0;
+    _clearApproval(tokenId);
     _removeTokenFrom(from, tokenId);
     _addTokenTo(to, tokenId);
-    TokenTransferred(tokenId, from, to);
+    Transferred(tokenId, from, to);
+  }
+
+  function _clearApproval(uint tokenId) internal {
+    allowedTransfer[tokenId] = 0;
+    Approval(tokenOwner[tokenId], 0, tokenId);
   }
 
   function _removeTokenFrom(address from, uint tokenId) internal {
@@ -175,17 +184,20 @@ contract LANDToken is Ownable, BasicNFT {
 
   mapping (uint => uint) public latestPing;
 
-  event TokenPing(uint tokenId);
+  event Ping(uint tokenId);
 
   function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);
+    _assignNewParcel(beneficiary, tokenId, _metadata);
+  }
 
+  function _assignNewParcel(address beneficiary, uint tokenId, string _metadata) internal {
     latestPing[tokenId] = now;
     _addTokenTo(beneficiary, tokenId);
     totalTokens++;
     tokenMetadata[tokenId] = _metadata;
 
-    TokenCreated(tokenId, beneficiary, _metadata);
+    Created(tokenId, beneficiary, _metadata);
   }
 
   function ping(uint tokenId) public {
@@ -193,7 +205,7 @@ contract LANDToken is Ownable, BasicNFT {
 
     latestPing[tokenId] = now;
 
-    TokenPing(tokenId);
+    Ping(tokenId);
   }
 
   function buildTokenId(uint x, uint y) public constant returns (uint256) {
@@ -243,7 +255,7 @@ contract LANDToken is Ownable, BasicNFT {
     latestPing[tokenId] = now;
     _transfer(oldOwner, beneficiary, tokenId);
 
-    TokenTransferred(tokenId, oldOwner, beneficiary);
+    Transferred(tokenId, oldOwner, beneficiary);
   }
 }
 
@@ -259,7 +271,7 @@ contract LANDTestSale is LANDToken {
       _transfer(ownerOf(token), msg.sender, token);
       tokenMetadata[token] = _data;
     } else {
-      assignNewParcel(msg.sender, token, _data);
+      _assignNewParcel(msg.sender, token, _data);
     }
   }
 }
