@@ -155,7 +155,7 @@ contract RentingContract is Ownable {
         landContract.ping(tokenId);
     }
     
-    function SelfDestruct(uint256[] lands) public onlyOwner onlyIfNotRented {
+    function selfDestruct(uint256[] lands) public onlyOwner onlyIfNotRented {
         for(int i = 0; i < lands.length(); i++) {
             transfer(owner, lands[i]); //get rid of lands 
         }
