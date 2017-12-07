@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^ 0.4 .15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -7,13 +7,9 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 import './LANDToken.sol';
 
-contract RentingContract is Ownable{
-    using SafeMath for uint256;
-
-    // Coordinates to locate the land
-    uint256 public x;
-    uint256 public y;
-    uint256 public tokenId;
+contract RentingContract is Ownable {
+    using SafeMath
+    for uint256;
 
     // Land contract for Decentraland
     LANDToken public landContract;
@@ -27,47 +23,21 @@ contract RentingContract is Ownable{
     uint256 public rentStartedAt;
     uint256 public tenantBalance;
 
-    function RentingContract(LANDToken _landContract)
-    {
+    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) {
         require(address(_landContract) != 0);
         landContract = _landContract;
-    }
 
-    function initRentContract(
-      uint256 _x,
-      uint256 _y,
-      uint256 _upfrontCost,
-      uint256 _ownerTerminationCost,
-      uint256 _weeklyCost
-    )
-      public
-      onlyOwner
-      onlyIfNotRented
-      returns (bool)
-    {
-        tokenId = landContract.buildTokenId(_x, _y);
-        x = _x;
-        y = _y;
         upfrontCost = _upfrontCost;
         weeklyCost = _weeklyCost;
         ownerTerminationCost = _ownerTerminationCost;
         costPerSecond = weeklyCost / 1 weeks;
-
-        require(landContract.ownerOf(tokenId) == address(this));
-
-        return true;
     }
 
-    function isSetup() public returns(bool) {
-        // We use tokenId = 0 to signify that the contract has not been setup yet
-        return tokenId != 0;
-    }
-
-    function totalDue(uint256 time) returns (uint256) {
+    function totalDue(uint256 time) returns(uint256) {
         return time.sub(rentStartedAt).mul(costPerSecond).add(upfrontCost);
     }
 
-    function totalDueSoFar() returns (uint256) {
+    function totalDueSoFar() returns(uint256) {
         return totalDue(now);
     }
 
@@ -77,11 +47,6 @@ contract RentingContract is Ownable{
 
     function isDue() public returns(bool) {
         return isRented() && totalDueSoFar() >= tenantBalance;
-    }
-
-    modifier onlyIfSetup {
-        require(isSetup());
-        _;
     }
 
     modifier onlyIfRented {
@@ -125,7 +90,7 @@ contract RentingContract is Ownable{
         tenantBalance = tenantBalance.add(paid);
     }
 
-    function evict() public returns (bool) {
+    function evict() public returns(bool) {
         if (isDue()) {
             _release();
             return true;
@@ -140,14 +105,28 @@ contract RentingContract is Ownable{
     }
 
     function _clear() internal {
-        tokenId = 0;
-        x = 0;
-        y = 0;
         upfrontCost = 0;
         weeklyCost = 0;
         ownerTerminationCost = 0;
         costPerSecond = 0;
     }
+
+    function ChangePricing(
+        uint256 _upfrontCost,
+        uint256 _weeklyCost,
+        uint256 _ownerTerminationCost,
+        uint256 _costPerSecond
+    )
+    public
+    onlyOwner
+    onlyIfNotRented 
+    {
+        upfrontCost = _upfrontCost;
+        weeklyCost = _weeklyCost;
+        ownerTerminationCost = _ownerTerminationCost;
+        costPerSecond = _costPerSecond;
+    }
+
 
     function cancelContract() payable public onlyOwner onlyIfRented {
         require(msg.value >= ownerTerminationCost);
@@ -155,8 +134,8 @@ contract RentingContract is Ownable{
         tenant.transfer(msg.value);
     }
 
-    function transfer(address target) public onlyOwner onlyIfNotRented {
-        _clear();
+    function transfer(address target, uint256 tokenId) public onlyOwner onlyIfNotRented {
+        //_clear(); not sure why this is needed for this new version
         landContract.transfer(target, tokenId);
     }
 
@@ -164,15 +143,22 @@ contract RentingContract is Ownable{
         owner.transfer(this.balance);
     }
 
-    function updateLandForOwner(string _metadata) public onlyOwner onlyIfNotRented {
+    function updateLandForOwner(string _metadata, uint256 tokenId) public onlyOwner onlyIfNotRented {
         landContract.updateTokenMetadata(tokenId, _metadata);
     }
 
-    function updateLand(string _metadata) public onlyTenant onlyIfRented {
+    function updateLand(string _metadata, uint256 tokenId) public onlyTenant onlyIfRented {
         landContract.updateTokenMetadata(tokenId, _metadata);
     }
 
-    function pingLand() public onlyTenantOrOwner {
+    function pingLand(uint256 tokenId) public onlyTenantOrOwner {
         landContract.ping(tokenId);
+    }
+    
+    function SelfDestruct(uint256[] lands) public onlyOwner onlyIfNotRented {
+        for(int i = 0; i < lands.length(); i++) {
+            transfer(owner, lands[i]); //get rid of lands 
+        }
+        suicide(owner);
     }
 }
