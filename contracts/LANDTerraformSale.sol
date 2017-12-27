@@ -22,7 +22,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     * @param _terraformReserve address of the contract that holds the staked funds for the auction
     * @param _returnVesting address of the contract for vested account mapping
     */
-  function LANDTerraformSale(address _token, address _terraformReserve, address _returnVesting) {
+  function LANDTerraformSale(address _token, address _terraformReserve, address _returnVesting) public {
     token = BurnableToken(_token);
     returnVesting = ReturnVestingRegistry(_returnVesting);
     terraformReserve = _terraformReserve;

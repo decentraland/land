@@ -23,7 +23,7 @@ contract RentingContract is Ownable {
     uint256 public rentStartedAt;
     uint256 public tenantBalance;
 
-    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) {
+    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) public {
         require(address(_landContract) != 0);
         landContract = _landContract;
 
@@ -33,11 +33,11 @@ contract RentingContract is Ownable {
         costPerSecond = weeklyCost / 1 weeks;
     }
 
-    function totalDue(uint256 time) returns(uint256) {
+    function totalDue(uint256 time) public returns(uint256) {
         return time.sub(rentStartedAt).mul(costPerSecond).add(upfrontCost);
     }
 
-    function totalDueSoFar() returns(uint256) {
+    function totalDueSoFar() public returns(uint256) {
         return totalDue(now);
     }
 
@@ -72,7 +72,7 @@ contract RentingContract is Ownable {
     /**
      * Allow someone to rent the land
      */
-    function rent() payable onlyIfSetup onlyIfNotRented {
+    function rent() public payable onlyIfSetup onlyIfNotRented {
         uint256 paid = msg.value;
         // require 1 week in advance
         require(totalDue(now + 1 weeks) >= upfrontCost.add(weeklyCost));
@@ -85,7 +85,7 @@ contract RentingContract is Ownable {
     /**
      * Allow someone to rent the land
      */
-    function payRent() payable onlyIfRented {
+    function payRent() public payable onlyIfRented {
         uint256 paid = msg.value;
         tenantBalance = tenantBalance.add(paid);
     }

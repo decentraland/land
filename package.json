@@ -20,7 +20,7 @@
     "solidity-sha3": "^0.4.1",
     "truffle": "^3.4.11",
     "truffle-hdwallet-provider": "0.0.3",
-    "zeppelin-solidity": "^1.3.0"
+    "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
     "babel-polyfill": "^6.26.0",
