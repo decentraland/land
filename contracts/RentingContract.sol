@@ -33,19 +33,19 @@ contract RentingContract is Ownable {
         costPerSecond = weeklyCost / 1 weeks;
     }
 
-    function totalDue(uint256 time) public returns(uint256) {
+    function totalDue(uint256 time) public constant returns(uint256) {
         return time.sub(rentStartedAt).mul(costPerSecond).add(upfrontCost);
     }
 
-    function totalDueSoFar() public returns(uint256) {
+    function totalDueSoFar() public constant returns(uint256) {
         return totalDue(now);
     }
 
-    function isRented() public returns(bool) {
+    function isRented() public constant returns(bool) {
         return tenant != 0;
     }
 
-    function isDue() public returns(bool) {
+    function isDue() public constant returns(bool) {
         return isRented() && totalDueSoFar() >= tenantBalance;
     }
 
@@ -156,7 +156,7 @@ contract RentingContract is Ownable {
     }
     
     function selfDestruct(uint256[] lands) public onlyOwner onlyIfNotRented {
-        for(int i = 0; i < lands.length(); i++) {
+        for(uint256 i = 0; i < lands.length; i++) {
             transfer(owner, lands[i]); //get rid of lands 
         }
         selfdestruct(owner);
