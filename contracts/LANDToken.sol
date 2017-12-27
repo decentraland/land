@@ -35,7 +35,7 @@ contract LANDToken is Ownable, BasicNFT {
   }
 
   function buildTokenId(uint x, uint y) public constant returns (uint256) {
-    return uint256(sha3(x, '|', y));
+    return uint256(keccak256(x, '|', y));
   }
 
   function exists(uint x, uint y) public constant returns (bool) {
