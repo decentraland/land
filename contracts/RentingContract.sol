@@ -72,7 +72,7 @@ contract RentingContract is Ownable {
     /**
      * Allow someone to rent the land
      */
-    function rent() public payable onlyIfSetup onlyIfNotRented {
+    function rent() public payable onlyIfNotRented {
         uint256 paid = msg.value;
         // require 1 week in advance
         require(totalDue(now + 1 weeks) >= upfrontCost.add(weeklyCost));
@@ -159,6 +159,6 @@ contract RentingContract is Ownable {
         for(int i = 0; i < lands.length(); i++) {
             transfer(owner, lands[i]); //get rid of lands 
         }
-        suicide(owner);
+        selfdestruct(owner);
     }
 }
