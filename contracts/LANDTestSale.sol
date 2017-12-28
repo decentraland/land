@@ -4,7 +4,7 @@ import './LANDToken.sol';
 
 contract LANDTestSale is LANDToken {
 
-  function LANDTestSale() {
+  function LANDTestSale() public {
     owner = this;
   }
 

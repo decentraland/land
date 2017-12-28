@@ -1,18 +1,18 @@
 pragma solidity ^0.4.15;
 
 contract NFT {
-  function totalSupply() constant returns (uint);
-  function balanceOf(address) constant returns (uint);
+  function totalSupply() public constant returns (uint);
+  function balanceOf(address) public constant returns (uint);
 
-  function tokenOfOwnerByIndex(address owner, uint index) constant returns (uint);
-  function ownerOf(uint tokenId) constant returns (address);
+  function tokenOfOwnerByIndex(address owner, uint index) public constant returns (uint);
+  function ownerOf(uint tokenId) public constant returns (address);
 
-  function transfer(address to, uint tokenId);
-  function takeOwnership(uint tokenId);
-  function transferFrom(address from, address to, uint tokenId);
-  function approve(address beneficiary, uint tokenId);
+  function transfer(address to, uint tokenId) public;
+  function takeOwnership(uint tokenId) public;
+  function transferFrom(address from, address to, uint tokenId) public;
+  function approve(address beneficiary, uint tokenId) public;
 
-  function metadata(uint tokenId) constant returns (string);
+  function metadata(uint tokenId) public constant returns (string);
 }
 
 contract NFTEvents {

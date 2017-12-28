@@ -1,4 +1,4 @@
-pragma solidity ^ 0.4 .15;
+pragma solidity ^0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -23,7 +23,7 @@ contract RentingContract is Ownable {
     uint256 public rentStartedAt;
     uint256 public tenantBalance;
 
-    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) {
+    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) public {
         require(address(_landContract) != 0);
         landContract = _landContract;
 
@@ -33,19 +33,19 @@ contract RentingContract is Ownable {
         costPerSecond = weeklyCost / 1 weeks;
     }
 
-    function totalDue(uint256 time) returns(uint256) {
+    function totalDue(uint256 time) public constant returns(uint256) {
         return time.sub(rentStartedAt).mul(costPerSecond).add(upfrontCost);
     }
 
-    function totalDueSoFar() returns(uint256) {
+    function totalDueSoFar() public constant returns(uint256) {
         return totalDue(now);
     }
 
-    function isRented() public returns(bool) {
+    function isRented() public constant returns(bool) {
         return tenant != 0;
     }
 
-    function isDue() public returns(bool) {
+    function isDue() public constant returns(bool) {
         return isRented() && totalDueSoFar() >= tenantBalance;
     }
 
@@ -72,7 +72,7 @@ contract RentingContract is Ownable {
     /**
      * Allow someone to rent the land
      */
-    function rent() payable onlyIfSetup onlyIfNotRented {
+    function rent() public payable onlyIfNotRented {
         uint256 paid = msg.value;
         // require 1 week in advance
         require(totalDue(now + 1 weeks) >= upfrontCost.add(weeklyCost));
@@ -85,7 +85,7 @@ contract RentingContract is Ownable {
     /**
      * Allow someone to rent the land
      */
-    function payRent() payable onlyIfRented {
+    function payRent() public payable onlyIfRented {
         uint256 paid = msg.value;
         tenantBalance = tenantBalance.add(paid);
     }
@@ -156,9 +156,9 @@ contract RentingContract is Ownable {
     }
     
     function selfDestruct(uint256[] lands) public onlyOwner onlyIfNotRented {
-        for(int i = 0; i < lands.length(); i++) {
+        for(uint256 i = 0; i < lands.length; i++) {
             transfer(owner, lands[i]); //get rid of lands 
         }
-        suicide(owner);
+        selfdestruct(owner);
     }
 }

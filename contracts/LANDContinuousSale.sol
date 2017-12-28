@@ -9,7 +9,7 @@ contract LANDContinuousSale is LANDSale, Ownable {
   // fixed MANA to LAND cost
   uint256 public constant LAND_MANA_COST = 1e21;
 
-  function LANDContinuousSale(address _token, address _land) {
+  function LANDContinuousSale(address _token, address _land) public {
     token = BurnableToken(_token);
     land = LANDToken(_land);
   }
