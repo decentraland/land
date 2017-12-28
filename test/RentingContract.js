@@ -28,11 +28,11 @@ contract('Renting', function ([owner, user, tenant]) {
     await mana.setBalance(user, 1e22)
     await mana.approve(sell.address, 1e21, { from: user })
     await sell.buy(x, y, 'Hello Decentraland!', { from: user })
-    rent = await Rent.new(world.address, { from: user })
   })
 
   it('allows a user to rent land', async function () {
-    await world.transferLand(rent.address, x, y, { from: user })
-    await rent.initRentContract(x, y, upfront, ownerCost, weekly, { from: user })
+    rent = await Rent.new(world.address, upfront, ownerCost, weekly, { from: user })
+    // await world.transferLand(rent.address, x, y, { from: user })
+    // await rent.initRentContract(x, y, , { from: user })
   })
 })
