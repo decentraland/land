@@ -1,14 +1,14 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
+
+import '../LANDToken.sol';
 
 contract BurnableToken {
   function transferFrom(address, address, uint) public returns (bool);
   function burn(uint) public;
 }
 
-import './LANDToken.sol';
-
 contract LANDSale {
-  
+
   // MANA contract
   BurnableToken public token;
 

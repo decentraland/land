@@ -1,7 +1,7 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import './LANDToken.sol';
+import '../LANDToken.sol';
 import './LANDSale.sol';
 
 contract LANDContinuousSale is LANDSale, Ownable {

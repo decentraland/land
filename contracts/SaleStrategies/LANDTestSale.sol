@@ -1,6 +1,6 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
-import './LANDToken.sol';
+import '../LANDToken.sol';
 
 contract LANDTestSale is LANDToken {
 

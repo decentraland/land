@@ -1,7 +1,7 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import './LANDSale.sol';
+import '../SaleStrategies/LANDSale.sol';
 import './ReturnVestingRegistry.sol';
 
 /**
@@ -85,7 +85,7 @@ contract LANDTerraformSale is LANDSale, Ownable {
     require(token.transferFrom(terraformReserve, returnAddress, _amount));
   }
 
-  /** 
+  /**
     * @dev Transfer ownership of LAND contract
     * @param _newOwner The address of the new owner of the LAND contract
     */

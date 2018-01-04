@@ -1,7 +1,7 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import './BasicNFT.sol';
+import './NFT/BasicNFT.sol';
 
 contract LANDToken is Ownable, BasicNFT {
 
@@ -34,8 +34,11 @@ contract LANDToken is Ownable, BasicNFT {
     Ping(tokenId);
   }
 
+  uint256 constant clearLow = 0xffffffffffffffff0000000000000000;
+  uint256 constant clearHigh = 0x0000000000000000ffffffffffffffff;
+
   function buildTokenId(uint x, uint y) public pure returns (uint256) {
-    return uint256(keccak256(x, '|', y));
+    return ((x << 128) & clearLow) | (y & clearHigh);
   }
 
   function exists(uint x, uint y) public constant returns (bool) {

@@ -1,0 +1,2 @@
+contract ProxyOwnable is Ownable {
+}
