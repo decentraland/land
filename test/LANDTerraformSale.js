@@ -109,6 +109,29 @@ contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2
       const newBalance = await mana.balanceOf(vested2)
       newBalance.should.be.bignumber.equal(oldBalance + landCost)
     })
+
+    it('should transfer funds in bulk and take into account vesting accounts', async function () {
+      // before state
+      const oldBalance1 = await mana.balanceOf(buyer1)
+      const oldBalance2 = await mana.balanceOf(vested2)
+
+      // transfer
+      const addresses = [buyer1, buyer2]
+      const amounts = [landCost, landCost]
+      await sale.transferBackMANAMany(addresses, amounts)
+ 
+      // after state
+      const newBalance1 = await mana.balanceOf(buyer1)
+      const newBalance2 = await mana.balanceOf(vested2)
+      newBalance1.should.be.bignumber.equal(oldBalance1 + landCost)
+      newBalance2.should.be.bignumber.equal(oldBalance2 + landCost)
+    })
+
+    it('should throw if addresses and amounts have different length', async function () {
+      const addresses = [buyer1, buyer2]
+      const amounts = [landCost]
+      await sale.transferBackMANAMany(addresses, amounts).should.be.rejectedWith(EVMRevert) 
+    })
   })
 
   describe('transfer ownership of LANDToken contract', function () {
