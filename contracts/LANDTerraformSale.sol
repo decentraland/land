@@ -86,6 +86,19 @@ contract LANDTerraformSale is LANDSale, Ownable {
   }
 
   /** 
+    * @dev Transfer back remaining MANA to multiple accounts
+    * @param _addresses Addresses of the accounts to return MANA to
+    * @param _amounts Amounts of MANA to return
+    */
+  function transferBackMANAMany(address[] _addresses, uint256[] _amounts) onlyOwner public {
+    require(_addresses.length == _amounts.length);
+
+    for (uint256 i = 0; i < _addresses.length; i++) {
+      transferBackMANA(_addresses[i], _amounts[i]);
+    }
+  }
+
+  /** 
     * @dev Transfer ownership of LAND contract
     * @param _newOwner The address of the new owner of the LAND contract
     */
