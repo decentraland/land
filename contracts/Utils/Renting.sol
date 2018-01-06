@@ -5,7 +5,7 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/math/Math.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-import './LANDToken.sol';
+import '../LANDRegistry.sol';
 
 contract RentingContract is Ownable {
     using SafeMath

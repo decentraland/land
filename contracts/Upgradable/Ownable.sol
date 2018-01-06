@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
 
+import './IApplication.sol';
+
 contract Ownable is IApplication {
   address public owner;
   address public newOwner;
