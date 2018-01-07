@@ -13,7 +13,7 @@ contract LANDSale {
   BurnableToken public token;
 
   // LAND contract that holds the registry
-  LANDToken public land;
+  LANDRegistry public land;
 
   event Log(string info);
 

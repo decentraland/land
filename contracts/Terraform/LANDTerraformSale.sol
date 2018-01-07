@@ -97,8 +97,8 @@ contract LANDTerraformSale is LANDSale, Ownable {
     * @dev Deploy a new LAND token
     * @return A LANDToken contract
     */
-  function _deployLand() internal returns (LANDToken) {
-    return new LANDToken();
+  function _deployLand() internal returns (LANDRegistry) {
+    return new LANDRegistry();
   }
 
   /** 

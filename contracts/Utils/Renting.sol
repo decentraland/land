@@ -12,7 +12,7 @@ contract RentingContract is Ownable {
     for uint256;
 
     // Land contract for Decentraland
-    LANDToken public landContract;
+    LANDRegistry public landContract;
 
     uint256 public upfrontCost;
     uint256 public ownerTerminationCost;
@@ -23,7 +23,11 @@ contract RentingContract is Ownable {
     uint256 public rentStartedAt;
     uint256 public tenantBalance;
 
-    function RentingContract(LANDToken _landContract, uint256 _upfrontCost, uint256 _ownerTerminationCost, uint256 _weeklyCost) public {
+    function RentingContract(LANDRegistry _landContract,
+                             uint256 _upfrontCost,
+                             uint256 _ownerTerminationCost,
+                             uint256 _weeklyCost
+    ) public {
         require(address(_landContract) != 0);
         landContract = _landContract;
 

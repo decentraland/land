@@ -8,11 +8,11 @@ const should = require('chai')
 
 const { EVMRevert, sum } = require('./utils')
 
-const Mana = artifacts.require('./FAKEMana')
-const Land = artifacts.require('./LANDToken')
-const LANDContinuousSale = artifacts.require('./LANDContinuousSale')
-const LANDTerraformSale = artifacts.require('./LANDTerraformSale')
-const ReturnVestingRegistry = artifacts.require('./ReturnVestingRegistry')
+const Mana = artifacts.require('FAKEMana')
+const Land = artifacts.require('LANDRegistry')
+const LANDContinuousSale = artifacts.require('LANDContinuousSale')
+const LANDTerraformSale = artifacts.require('LANDTerraformSale')
+const ReturnVestingRegistry = artifacts.require('ReturnVestingRegistry')
 
 contract('LANDTerraformSale', function ([owner, terraformReserve, buyer1, buyer2, vested2]) {
   const landCost = 1000 * 1e18

@@ -8,7 +8,7 @@ contract Ownable is IApplication {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function initialize(bytes data) internal {
+  function initialize(bytes data) public {
     owner = msg.sender;
   }
 

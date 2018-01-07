@@ -11,7 +11,7 @@ contract LANDContinuousSale is LANDSale, Ownable {
 
   function LANDContinuousSale(address _token, address _land) public {
     token = BurnableToken(_token);
-    land = LANDToken(_land);
+    land = LANDRegistry(_land);
   }
 
   /** 
