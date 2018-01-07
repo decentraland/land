@@ -1,0 +1,57 @@
+pragma solidity ^0.4.18;
+
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+
+import './Storage.sol';
+
+contract InternalOperationsAssetRegistry is AssetRegistryStorage,
+  AssetAccessRegistry, HolderAccessRegistry, GlobalAssetRegistry
+{
+  using SafeMath for uint256;
+
+  function _addAssetTo(address _to, uint256 _assetId) internal {
+    _holderOf[assetId] = _to;
+
+    uint256 length = assetsCount(_to);
+
+    _assetsOf[_to].push(_assetId);
+
+    _indexOfAsset[_assetId] = length;
+
+    _count = _count.add(1);
+  }
+
+  function _addAssetTo(address _to, uint256 _assetId, string _data) internal {
+    _addAssetTo(_to, _assetId);
+
+    _assetData[_assetId] = _data;
+  }
+
+  function _removeAssetFrom(address _from, uint256 _assetId) internal {
+    uint256 assetIndex = _assetIndexInHolderArray[_assetId];
+    uint256 lastAssetIndex = assetsCount(_from).sub(1);
+    uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
+
+    uint256[] assets = _assetsOf[_from];
+
+    _holderOf[_assetId] = 0;
+
+    // Insert the last asset into the position previously occupied by the asset to be removed
+    assets[assetIndexInArray] = lastAssetId;
+
+    // Resize the array
+    assets[lastAssetIndex] = 0;
+    assets.length--;
+
+    // Remove the array if no more assets are owned to prevent pollution
+    if (assets.length == 0) {
+      delete assets;
+    }
+
+    // Update the index of positions for the asset
+    indexOfAsset[_assetId] = 0;
+    indexOfAsset[lastAsset] = assetIndex;
+
+    _count = _count.sub(1);
+  }
+}

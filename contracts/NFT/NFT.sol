@@ -16,11 +16,8 @@ contract NFT {
 }
 
 contract NFTEvents {
-  event Created(uint tokenId, address owner, string metadata);
-  event Destroyed(uint tokenId, address owner);
+  event Transfer(uint tokenId, address from, address to);
+  event Approve(address owner, address beneficiary, uint tokenId);
 
-  event Transferred(uint tokenId, address from, address to);
-  event Approval(address owner, address beneficiary, uint tokenId);
-
-  event MetadataUpdated(uint tokenId, address owner, string data);
+  event MetadataUpdate(uint tokenId, address owner, string data);
 }

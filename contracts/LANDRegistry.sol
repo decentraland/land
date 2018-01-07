@@ -23,7 +23,7 @@ contract LANDRegistry is Ownable, BasicNFT {
     totalTokens++;
     _tokenMetadata[tokenId] = _metadata;
 
-    Created(tokenId, beneficiary, _metadata);
+    Transfer(tokenId, 0, beneficiary);
   }
 
   function ping(uint tokenId) public {
@@ -84,6 +84,6 @@ contract LANDRegistry is Ownable, BasicNFT {
     latestPing[tokenId] = now;
     _transfer(oldOwner, beneficiary, tokenId);
 
-    Transferred(tokenId, oldOwner, beneficiary);
+    Transfer(tokenId, oldOwner, beneficiary);
   }
 }

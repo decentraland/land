@@ -6,6 +6,9 @@ contract BasicNFT is NFT, NFTEvents {
 
   uint public totalTokens;
 
+  string public name = 'BasicNFT';
+  string public symbol = 'NFT';
+
   // Array of owned tokens for a user
   mapping(address => uint[]) public ownedTokens;
   mapping(address => uint) _virtualLength;
@@ -63,13 +66,11 @@ contract BasicNFT is NFT, NFTEvents {
   }
 
   function approve(address beneficiary, uint tokenId) public {
-    require(msg.sender == tokenOwner[tokenId]);
+    require(msg.sender == tokenOwner[tokenId] || msg.sender == allowedTransfer[tokenId]);
+    require(beneficiary != tokenOwner[tokenId]);
 
-    if (allowedTransfer[tokenId] != 0) {
-      allowedTransfer[tokenId] = 0;
-    }
     allowedTransfer[tokenId] = beneficiary;
-    Approval(tokenOwner[tokenId], beneficiary, tokenId);
+    Approve(tokenOwner[tokenId], beneficiary, tokenId);
   }
 
   function tokenMetadata(uint tokenId) constant public returns (string) {
@@ -83,19 +84,23 @@ contract BasicNFT is NFT, NFTEvents {
   function updateTokenMetadata(uint tokenId, string _metadata) public {
     require(msg.sender == tokenOwner[tokenId]);
     _tokenMetadata[tokenId] = _metadata;
-    MetadataUpdated(tokenId, msg.sender, _metadata);
+    MetadataUpdate(tokenId, msg.sender, _metadata);
+  }
+
+  function approvedFor(uint tokenId) constant public returns (address) {
+    return allowedTransfer[tokenId];
   }
 
   function _transfer(address from, address to, uint tokenId) internal {
     _clearApproval(tokenId);
     _removeTokenFrom(from, tokenId);
     _addTokenTo(to, tokenId);
-    Transferred(tokenId, from, to);
+    Transfer(tokenId, from, to);
   }
 
   function _clearApproval(uint tokenId) internal {
     allowedTransfer[tokenId] = 0;
-    Approval(tokenOwner[tokenId], 0, tokenId);
+    Approve(tokenOwner[tokenId], 0, tokenId);
   }
 
   function _removeTokenFrom(address from, uint tokenId) internal {
