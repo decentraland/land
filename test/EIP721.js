@@ -7,7 +7,22 @@
  */
 import assertRevert from './helpers/assertRevert';
 const BigNumber = web3.BigNumber;
-const NonFungibleToken = artifacts.require('BasicNFT');
+const NonFungibleToken = artifacts.require('NonFungibleTokenTest');
+const NONE = '0x0000000000000000000000000000000000000000';
+
+function checkTransferLog(log, tokenId, from, to) {
+  log.event.should.be.eq('Transfer');
+  log.args.tokenId.should.be.bignumber.equal(tokenId);
+  log.args.from.should.be.equal(from);
+  log.args.to.should.be.equal(to);
+}
+
+function checkApproveLog(log, tokenId, from, to) {
+  log.event.should.be.eq('Approve');
+  log.args.tokenId.should.be.bignumber.equal(tokenId);
+  log.args.owner.should.be.equal(from);
+  log.args.beneficiary.should.be.equal(to);
+}
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -79,8 +94,9 @@ contract('NonFungibleToken', accounts => {
     describe('when the given token ID was not tracked by this token', function () {
       const tokenId = _unknownTokenId;
 
-      it('reverts', async function () {
-        await assertRevert(token.ownerOf(tokenId));
+      it('returns 0', async function () {
+        const owner = await token.ownerOf(tokenId);
+        owner.should.be.equal(NONE);
       });
     });
   });
@@ -150,10 +166,7 @@ contract('NonFungibleToken', accounts => {
           const { logs } = await token.mint(to, tokenId);
 
           logs.length.should.be.equal(1);
-          logs[0].event.should.be.eq('Transfer');
-          logs[0].args._from.should.be.equal('0x0000000000000000000000000000000000000000');
-          logs[0].args._to.should.be.equal(to);
-          logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
+          checkTransferLog(logs[0], tokenId, NONE, to);
         });
       });
 
@@ -198,23 +211,15 @@ contract('NonFungibleToken', accounts => {
             await token.transfer(to, tokenId, { from: sender });
 
             const approvedAccount = await token.approvedFor(tokenId);
-            approvedAccount.should.be.equal('0x0000000000000000000000000000000000000000');
+            approvedAccount.should.be.equal(NONE);
           });
 
           it('emits an approval and transfer events', async function () {
             const { logs } = await token.transfer(to, tokenId, { from: sender });
 
             logs.length.should.be.equal(2);
-
-            logs[0].event.should.be.eq('Approval');
-            logs[0].args._owner.should.be.equal(sender);
-            logs[0].args._approved.should.be.equal('0x0000000000000000000000000000000000000000');
-            logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
-
-            logs[1].event.should.be.eq('Transfer');
-            logs[1].args._from.should.be.equal(sender);
-            logs[1].args._to.should.be.equal(to);
-            logs[1].args._tokenId.should.be.bignumber.equal(tokenId);
+            checkApproveLog(logs[0], tokenId, sender, NONE)
+            checkTransferLog(logs[1], tokenId, sender, to);
           });
 
           it('adjusts owners balances', async function () {
@@ -284,7 +289,7 @@ contract('NonFungibleToken', accounts => {
         const sender = _creator;
 
         describe('when the address that receives the approval is the 0 address', function () {
-          const to = '0x0000000000000000000000000000000000000000';
+          const to = NONE;
 
           describe('when there was no approval for the given token ID before', function () {
             it('clears the approval for that token', async function () {
@@ -294,10 +299,10 @@ contract('NonFungibleToken', accounts => {
               approvedAccount.should.be.equal(to);
             });
 
-            it('does not emit an approval event', async function () {
+            it('emits an approval event to 0', async function () {
               const { logs } = await token.approve(to, tokenId, { from: sender });
-
-              logs.length.should.be.equal(0);
+              logs.length.should.be.equal(1);
+              checkApproveLog(logs[0], tokenId, sender, NONE);
             });
           });
 
@@ -316,11 +321,8 @@ contract('NonFungibleToken', accounts => {
             it('emits an approval event', async function () {
               const { logs } = await token.approve(to, tokenId, { from: sender });
 
+              checkApproveLog(logs[0], tokenId, sender, to);
               logs.length.should.be.equal(1);
-              logs[0].event.should.be.eq('Approval');
-              logs[0].args._owner.should.be.equal(sender);
-              logs[0].args._approved.should.be.equal(to);
-              logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
             });
           });
         });
@@ -341,10 +343,7 @@ contract('NonFungibleToken', accounts => {
                 const { logs } = await token.approve(to, tokenId, { from: sender });
 
                 logs.length.should.be.equal(1);
-                logs[0].event.should.be.eq('Approval');
-                logs[0].args._owner.should.be.equal(sender);
-                logs[0].args._approved.should.be.equal(to);
-                logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
+                checkApproveLog(logs[0], tokenId, sender, to);
               });
             });
 
@@ -364,10 +363,7 @@ contract('NonFungibleToken', accounts => {
                 const { logs } = await token.approve(to, tokenId, { from: sender });
 
                 logs.length.should.be.equal(1);
-                logs[0].event.should.be.eq('Approval');
-                logs[0].args._owner.should.be.equal(sender);
-                logs[0].args._approved.should.be.equal(to);
-                logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
+                checkApproveLog(logs[0], tokenId, sender, to);
               });
             });
 
@@ -387,10 +383,7 @@ contract('NonFungibleToken', accounts => {
                 const { logs } = await token.approve(to, tokenId, { from: sender });
 
                 logs.length.should.be.equal(1);
-                logs[0].event.should.be.eq('Approval');
-                logs[0].args._owner.should.be.equal(sender);
-                logs[0].args._approved.should.be.equal(to);
-                logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
+                checkApproveLog(logs[0], tokenId, sender, to);
               });
             });
           });
@@ -457,7 +450,7 @@ contract('NonFungibleToken', accounts => {
           await token.takeOwnership(tokenId, { from: sender });
 
           const approvedAccount = await token.approvedFor(tokenId);
-          approvedAccount.should.be.equal('0x0000000000000000000000000000000000000000');
+          approvedAccount.should.be.equal(NONE);
         });
 
         it('emits an approval and transfer events', async function () {
@@ -465,15 +458,8 @@ contract('NonFungibleToken', accounts => {
 
           logs.length.should.be.equal(2);
 
-          logs[0].event.should.be.eq('Approval');
-          logs[0].args._owner.should.be.equal(_creator);
-          logs[0].args._approved.should.be.equal('0x0000000000000000000000000000000000000000');
-          logs[0].args._tokenId.should.be.bignumber.equal(tokenId);
-
-          logs[1].event.should.be.eq('Transfer');
-          logs[1].args._from.should.be.equal(_creator);
-          logs[1].args._to.should.be.equal(sender);
-          logs[1].args._tokenId.should.be.bignumber.equal(tokenId);
+          checkApproveLog(logs[0], tokenId, _creator, NONE);
+          checkTransferLog(logs[1], tokenId, _creator, sender);
         });
 
         it('adjusts owners balances', async function () {
