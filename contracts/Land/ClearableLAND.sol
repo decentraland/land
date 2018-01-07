@@ -7,7 +7,8 @@ contract ClearableLAND is ILANDRegistry, LANDStorage {
   function ping() public {
     latestPing[msg.sender] = now;
   }
-  function clearLand(uint x[], uint y[]) public {
+
+  function clearLand(uint[] x, uint[] y) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
       uint landId = buildTokenId(x[i], y[i]);

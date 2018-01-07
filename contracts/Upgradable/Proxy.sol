@@ -12,12 +12,12 @@ contract Proxy is Ownable, DelegateProxy {
 
   function initialize() onlyOwner public {
     // Prevent calls to initialize
-    throw();
+    require(false);
   }
 
   function initialize(bytes) onlyOwner public {
     // Prevent calls to initialize
-    throw();
+    require(false);
   }
 
   function upgrade(IApplication newContract, bytes data) onlyOwner public {
