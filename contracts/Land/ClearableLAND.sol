@@ -1,9 +1,11 @@
 pragma solidity ^0.4.18;
 
+import '../AssetRegistry/InternalOperationsAssetRegistry.sol';
 import './ILANDRegistry.sol';
 import './LANDStorage.sol';
 
-contract ClearableLAND is ILANDRegistry, LANDStorage {
+contract ClearableLAND is InternalOperationsAssetRegistry, LANDStorage, ILANDRegistry {
+
   function ping() public {
     latestPing[msg.sender] = now;
   }

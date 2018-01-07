@@ -1,6 +1,9 @@
-contract LANDStorage is AssetRegistryStorage {
+pragma solidity ^0.4.18;
 
-  address owner;
+import '../AssetRegistry/Storage.sol';
+import '../Upgradable/OwnableStorage.sol';
+
+contract LANDStorage is AssetRegistryStorage, OwnableStorage {
 
   mapping (address => uint) latestPing;
 

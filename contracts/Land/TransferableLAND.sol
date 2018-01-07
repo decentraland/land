@@ -1,9 +1,10 @@
 pragma solidity ^0.4.18;
 
+import '../AssetRegistry/TransferableAssetRegistry.sol';
 import './ILANDRegistry.sol';
 import './LANDStorage.sol';
 
-contract TransferableLAND is ILANDRegistry, LANDStorage {
+contract TransferableLAND is TransferableAssetRegistry, LANDStorage, ILANDRegistry {
   function transferLand(uint x, uint y, address to) public {
     return send(to, buildTokenId(x, y));
   }

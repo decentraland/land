@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
-import '../AssetRegistry/IAssetRegistry';
+import '../AssetRegistry/IAssetRegistry.sol';
 
-contract ILANDRegistry is IAssetRegistry {
+interface ILANDRegistry {
   function assignNewParcel(uint x, uint y, address beneficiary, uint tokenId, string data) public;
   function assignNewParcel(uint x, uint y, address beneficiary, uint tokenId) public;
   function assignMultipleParcels(uint[] x, uint[] y, address beneficiary, uint tokenId) public;

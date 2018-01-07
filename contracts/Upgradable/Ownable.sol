@@ -1,9 +1,9 @@
 pragma solidity ^0.4.18;
 
 import './IApplication.sol';
+import './OwnableStorage.sol';
 
-contract Ownable is IApplication {
-  address public owner;
+contract Ownable is OwnableStorage, IApplication {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 

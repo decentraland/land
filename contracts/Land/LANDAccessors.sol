@@ -1,9 +1,10 @@
 pragma solidity ^0.4.18;
 
+import '../AssetRegistry/IAssetRegistry.sol';
 import './ILANDRegistry.sol';
 import './LANDStorage.sol';
 
-contract LANDAccessors is ILANDRegistry, LANDStorage {
+contract LANDAccessors is IAssetRegistry, ILANDRegistry {
 
   uint256 constant clearLow = 0xffffffffffffffff0000000000000000;
   uint256 constant clearHigh = 0x0000000000000000ffffffffffffffff;

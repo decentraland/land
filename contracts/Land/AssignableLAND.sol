@@ -1,10 +1,12 @@
 pragma solidity ^0.4.18;
 
+import '../AssetRegistry/StandardAssetRegistry.sol';
+import '../AssetRegistry/InternalOperationsAssetRegistry.sol';
 import '../Upgradable/Ownable.sol';
 import './LANDStorage.sol';
 import './ILANDRegistry.sol';
 
-contract AssignableLAND is Ownable, LANDStorage, ILANDRegistry {
+contract AssignableLAND is StandardAssetRegistry, Ownable, LANDStorage, ILANDRegistry {
 
   function assignNewParcel(uint x, uint y, address beneficiary, string data) public {
     create(buildTokenId(x, y), beneficiary, data);
@@ -22,7 +24,7 @@ contract AssignableLAND is Ownable, LANDStorage, ILANDRegistry {
 
   function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary, uint tokenId) public {
     for (uint i = 0; i < x.length; i++) {
-      create(buildTokenId(x[i], y[i]), beneficiary, '');
+      create(buildTokenId(x[i], y[i]), beneficiary[i], '');
     }
   }
 
@@ -33,7 +35,7 @@ contract AssignableLAND is Ownable, LANDStorage, ILANDRegistry {
   }
 
   function destroy(uint256 _assetId) onlyOwner public {
-    _removeAssetFrom(holder, _assetId);
-    Destroy(holder, _assetId, msg.sender);
+    _removeAssetFrom(_holderOf[_assetId], _assetId);
+    Destroy(_holderOf[_assetId], _assetId, msg.sender);
   }
 }

@@ -20,6 +20,10 @@ contract SupplyAssetRegistry is AssetRegistryStorage, IAssetRegistry,
   }
 
   function create(uint256 _assetId, address _beneficiary, string _data) public {
+    doCreate(_assetId, _beneficiary, _data);
+  }
+
+  function doCreate(uint256 _assetId, address _beneficiary, string _data) internal {
     require(_holderOf[_assetId] == 0);
 
     _addAssetTo(_beneficiary, _assetId, _data);

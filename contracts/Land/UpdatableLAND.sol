@@ -1,9 +1,10 @@
 pragma solidity ^0.4.18;
 
-import './ILANDRegistry.sol';
+import '../AssetRegistry/UpdatableAssetRegistry.sol';
 import './LANDStorage.sol';
+import './ILANDRegistry.sol';
 
-contract UpdatableLAND is ILANDRegistry, LANDStorage {
+contract UpdatableLAND is UpdatableAssetRegistry, LANDStorage, ILANDRegistry {
   function updateLandData(uint x, uint y, string _metadata) public {
     return update(buildTokenId(x, y), _metadata);
   }
