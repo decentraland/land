@@ -23,7 +23,6 @@ interface IAssetRegistry {
   function assetsCount(address _holder) public constant returns (uint256);
   function assetByIndex(address _holder, uint256 _index) public constant returns (uint256);
   function allAssetsOf(address _holder) public constant returns (uint256[]);
-  function allAssetsDataOf(address _holder) public constant returns (string[]);
 
   /**
    * Transfer Operations

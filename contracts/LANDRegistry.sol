@@ -3,14 +3,8 @@ pragma solidity ^0.4.18;
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './NFT/BasicNFT.sol';
 
-contract LANDRegistry is Ownable, BasicNFT {
+contract LANDRegistry is Ownable, AssetRegistry {
 
-  string public name = 'Decentraland World';
-  string public symbol = 'LAND';
-
-  mapping (uint => uint) public latestPing;
-
-  event Ping(uint tokenId);
 
   function assignNewParcel(address beneficiary, uint tokenId, string _metadata) onlyOwner public {
     require(tokenOwner[tokenId] == 0);

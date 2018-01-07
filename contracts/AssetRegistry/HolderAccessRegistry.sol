@@ -12,7 +12,7 @@ contract HolderAccessRegistry is AssetRegistryStorage {
   }
 
   function assetByIndex(address _holder, uint256 _index) public constant returns (uint256) {
-    return _assetsOf[_holder][index];
+    return _assetsOf[_holder][_index];
   }
 
   function allAssetsOf(address _holder) public constant returns (uint256[]) {
@@ -24,12 +24,17 @@ contract HolderAccessRegistry is AssetRegistryStorage {
     return result;
   }
 
-  function allAssetsDataOf(address _holder) public constant returns (string[]) {
-    uint size = _assetsOf[_holder].length;
-    uint[] memory result = new uint[](size);
-    for (uint i = 0; i < size; i++) {
-      result[i] = _assetsOf[_holder][i];
+  function isOperatorAuthorizedFor(address _operator, address _assetHolder)
+    public constant returns (bool)
+  {
+    address[] memory operators = _operators[_assetHolder];
+    uint length = operators.length;
+
+    for (uint index = 0; index < operators.length; index++) {
+      if (operators[index] == msg.sender) {
+        return true;
+      }
     }
-    return result;
+    return false;
   }
 }

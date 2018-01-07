@@ -10,6 +10,16 @@ contract Proxy is Ownable, DelegateProxy {
    */
   address currentContract;
 
+  function initialize() onlyOwner public {
+    // Prevent calls to initialize
+    throw();
+  }
+
+  function initialize(bytes) onlyOwner public {
+    // Prevent calls to initialize
+    throw();
+  }
+
   function upgrade(IApplication newContract, bytes data) onlyOwner public {
     currentContract = newContract;
     newContract.initialize(data);

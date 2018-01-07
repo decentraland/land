@@ -1,25 +1,16 @@
 pragma solidity ^0.4.18;
 
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+
 import './Storage.sol';
 import './IAssetRegistry.sol';
+import './HolderAccessRegistry.sol';
 
 /**
  * Authorization getters
  */
-contract AuthorizedAssetRegistry is AssetRegistryStorage, IAssetRegistry {
-  function isOperatorAuthorizedFor(address _operator, address _assetHolder)
-    public constant returns (bool)
-  {
-    address[] operators = _operators[_assetHolder];
-    uint length = operators.length;
-
-    for (uint index = 0; !allowed && index < operators.length; index++) {
-      if (operators[iter] == msg.sender) {
-        return true;
-      }
-    }
-    return false;
-  }
+contract AuthorizedAssetRegistry is AssetRegistryStorage, IAssetRegistry, HolderAccessRegistry {
+  using SafeMath for uint256;
 
   function authorizeOperator(address _operator, bool _authorized) public {
     if (_authorized) {
@@ -37,17 +28,16 @@ contract AuthorizedAssetRegistry is AssetRegistryStorage, IAssetRegistry {
   }
 
   function _clearAuthorization(address _operator, address _holder) private {
-    address[] operators = _operators[_holder];
-    uint length = operators.length;
+    uint length = _operators[_holder].length;
     uint last = length.sub(1);
 
-    for (uint index = 0; index < operators.length; index++) {
-      if (operators[iter] == _operator) {
-        operators[iter] = operators[last];
-        operators[last] = 0;
-        operators.length = last;
-        if (!operators.length) {
-          delete operators;
+    for (uint index = 0; index < length; index++) {
+      if (_operators[_holder][index] == _operator) {
+        _operators[_holder][index] = _operators[_holder][last];
+        _operators[_holder][last] = 0;
+        _operators[_holder].length = last;
+        if (last == 0) {
+          delete _operators[_holder];
         }
         return;
       }

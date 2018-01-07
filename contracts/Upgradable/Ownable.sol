@@ -4,7 +4,6 @@ import './IApplication.sol';
 
 contract Ownable is IApplication {
   address public owner;
-  address public newOwner;
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
@@ -19,13 +18,6 @@ contract Ownable is IApplication {
 
   function transferOwnership(address _newOwner) public onlyOwner {
     require(_newOwner != owner);
-    newOwner = _newOwner;
-  }
-
-  function acceptOwnership() public {
-    require(msg.sender == newOwner);
-    OwnerUpdate(owner, newOwner);
-    owner = newOwner;
-    newOwner = 0x0;
+    owner = _newOwner;
   }
 }

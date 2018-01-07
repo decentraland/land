@@ -1,11 +1,13 @@
 pragma solidity ^0.4.18;
 
 import './Storage.sol';
+import './AuthorizedAssetRegistry.sol';
+import './InternalOperationsAssetRegistry.sol';
 
 /**
  * Transfer Operations
  */
-contract TransferableRegistry is AssetRegistryStorage, AuthorizedAssetRegistry {
+contract TransferableAssetRegistry is AssetRegistryStorage, IAssetRegistry, InternalOperationsAssetRegistry, AuthorizedAssetRegistry {
 
   modifier onlyHolder(uint256 assetId) {
     require(_holderOf[assetId] == msg.sender);
@@ -13,20 +15,8 @@ contract TransferableRegistry is AssetRegistryStorage, AuthorizedAssetRegistry {
   }
 
   modifier onlyOperator(uint256 assetId) {
-    bool allowed = _holderOf[assetId] == msg.sender;
-    uint index;
-    uint length;
-
-    // Now, check if the operator is generally allowed by the holder
-    address[] operators = _operators[_holderOf[assetId]];
-    length = operators.length;
-    for (index = 0; !allowed && index < operators.length; index++) {
-      if (operators[iter] == msg.sender) {
-        allowed = true;
-      }
-    }
-
-    require(allowed);
+    require(_holderOf[assetId] == msg.sender
+         || isOperatorAuthorizedFor(msg.sender, _holderOf[assetId]));
     _;
   }
 
@@ -50,7 +40,7 @@ contract TransferableRegistry is AssetRegistryStorage, AuthorizedAssetRegistry {
     onlyOperator(_assetId)
     public
   {
-    return doSend(_to, _assetId, _userData, msg.sender, operatorData);
+    return doSend(_to, _assetId, userData, msg.sender, operatorData);
   }
 
   function doSend(
@@ -58,7 +48,7 @@ contract TransferableRegistry is AssetRegistryStorage, AuthorizedAssetRegistry {
   )
     internal
   {
-    address holder = _holderOf[tokenId];
+    address holder = _holderOf[assetId];
     _removeAssetFrom(holder, assetId);
     _addAssetTo(_to, assetId);
 
