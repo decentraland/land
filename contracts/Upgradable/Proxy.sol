@@ -12,11 +12,6 @@ contract Proxy is Ownable, DelegateProxy {
 
   event Upgrade(address indexed newContract, bytes initializedWith);
 
-  function initialize() onlyOwner public {
-    // Prevent calls to initialize
-    throw;
-  }
-
   function initialize(bytes) onlyOwner public {
     // Prevent calls to initialize
     throw;
