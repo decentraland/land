@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 import './Storage.sol';
 import './AuthorizedAssetRegistry.sol';
+import './IAssetHolder.sol';
 import './InternalOperationsAssetRegistry.sol';
 
 /**

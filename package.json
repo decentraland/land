@@ -18,6 +18,7 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "gatsby": "^1.9.149",
+    "truffle-flattener": "^1.2.0",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
