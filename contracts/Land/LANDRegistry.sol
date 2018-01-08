@@ -10,11 +10,13 @@ import '../AssetRegistry/StandardAssetRegistry.sol';
 
 import './ILANDRegistry.sol';
 
-contract LANDRegistry is Storage, Ownable, StandardAssetRegistry, IApplication, ILANDRegistry
+contract LANDRegistry is Storage,
+  Ownable, StandardAssetRegistry,
+  IApplication, ILANDRegistry
 {
 
   function initialize(bytes /* data */) public {
-    _name = 'Decentraland Land';
+    _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
   }

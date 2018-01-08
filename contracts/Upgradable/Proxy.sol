@@ -1,23 +1,16 @@
 pragma solidity ^0.4.18;
 
-import "../Storage.sol";
-
-import "./Ownable.sol";
+import "./ProxyStorage.sol";
 
 import "./DelegateProxy.sol";
 
 import "./IApplication.sol";
 
-contract Proxy is Storage, Ownable, DelegateProxy {
+contract Proxy is ProxyStorage, DelegateProxy {
 
   event Upgrade(address indexed newContract, bytes initializedWith);
 
-  function initialize(bytes) onlyOwner public {
-    // Prevent calls to initialize
-    throw;
-  }
-
-  function upgrade(IApplication newContract, bytes data) onlyOwner public {
+  function upgrade(IApplication newContract, bytes data) public {
     currentContract = newContract;
     newContract.initialize(data);
 
