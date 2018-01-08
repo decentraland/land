@@ -2,17 +2,18 @@ pragma solidity ^0.4.18;
 
 import '../Storage.sol';
 
+import '../Upgradable/Ownable.sol';
+
 import '../Upgradable/IApplication.sol';
+
+import '../AssetRegistry/StandardAssetRegistry.sol';
 
 import './ILANDRegistry.sol';
 
-contract LANDRegistry is Storage, IApplication, ILANDRegistry
+contract LANDRegistry is Storage, Ownable, StandardAssetRegistry, IApplication, ILANDRegistry
 {
-  function initialize(bytes /* data */) public {
-    initialize();
-  }
 
-  function initialize() public {
+  function initialize(bytes /* data */) public {
     _name = 'Decentraland Land';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
@@ -23,21 +24,21 @@ contract LANDRegistry is Storage, IApplication, ILANDRegistry
   //
 
   function assignNewParcel(int x, int y, address beneficiary, string data) public {
-    create(buildTokenId(x, y), beneficiary, data);
+    generate(buildTokenId(x, y), beneficiary, data);
   }
 
   function assignNewParcel(int x, int y, address beneficiary) public {
-    create(buildTokenId(x, y), beneficiary, '');
+    generate(buildTokenId(x, y), beneficiary, '');
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
-      create(buildTokenId(x[i], y[i]), beneficiary, '');
+      generate(buildTokenId(x[i], y[i]), beneficiary, '');
     }
   }
 
-  function create(uint256 _assetId, address _beneficiary, string _data) onlyOwner public {
-    doCreate(_assetId, _beneficiary, _data);
+  function generate(uint256 _assetId, address _beneficiary, string _data) onlyOwner public {
+    doGenerate(_assetId, _beneficiary, _data);
   }
 
   function destroy(uint256 _assetId) onlyOwner public {
@@ -73,16 +74,18 @@ contract LANDRegistry is Storage, IApplication, ILANDRegistry
   // LAND Getters
   //
 
-  function buildTokenId(int x, int y) view public returns (uint b) {
-    b = ((uint(x) * factor) & clearLow) + (uint(y) & clearHigh);
+  function buildTokenId(int x, int y) view public returns (uint) {
+    return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
 
   function exists(int x, int y) view public returns (bool) {
     return exists(buildTokenId(x, y));
   }
+
   function ownerOfLand(int x, int y) view public returns (address) {
     return holderOf(buildTokenId(x, y));
   }
+
   function landData(int x, int y) view public returns (string) {
     return assetData(buildTokenId(x, y));
   }

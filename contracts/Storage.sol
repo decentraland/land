@@ -6,7 +6,7 @@ import './Upgradable/OwnableStorage.sol';
 
 import './AssetRegistry/AssetRegistryStorage.sol';
 
-import './Land/LandStorage.sol';
+import './Land/LANDStorage.sol';
 
-contract Storage is ProxyStorage, OwnableStorage, AssetRegistryStorage, LandStorage {
+contract Storage is ProxyStorage, OwnableStorage, AssetRegistryStorage, LANDStorage {
 }

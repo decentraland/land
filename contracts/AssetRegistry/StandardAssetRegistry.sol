@@ -6,6 +6,8 @@ import '../Storage.sol';
 
 import './IAssetRegistry.sol';
 
+import './IAssetHolder.sol';
+
 contract StandardAssetRegistry is Storage, IAssetRegistry {
   using SafeMath for uint256;
 
@@ -13,16 +15,19 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Global Getters
   //
 
-  function name() public constant returns (string) {
+  function name() public view returns (string) {
     return _name;
   }
-  function symbol() public constant returns (string) {
+
+  function symbol() public view returns (string) {
     return _symbol;
   }
-  function description() public constant returns (string) {
+
+  function description() public view returns (string) {
     return _description;
   }
-  function totalSupply() public constant returns (uint256) {
+
+  function totalSupply() public view returns (uint256) {
     return _count;
   }
 
@@ -30,13 +35,15 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Asset-centric getter functions
   //
 
-  function exists(uint256 _assetId) public constant returns (bool) {
+  function exists(uint256 _assetId) public view returns (bool) {
     return _holderOf[_assetId] != 0;
   }
-  function holderOf(uint256 _assetId) public constant returns (address) {
+
+  function holderOf(uint256 _assetId) public view returns (address) {
     return _holderOf[_assetId];
   }
-  function assetData(uint256 _assetId) public constant returns (string) {
+
+  function assetData(uint256 _assetId) public view returns (string) {
     return _assetData[_assetId];
   }
 
@@ -44,15 +51,15 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Holder-centric getter functions
   //
 
-  function assetsCount(address _holder) public constant returns (uint256) {
+  function assetsCount(address _holder) public view returns (uint256) {
     return _assetsOf[_holder].length;
   }
 
-  function assetByIndex(address _holder, uint256 _index) public constant returns (uint256) {
+  function assetByIndex(address _holder, uint256 _index) public view returns (uint256) {
     return _assetsOf[_holder][_index];
   }
 
-  function allAssetsOf(address _holder) public constant returns (uint256[]) {
+  function allAssetsOf(address _holder) public view returns (uint256[]) {
     uint size = _assetsOf[_holder].length;
     uint[] memory result = new uint[](size);
     for (uint i = 0; i < size; i++) {
@@ -66,7 +73,7 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   //
 
   function isOperatorAuthorizedFor(address _operator, address _assetHolder)
-    public constant returns (bool)
+    public view returns (bool)
   {
     return _operators[_assetHolder][_operator];
   }
@@ -142,19 +149,19 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Supply-altering functions
   //
 
-  function create(uint256 _assetId) public {
-    create(_assetId, msg.sender, '');
+  function generate(uint256 _assetId) public {
+    generate(_assetId, msg.sender, '');
   }
 
-  function create(uint256 _assetId, string _data) public {
-    create(_assetId, msg.sender, _data);
+  function generate(uint256 _assetId, string _data) public {
+    generate(_assetId, msg.sender, _data);
   }
 
-  function create(uint256 _assetId, address _beneficiary, string _data) public {
-    doCreate(_assetId, _beneficiary, _data);
+  function generate(uint256 _assetId, address _beneficiary, string _data) public {
+    doGenerate(_assetId, _beneficiary, _data);
   }
 
-  function doCreate(uint256 _assetId, address _beneficiary, string _data) internal {
+  function doGenerate(uint256 _assetId, address _beneficiary, string _data) internal {
     require(_holderOf[_assetId] == 0);
 
     _addAssetTo(_beneficiary, _assetId, _data);
@@ -251,7 +258,7 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Utilities
   //
 
-  function isContract(address addr) internal returns (bool) {
+  function isContract(address addr) internal view returns (bool) {
     uint size;
     assembly { size := extcodesize(addr) }
     return size > 0;

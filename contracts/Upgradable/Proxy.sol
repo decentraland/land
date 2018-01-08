@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "../Storage";
+import "../Storage.sol";
 
 import "./Ownable.sol";
 
@@ -9,10 +9,6 @@ import "./DelegateProxy.sol";
 import "./IApplication.sol";
 
 contract Proxy is Storage, Ownable, DelegateProxy {
-  /**
-   * Current contract to which we are proxing
-   */
-  address currentContract;
 
   event Upgrade(address indexed newContract, bytes initializedWith);
 
