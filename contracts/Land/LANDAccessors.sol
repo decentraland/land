@@ -6,20 +6,21 @@ import './LANDStorage.sol';
 
 contract LANDAccessors is IAssetRegistry, ILANDRegistry {
 
-  uint256 constant clearLow = 0xffffffffffffffff0000000000000000;
-  uint256 constant clearHigh = 0x0000000000000000ffffffffffffffff;
+  uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
+  uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
+  uint256 constant factor = 0x100000000000000000000000000000000;
 
-  function buildTokenId(uint x, uint y) view public returns (uint256) {
-    return ((x << 128) & clearLow) | (y & clearHigh);
+  function buildTokenId(int x, int y) view public returns (uint b) {
+    b = ((uint(x) * factor) & clearLow) + (uint(y) & clearHigh);
   }
 
-  function exists(uint x, uint y) view public returns (bool) {
+  function exists(int x, int y) view public returns (bool) {
     return exists(buildTokenId(x, y));
   }
-  function ownerOfLand(uint x, uint y) view public returns (address) {
+  function ownerOfLand(int x, int y) view public returns (address) {
     return holderOf(buildTokenId(x, y));
   }
-  function landData(uint x, uint y) view public returns (string) {
+  function landData(int x, int y) view public returns (string) {
     return assetData(buildTokenId(x, y));
   }
 }

@@ -8,23 +8,17 @@ import './ILANDRegistry.sol';
 
 contract AssignableLAND is StandardAssetRegistry, Ownable, LANDStorage, ILANDRegistry {
 
-  function assignNewParcel(uint x, uint y, address beneficiary, string data) public {
+  function assignNewParcel(int x, int y, address beneficiary, string data) public {
     create(buildTokenId(x, y), beneficiary, data);
   }
 
-  function assignNewParcel(uint x, uint y, address beneficiary) public {
+  function assignNewParcel(int x, int y, address beneficiary) public {
     create(buildTokenId(x, y), beneficiary, '');
   }
 
-  function assignMultipleParcels(uint[] x, uint[] y, address beneficiary) public {
+  function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
       create(buildTokenId(x[i], y[i]), beneficiary, '');
-    }
-  }
-
-  function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary) public {
-    for (uint i = 0; i < x.length; i++) {
-      create(buildTokenId(x[i], y[i]), beneficiary[i], '');
     }
   }
 

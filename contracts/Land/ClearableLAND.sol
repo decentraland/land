@@ -15,7 +15,7 @@ contract ClearableLAND is InternalOperationsAssetRegistry, Ownable, LANDStorage,
     latestPing[user] = now;
   }
 
-  function clearLand(uint[] x, uint[] y) public {
+  function clearLand(int[] x, int[] y) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
       uint landId = buildTokenId(x[i], y[i]);

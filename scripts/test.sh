@@ -39,9 +39,9 @@ start_testrpc() {
   )
 
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port" "${accounts[@]}" > /dev/null &
+    node_modules/.bin/testrpc-sc --gasLimit 100000000 --port "$testrpc_port" "${accounts[@]}" > /dev/null &
   else
-    node_modules/.bin/testrpc --gasLimit 0xfffffffffff "${accounts[@]}" --port "$testrpc_port" > /dev/null &
+    node_modules/.bin/testrpc --gasLimit 1000000000 "${accounts[@]}" --port "$testrpc_port" > /dev/null &
   fi
 
   testrpc_pid=$!
