@@ -36,11 +36,11 @@ contract('LANDRegistry', (accounts) => {
   const [creator, user, anotherUser, operator, mallory] = accounts
   let registry = null, proxy = null;
   let land = null;
-  const _name = 'LAND Registry';
-  const _symbol = 'LAND Test';
-  const _firstparcelId = 1;
-  const _secondparcelId = 2;
-  const _unknownparcelId = 3;
+  const _name = 'Decentraland LAND';
+  const _symbol = 'LAND';
+  const _firstParcelId = 1;
+  const _secondParcelId = 2;
+  const _unknownParcelId = 3;
 
   beforeEach(async function () {
     proxy = await LANDProxy.new({ gas: 4e7, gasPrice: 21e9, from: creator })
@@ -60,21 +60,21 @@ contract('LANDRegistry', (accounts) => {
 
   describe('symbol', function () {
     it('has a symbol', async function () {
-      const symbol = await land.symbol();
+      const symbol = await registry.symbol();
       symbol.should.be.equal(_symbol);
     });
   });
 
   describe('totalSupply', function () {
     it('has a total supply equivalent to the inital supply', async function () {
-      const totalSupply = await land.totalSupply();
+      const totalSupply = await registry.totalSupply();
       totalSupply.should.be.bignumber.equal(2);
     });
     it('has a total supply that increases after creating a new land', async function () {
-      let totalSupply = await land.totalSupply();
+      let totalSupply = await registry.totalSupply();
       totalSupply.should.be.bignumber.equal(2);
       await land.assignNewParcel(-123, 3423, anotherUser, { from: creator });
-      totalSupply = await land.totalSupply();
+      totalSupply = await registry.totalSupply();
       totalSupply.should.be.bignumber.equal(3);
     });
   });
@@ -82,14 +82,14 @@ contract('LANDRegistry', (accounts) => {
   describe('assetsCount', function () {
     describe('when the given address owns some lands', function () {
       it('returns the amount of lands owned by the given address', async function () {
-        const balance = await land.assetsCount(user);
+        const balance = await registry.assetsCount(user);
         balance.should.be.bignumber.equal(1);
       });
     });
 
     describe('when the given address owns some lands', function () {
       it('returns 0', async function () {
-        const balance = await land.assetsCount(user);
+        const balance = await registry.assetsCount(user);
         balance.should.be.bignumber.equal(0);
       });
     });
@@ -97,19 +97,19 @@ contract('LANDRegistry', (accounts) => {
 
   describe('ownerOf', function () {
     describe('when the given land ID was tracked by this land', function () {
-      const parcelId = _firstparcelId;
+      const parcelId = _firstParcelId;
 
       it('returns the owner of the given land ID', async function () {
-        const owner = await land.ownerOf(parcelId);
+        const owner = await registry.ownerOf(parcelId);
         owner.should.be.equal(creator);
       });
     });
 
     describe('when the given land ID was not tracked by this land', function () {
-      const parcelId = _unknownparcelId;
+      const parcelId = _unknownParcelId;
 
       it('returns 0', async function () {
-        const owner = await land.ownerOf(parcelId);
+        const owner = await registry.ownerOf(parcelId);
         owner.should.be.equal(NONE);
       });
     });
@@ -123,8 +123,8 @@ contract('LANDRegistry', (accounts) => {
         const index = 0;
 
         it('returns the land ID placed at the given index', async function () {
-          const parcelId = await land.assetByIndex(owner, index);
-          parcelId.should.be.bignumber.equal(_firstparcelId);
+          const parcelId = await registry.assetByIndex(owner, index);
+          parcelId.should.be.bignumber.equal(_firstParcelId);
         });
       });
 
@@ -132,7 +132,7 @@ contract('LANDRegistry', (accounts) => {
         const index = 2;
 
         it('reverts', async function () {
-          await assertRevert(land.assetByIndex(owner, index));
+          await assertRevert(registry.assetByIndex(owner, index));
         });
       });
     });
@@ -141,43 +141,43 @@ contract('LANDRegistry', (accounts) => {
       const owner = user;
 
       it('reverts', async function () {
-        await assertRevert(land.assetByIndex(owner, 0));
+        await assertRevert(registry.assetByIndex(owner, 0));
       });
     });
   });
 
-  describe('mint', function () {
+  describe('create', function () {
     describe('when the given land ID was not tracked by this contract', function () {
-      const parcelId = _unknownparcelId;
+      const parcelId = _unknownParcelId;
 
       describe('when the given address is not the zero address', function () {
         const to = user;
 
-        it('mints the given land ID to the given address', async function () {
-          const previousBalance = await land.assetsCount(to);
+        it('create the given land ID to the given address', async function () {
+          const previousBalance = await registry.assetsCount(to);
 
           await land.assignNewParcel(0, parcelId, to, { from: _creator });
 
-          const owner = await land.ownerOf(parcelId);
+          const owner = await registry.ownerOf(parcelId);
           owner.should.be.equal(to);
 
-          const balance = await land.assetsCount(to);
+          const balance = await registry.assetsCount(to);
           balance.should.be.bignumber.equal(previousBalance + 1);
         });
 
         it('adds that land to the land list of the owner', async function () {
           await land.assignNewParcel(0, parcelId, to, { from: _creator });
 
-          const lands = await land.landsOf(to);
+          const lands = await registry.landsOf(to);
           lands.length.should.be.equal(1);
           lands[0].should.be.bignumber.equal(parcelId);
 
-          const addedland = await land.assetByIndex(to, 0);
+          const addedland = await registry.assetByIndex(to, 0);
           addedland.should.be.bignumber.equal(parcelId);
         });
 
         it('emits a transfer event', async function () {
-          const { logs } = await land.mint(to, parcelId);
+          const { logs } = await land.create(0, parcelId, to);
 
           logs.length.should.be.equal(1);
           checkTransferLog(logs[0], parcelId, NONE, to);
@@ -188,16 +188,16 @@ contract('LANDRegistry', (accounts) => {
         const to = 0x0;
 
         it('reverts', async function () {
-          await assertRevert(land.mint(to, parcelId));
+        await assertRevert(land.create(0, parcelId, to));
         });
       });
     });
 
     describe('when the given land ID was already tracked by this contract', function () {
-      const parcelId = _firstparcelId;
+      const parcelId = _firstParcelId;
 
       it('reverts', async function () {
-        await assertRevert(land.mint(user, parcelId));
+        await assertRevert(land.create(0, parcelId, user));
       });
     });
   });
@@ -207,15 +207,15 @@ contract('LANDRegistry', (accounts) => {
       const to = user;
 
       describe('when the given land ID was tracked by this land', function () {
-        const parcelId = _firstparcelId;
+        const parcelId = _firstParcelId;
 
         describe('when the msg.sender is the owner of the given land ID', function () {
           const sender = creator;
 
           it('send the ownership of the given land ID to the given address', async function () {
-            await land.send(to, parcelId, { from: sender });
+            await land.transfer(to, parcelId, { from: sender });
 
-            const newOwner = await land.ownerOf(parcelId);
+            const newOwner = await registry.ownerOf(parcelId);
             newOwner.should.be.equal(to);
           });
 
@@ -227,32 +227,32 @@ contract('LANDRegistry', (accounts) => {
           });
 
           it('adjusts owners balances', async function () {
-            const previousBalance = await land.assetsCount(sender);
+            const previousBalance = await registry.assetsCount(sender);
             await land.transfer(to, parcelId, { from: sender });
 
-            const newOwnerBalance = await land.assetsCount(to);
+            const newOwnerBalance = await registry.assetsCount(to);
             newOwnerBalance.should.be.bignumber.equal(1);
 
-            const previousOwnerBalance = await land.assetsCount(creator);
+            const previousOwnerBalance = await registry.assetsCount(creator);
             previousOwnerBalance.should.be.bignumber.equal(previousBalance - 1);
           });
 
           it('places the last land of the sender in the position of the transferred land', async function () {
             const firstlandIndex = 0;
-            const lastlandIndex = await land.assetsCount(creator) - 1;
-            const lastland = await land.assetByIndex(creator, lastlandIndex);
+            const lastlandIndex = await registry.assetsCount(creator) - 1;
+            const lastland = await registry.assetByIndex(creator, lastlandIndex);
 
             await land.transfer(to, parcelId, { from: sender });
 
-            const swappedland = await land.assetByIndex(creator, firstlandIndex);
+            const swappedland = await registry.assetByIndex(creator, firstlandIndex);
             swappedland.should.be.bignumber.equal(lastland);
-            await assertRevert(land.assetByIndex(creator, lastlandIndex));
+            await assertRevert(registry.assetByIndex(creator, lastlandIndex));
           });
 
           it('adds the land to the lands list of the new owner', async function () {
             await land.transfer(to, parcelId, { from: sender });
 
-            const landIDs = await land.landsOf(to);
+            const landIDs = await registry.landsOf(to);
             landIDs.length.should.be.equal(1);
             landIDs[0].should.be.bignumber.equal(parcelId);
           });
@@ -268,7 +268,7 @@ contract('LANDRegistry', (accounts) => {
       });
 
       describe('when the given land ID was not tracked by this land', function () {
-        let parcelId = _unknownparcelId;
+        let parcelId = _unknownParcelId;
 
         it('reverts', async function () {
           await assertRevert(land.transfer(to, parcelId, { from: creator }));
