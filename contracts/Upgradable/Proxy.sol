@@ -10,19 +10,23 @@ contract Proxy is Ownable, DelegateProxy {
    */
   address currentContract;
 
+  event Upgrade(address indexed newContract, bytes initializedWith);
+
   function initialize() onlyOwner public {
     // Prevent calls to initialize
-    require(false);
+    throw;
   }
 
   function initialize(bytes) onlyOwner public {
     // Prevent calls to initialize
-    require(false);
+    throw;
   }
 
   function upgrade(IApplication newContract, bytes data) onlyOwner public {
     currentContract = newContract;
     newContract.initialize(data);
+
+    Upgrade(newContract, data);
   }
 
   function () payable public {

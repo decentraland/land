@@ -23,9 +23,7 @@ contract AssignableLAND is StandardAssetRegistry, Ownable, LANDStorage, ILANDReg
   }
 
   function create(uint256 _assetId, address _beneficiary, string _data) onlyOwner public {
-    require(_holderOf[_assetId] == 0);
-    _addAssetTo(_beneficiary, _assetId, _data);
-    Create(_beneficiary, _assetId, msg.sender, _data);
+    doCreate(_assetId, _beneficiary, _data);
   }
 
   function destroy(uint256 _assetId) onlyOwner public {

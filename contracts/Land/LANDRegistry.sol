@@ -22,10 +22,6 @@ contract LANDRegistry is StandardAssetRegistry, LANDStorage,
   }
 
   function initialize() public {
-    if (owner != 0) {
-      return;
-    }
-    owner = msg.sender;
     _name = 'Decentraland Land';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';

@@ -21,21 +21,21 @@ contract TransferableAssetRegistry is AssetRegistryStorage, IAssetRegistry, Inte
     _;
   }
 
-  function send(address _to, uint256 _assetId)
+  function transfer(address _to, uint256 _assetId)
     onlyHolder(_assetId)
     public
   {
     return doSend(_to, _assetId, '', 0, '');
   }
 
-  function send(address _to, uint256 _assetId, bytes _userData)
+  function transfer(address _to, uint256 _assetId, bytes _userData)
     onlyHolder(_assetId)
     public
   {
     return doSend(_to, _assetId, _userData, 0, '');
   }
 
-  function operatorSend(
+  function operatorTransfer(
     address _to, uint256 _assetId, bytes userData, bytes operatorData
   )
     onlyOperator(_assetId)

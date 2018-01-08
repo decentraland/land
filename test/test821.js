@@ -43,7 +43,6 @@ contract('LANDRegistry', (accounts) => {
   const _unknownparcelId = 3;
 
   beforeEach(async function () {
-    console.log(accounts)
     proxy = await LANDProxy.new({ gas: 4e7, gasPrice: 21e9, from: creator })
     registry = await LANDRegistry.new({ gas: 6e7, gasPrice: 21e9, from: creator })
     await proxy.upgrade(registry.address, '', { from: creator })
@@ -69,25 +68,28 @@ contract('LANDRegistry', (accounts) => {
   describe('totalSupply', function () {
     it('has a total supply equivalent to the inital supply', async function () {
       const totalSupply = await land.totalSupply();
-      totalSupply.should.be.bignumber.equal(0);
+      totalSupply.should.be.bignumber.equal(2);
     });
     it('has a total supply that increases after creating a new land', async function () {
-      const totalSupply = await land.totalSupply();
-      totalSupply.should.be.bignumber.equal(1);
+      let totalSupply = await land.totalSupply();
+      totalSupply.should.be.bignumber.equal(2);
+      await land.assignNewParcel(-123, 3423, anotherUser, { from: creator });
+      totalSupply = await land.totalSupply();
+      totalSupply.should.be.bignumber.equal(3);
     });
   });
 
-  describe('balanceOf', function () {
+  describe('assetsCount', function () {
     describe('when the given address owns some lands', function () {
       it('returns the amount of lands owned by the given address', async function () {
-        const balance = await land.balanceOf(creator);
-        balance.should.be.bignumber.equal(2);
+        const balance = await land.assetsCount(user);
+        balance.should.be.bignumber.equal(1);
       });
     });
 
     describe('when the given address owns some lands', function () {
       it('returns 0', async function () {
-        const balance = await land.balanceOf(user);
+        const balance = await land.assetsCount(user);
         balance.should.be.bignumber.equal(0);
       });
     });
@@ -113,7 +115,7 @@ contract('LANDRegistry', (accounts) => {
     });
   });
 
-  describe('landOfOwnerByIndex', function () {
+  describe('assetByIndex', function () {
     describe('when the given address owns some lands', function () {
       const owner = creator;
 
@@ -121,7 +123,7 @@ contract('LANDRegistry', (accounts) => {
         const index = 0;
 
         it('returns the land ID placed at the given index', async function () {
-          const parcelId = await land.landOfOwnerByIndex(owner, index);
+          const parcelId = await land.assetByIndex(owner, index);
           parcelId.should.be.bignumber.equal(_firstparcelId);
         });
       });
@@ -130,7 +132,7 @@ contract('LANDRegistry', (accounts) => {
         const index = 2;
 
         it('reverts', async function () {
-          await assertRevert(land.landOfOwnerByIndex(owner, index));
+          await assertRevert(land.assetByIndex(owner, index));
         });
       });
     });
@@ -139,7 +141,7 @@ contract('LANDRegistry', (accounts) => {
       const owner = user;
 
       it('reverts', async function () {
-        await assertRevert(land.landOfOwnerByIndex(owner, 0));
+        await assertRevert(land.assetByIndex(owner, 0));
       });
     });
   });
@@ -152,25 +154,25 @@ contract('LANDRegistry', (accounts) => {
         const to = user;
 
         it('mints the given land ID to the given address', async function () {
-          const previousBalance = await land.balanceOf(to);
+          const previousBalance = await land.assetsCount(to);
 
-          await land.mint(to, parcelId);
+          await land.assignNewParcel(0, parcelId, to, { from: _creator });
 
           const owner = await land.ownerOf(parcelId);
           owner.should.be.equal(to);
 
-          const balance = await land.balanceOf(to);
+          const balance = await land.assetsCount(to);
           balance.should.be.bignumber.equal(previousBalance + 1);
         });
 
         it('adds that land to the land list of the owner', async function () {
-          await land.mint(to, parcelId);
+          await land.assignNewParcel(0, parcelId, to, { from: _creator });
 
           const lands = await land.landsOf(to);
           lands.length.should.be.equal(1);
           lands[0].should.be.bignumber.equal(parcelId);
 
-          const addedland = await land.landOfOwnerByIndex(to, 0);
+          const addedland = await land.assetByIndex(to, 0);
           addedland.should.be.bignumber.equal(parcelId);
         });
 
@@ -200,8 +202,8 @@ contract('LANDRegistry', (accounts) => {
     });
   });
 
-  describe('transfer', function () {
-    describe('when the address to transfer the land to is not the zero address', function () {
+  describe('send', function () {
+    describe('when the address to send the land to is not the zero address', function () {
       const to = user;
 
       describe('when the given land ID was tracked by this land', function () {
@@ -210,51 +212,41 @@ contract('LANDRegistry', (accounts) => {
         describe('when the msg.sender is the owner of the given land ID', function () {
           const sender = creator;
 
-          it('transfers the ownership of the given land ID to the given address', async function () {
-            await land.transfer(to, parcelId, { from: sender });
+          it('send the ownership of the given land ID to the given address', async function () {
+            await land.send(to, parcelId, { from: sender });
 
             const newOwner = await land.ownerOf(parcelId);
             newOwner.should.be.equal(to);
           });
 
-          it('clears the approval for the land ID', async function () {
-            await land.approve(anotherUser, parcelId, { from: sender });
-
-            await land.transfer(to, parcelId, { from: sender });
-
-            const approvedAccount = await land.approvedFor(parcelId);
-            approvedAccount.should.be.equal(NONE);
-          });
-
-          it('emits an approval and transfer events', async function () {
+          it('emits a transfer event', async function () {
             const { logs } = await land.transfer(to, parcelId, { from: sender });
 
-            logs.length.should.be.equal(2);
-            checkApproveLog(logs[0], parcelId, sender, NONE)
+            logs.length.should.be.equal(1);
             checkTransferLog(logs[1], parcelId, sender, to);
           });
 
           it('adjusts owners balances', async function () {
-            const previousBalance = await land.balanceOf(sender);
+            const previousBalance = await land.assetsCount(sender);
             await land.transfer(to, parcelId, { from: sender });
 
-            const newOwnerBalance = await land.balanceOf(to);
+            const newOwnerBalance = await land.assetsCount(to);
             newOwnerBalance.should.be.bignumber.equal(1);
 
-            const previousOwnerBalance = await land.balanceOf(creator);
+            const previousOwnerBalance = await land.assetsCount(creator);
             previousOwnerBalance.should.be.bignumber.equal(previousBalance - 1);
           });
 
           it('places the last land of the sender in the position of the transferred land', async function () {
             const firstlandIndex = 0;
-            const lastlandIndex = await land.balanceOf(creator) - 1;
-            const lastland = await land.landOfOwnerByIndex(creator, lastlandIndex);
+            const lastlandIndex = await land.assetsCount(creator) - 1;
+            const lastland = await land.assetByIndex(creator, lastlandIndex);
 
             await land.transfer(to, parcelId, { from: sender });
 
-            const swappedland = await land.landOfOwnerByIndex(creator, firstlandIndex);
+            const swappedland = await land.assetByIndex(creator, firstlandIndex);
             swappedland.should.be.bignumber.equal(lastland);
-            await assertRevert(land.landOfOwnerByIndex(creator, lastlandIndex));
+            await assertRevert(land.assetByIndex(creator, lastlandIndex));
           });
 
           it('adds the land to the lands list of the new owner', async function () {
@@ -284,7 +276,7 @@ contract('LANDRegistry', (accounts) => {
       });
     });
 
-    describe('when the address to transfer the land to is the zero address', function () {
+    describe('when the address to send the land to is the zero address', function () {
       const to = 0x0;
 
       it('reverts', async function () {
@@ -293,243 +285,4 @@ contract('LANDRegistry', (accounts) => {
     });
   });
 
-  describe('approve', function () {
-    describe('when the given land ID was already tracked by this contract', function () {
-      const parcelId = _firstparcelId;
-
-      describe('when the sender owns the given land ID', function () {
-        const sender = creator;
-
-        describe('when the address that receives the approval is the 0 address', function () {
-          const to = NONE;
-
-          describe('when there was no approval for the given land ID before', function () {
-            it('clears the approval for that land', async function () {
-              await land.approve(to, parcelId, { from: sender });
-
-              const approvedAccount = await land.approvedFor(parcelId);
-              approvedAccount.should.be.equal(to);
-            });
-
-            it('emits an approval event to 0', async function () {
-              const { logs } = await land.approve(to, parcelId, { from: sender });
-              logs.length.should.be.equal(1);
-              checkApproveLog(logs[0], parcelId, sender, NONE);
-            });
-          });
-
-          describe('when the given land ID was approved for another account', function () {
-            beforeEach(async function () {
-              await land.approve(anotherUser, parcelId, { from: sender });
-            });
-
-            it('clears the approval for the land ID', async function () {
-              await land.approve(to, parcelId, { from: sender });
-
-              const approvedAccount = await land.approvedFor(parcelId);
-              approvedAccount.should.be.equal(to);
-            });
-
-            it('emits an approval event', async function () {
-              const { logs } = await land.approve(to, parcelId, { from: sender });
-
-              checkApproveLog(logs[0], parcelId, sender, to);
-              logs.length.should.be.equal(1);
-            });
-          });
-        });
-
-        describe('when the address that receives the approval is not the 0 address', function () {
-          describe('when the address that receives the approval is different than the owner', function () {
-            const to = user;
-
-            describe('when there was no approval for the given land ID before', function () {
-              it('approves the land ID to the given address', async function () {
-                await land.approve(to, parcelId, { from: sender });
-
-                const approvedAccount = await land.approvedFor(parcelId);
-                approvedAccount.should.be.equal(to);
-              });
-
-              it('emits an approval event', async function () {
-                const { logs } = await land.approve(to, parcelId, { from: sender });
-
-                logs.length.should.be.equal(1);
-                checkApproveLog(logs[0], parcelId, sender, to);
-              });
-            });
-
-            describe('when the given land ID was approved for the same account', function () {
-              beforeEach(async function () {
-                await land.approve(to, parcelId, { from: sender });
-              });
-
-              it('keeps the approval to the given address', async function () {
-                await land.approve(to, parcelId, { from: sender });
-
-                const approvedAccount = await land.approvedFor(parcelId);
-                approvedAccount.should.be.equal(to);
-              });
-
-              it('emits an approval event', async function () {
-                const { logs } = await land.approve(to, parcelId, { from: sender });
-
-                logs.length.should.be.equal(1);
-                checkApproveLog(logs[0], parcelId, sender, to);
-              });
-            });
-
-            describe('when the given land ID was approved for another account', function () {
-              beforeEach(async function () {
-                await land.approve(anotherUser, parcelId, { from: sender });
-              });
-
-              it('changes the approval to the given address', async function () {
-                await land.approve(to, parcelId, { from: sender });
-
-                const approvedAccount = await land.approvedFor(parcelId);
-                approvedAccount.should.be.equal(to);
-              });
-
-              it('emits an approval event', async function () {
-                const { logs } = await land.approve(to, parcelId, { from: sender });
-
-                logs.length.should.be.equal(1);
-                checkApproveLog(logs[0], parcelId, sender, to);
-              });
-            });
-          });
-
-          describe('when the address that receives the approval is the owner', function () {
-            const to = creator;
-
-            describe('when there was no approval for the given land ID before', function () {
-              it('reverts', async function () {
-                await assertRevert(land.approve(to, parcelId, { from: sender }));
-              });
-            });
-
-            describe('when the given land ID was approved for another account', function () {
-              beforeEach(async function () {
-                await land.approve(anotherUser, parcelId, { from: sender });
-              });
-
-              it('reverts', async function () {
-                await assertRevert(land.approve(to, parcelId, { from: sender }));
-              });
-            });
-          });
-        });
-      });
-
-      describe('when the sender does not own the given land ID', function () {
-        const sender = user;
-
-        it('reverts', async function () {
-          await assertRevert(land.approve(anotherUser, parcelId, { from: sender }));
-        });
-      });
-    });
-
-    describe('when the given land ID was not tracked by the contract before', function () {
-      const parcelId = _unknownparcelId;
-
-      it('reverts', async function () {
-        await assertRevert(land.approve(user, parcelId, { from: creator }));
-      });
-    });
-  });
-
-  describe('takeOwnership', function () {
-    describe('when the given land ID was already tracked by this contract', function () {
-      const parcelId = _firstparcelId;
-
-      describe('when the sender has the approval for the land ID', function () {
-        const sender = user;
-
-        beforeEach(async function () {
-          await land.approve(sender, parcelId, { from: creator });
-        });
-
-        it('transfers the ownership of the given land ID to the given address', async function () {
-          await land.takeOwnership(parcelId, { from: sender });
-
-          const newOwner = await land.ownerOf(parcelId);
-          newOwner.should.be.equal(sender);
-        });
-
-        it('clears the approval for the land ID', async function () {
-          await land.takeOwnership(parcelId, { from: sender });
-
-          const approvedAccount = await land.approvedFor(parcelId);
-          approvedAccount.should.be.equal(NONE);
-        });
-
-        it('emits an approval and transfer events', async function () {
-          const { logs } = await land.takeOwnership(parcelId, { from: sender });
-
-          logs.length.should.be.equal(2);
-
-          checkApproveLog(logs[0], parcelId, creator, NONE);
-          checkTransferLog(logs[1], parcelId, creator, sender);
-        });
-
-        it('adjusts owners balances', async function () {
-          const previousBalance = await land.balanceOf(creator);
-
-          await land.takeOwnership(parcelId, { from: sender });
-
-          const newOwnerBalance = await land.balanceOf(sender);
-          newOwnerBalance.should.be.bignumber.equal(1);
-
-          const previousOwnerBalance = await land.balanceOf(creator);
-          previousOwnerBalance.should.be.bignumber.equal(previousBalance - 1);
-        });
-
-        it('places the last land of the sender in the position of the transferred land', async function () {
-          const firstlandIndex = 0;
-          const lastlandIndex = await land.balanceOf(creator) - 1;
-          const lastland = await land.landOfOwnerByIndex(creator, lastlandIndex);
-
-          await land.takeOwnership(parcelId, { from: sender });
-
-          const swappedland = await land.landOfOwnerByIndex(creator, firstlandIndex);
-          swappedland.should.be.bignumber.equal(lastland);
-          await assertRevert(land.landOfOwnerByIndex(creator, lastlandIndex));
-        });
-
-        it('adds the land to the lands list of the new owner', async function () {
-          await land.takeOwnership(parcelId, { from: sender });
-
-          const landIDs = await land.landsOf(sender);
-          landIDs.length.should.be.equal(1);
-          landIDs[0].should.be.bignumber.equal(parcelId);
-        });
-      });
-
-      describe('when the sender does not have the approval for the land ID', function () {
-        const sender = user;
-
-        it('reverts', async function () {
-          await assertRevert(land.takeOwnership(parcelId, { from: sender }));
-        });
-      });
-
-      describe('when the sender is already the owner of the land', function () {
-        const sender = creator;
-
-        it('reverts', async function () {
-          await assertRevert(land.takeOwnership(parcelId, { from: sender }));
-        });
-      });
-    });
-
-    describe('when the given land ID was not tracked by the contract before', function () {
-      const parcelId = _unknownparcelId;
-
-      it('reverts', async function () {
-        await assertRevert(land.takeOwnership(parcelId, { from: creator }));
-      });
-    });
-  });
 });

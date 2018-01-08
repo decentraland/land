@@ -27,9 +27,9 @@ interface IAssetRegistry {
   /**
    * Transfer Operations
    */
-  function send(address _to, uint256 _assetId) public;
-  function send(address _to, uint256 _assetId, bytes _userData) public;
-  function operatorSend(address _to, uint256 _assetId, bytes userData, bytes operatorData) public;
+  function transfer(address _to, uint256 _assetId) public;
+  function transfer(address _to, uint256 _assetId, bytes _userData) public;
+  function operatorTransfer(address _to, uint256 _assetId, bytes userData, bytes operatorData) public;
 
   /**
    * Data modification operations
