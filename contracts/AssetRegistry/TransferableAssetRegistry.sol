@@ -52,6 +52,20 @@ contract TransferableAssetRegistry is AssetRegistryStorage, IAssetRegistry, Inte
     _removeAssetFrom(holder, assetId);
     _addAssetTo(_to, assetId);
 
+    // TODO: Implement EIP 820
+    if (isContract(_to)) {
+      require(_reentrancy == false);
+      _reentrancy = true;
+      IAssetHolder(_to).onAssetReceived(assetId, holder, _to, userData, operator, operatorData);
+      _reentrancy = false;
+    }
+
     Transfer(holder, _to, assetId, operator, userData, operatorData);
+  }
+
+  function isContract(address addr) internal returns (bool) {
+    uint size;
+    assembly { size := extcodesize(addr) }
+    return size > 0;
   }
 }

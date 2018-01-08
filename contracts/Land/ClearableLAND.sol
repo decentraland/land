@@ -1,13 +1,18 @@
 pragma solidity ^0.4.18;
 
+import '../Upgradable/Ownable.sol';
 import '../AssetRegistry/InternalOperationsAssetRegistry.sol';
 import './ILANDRegistry.sol';
 import './LANDStorage.sol';
 
-contract ClearableLAND is InternalOperationsAssetRegistry, LANDStorage, ILANDRegistry {
+contract ClearableLAND is InternalOperationsAssetRegistry, Ownable, LANDStorage, ILANDRegistry {
 
   function ping() public {
     latestPing[msg.sender] = now;
+  }
+
+  function setLatestToNow(address user) onlyOwner public {
+    latestPing[user] = now;
   }
 
   function clearLand(uint[] x, uint[] y) public {

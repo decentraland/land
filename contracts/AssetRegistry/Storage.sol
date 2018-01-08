@@ -32,8 +32,13 @@ contract AssetRegistryStorage {
   mapping(uint256 => string) internal _assetData;
 
   /**
-   * For a given account, this stores an array of addresses that are
+   * For a given account, for a given opperator, store whether that operator is
    * allowed to transfer and modify assets on behalf of them.
    */
-  mapping(address => address[]) internal _operators;
+  mapping(address => mapping(address => bool)) internal _operators;
+
+  /**
+   * Simple reentrancy lock
+   */
+  bool internal _reentrancy;
 }

@@ -24,23 +24,10 @@ contract AuthorizedAssetRegistry is AssetRegistryStorage, IAssetRegistry, Holder
   }
 
   function _addAuthorization(address _operator, address _holder) private {
-    _operators[_holder].push(_operator);
+    _operators[_holder][_operator] = true;
   }
 
   function _clearAuthorization(address _operator, address _holder) private {
-    uint length = _operators[_holder].length;
-    uint last = length.sub(1);
-
-    for (uint index = 0; index < length; index++) {
-      if (_operators[_holder][index] == _operator) {
-        _operators[_holder][index] = _operators[_holder][last];
-        _operators[_holder][last] = 0;
-        _operators[_holder].length = last;
-        if (last == 0) {
-          delete _operators[_holder];
-        }
-        return;
-      }
-    }
+    _operators[_holder][_operator] = false;
   }
 }

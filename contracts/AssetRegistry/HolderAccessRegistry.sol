@@ -27,14 +27,6 @@ contract HolderAccessRegistry is AssetRegistryStorage {
   function isOperatorAuthorizedFor(address _operator, address _assetHolder)
     public constant returns (bool)
   {
-    address[] memory operators = _operators[_assetHolder];
-    uint length = operators.length;
-
-    for (uint index = 0; index < length; index++) {
-      if (operators[index] == _operator) {
-        return true;
-      }
-    }
-    return false;
+    return _operators[_assetHolder][_operator];
   }
 }
