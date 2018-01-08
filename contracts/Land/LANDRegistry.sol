@@ -13,11 +13,11 @@ import './ClearableLAND.sol';
 import './TransferableLAND.sol';
 import './UpdatableLAND.sol';
 
-contract LANDRegistry is StandardAssetRegistry,
-  LANDStorage, ILANDRegistry, LANDAccessors,
-  AssignableLAND, ClearableLAND, TransferableLAND, UpdatableLAND
+contract LANDRegistry is StandardAssetRegistry, LANDStorage,
+  ILANDRegistry,
+  LANDAccessors, AssignableLAND, ClearableLAND, TransferableLAND, UpdatableLAND
 {
-  function initialize(bytes data) public {
+  function initialize(bytes /* data */) public {
     initialize();
   }
 

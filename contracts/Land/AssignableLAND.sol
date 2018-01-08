@@ -12,17 +12,17 @@ contract AssignableLAND is StandardAssetRegistry, Ownable, LANDStorage, ILANDReg
     create(buildTokenId(x, y), beneficiary, data);
   }
 
-  function assignNewParcel(uint x, uint y, address beneficiary, uint tokenId) public {
+  function assignNewParcel(uint x, uint y, address beneficiary) public {
     create(buildTokenId(x, y), beneficiary, '');
   }
 
-  function assignMultipleParcels(uint[] x, uint[] y, address beneficiary, uint tokenId) public {
+  function assignMultipleParcels(uint[] x, uint[] y, address beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
       create(buildTokenId(x[i], y[i]), beneficiary, '');
     }
   }
 
-  function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary, uint tokenId) public {
+  function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
       create(buildTokenId(x[i], y[i]), beneficiary[i], '');
     }

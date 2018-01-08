@@ -30,8 +30,8 @@ contract HolderAccessRegistry is AssetRegistryStorage {
     address[] memory operators = _operators[_assetHolder];
     uint length = operators.length;
 
-    for (uint index = 0; index < operators.length; index++) {
-      if (operators[index] == msg.sender) {
+    for (uint index = 0; index < length; index++) {
+      if (operators[index] == _operator) {
         return true;
       }
     }

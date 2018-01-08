@@ -13,6 +13,7 @@ contract UpdatableAssetRegistry is AssetRegistryStorage, IAssetRegistry
          || isOperatorAuthorizedFor(msg.sender, _holderOf[assetId]));
     _;
   }
+
   function update(uint256 _assetId, string _data) onlyIfUpdateAllowed(_assetId) public {
     _assetData[_assetId] = _data;
     Update(_assetId, _holderOf[_assetId], msg.sender, _data);

@@ -3,10 +3,10 @@ pragma solidity ^0.4.18;
 import '../AssetRegistry/IAssetRegistry.sol';
 
 interface ILANDRegistry {
-  function assignNewParcel(uint x, uint y, address beneficiary, uint tokenId, string data) public;
-  function assignNewParcel(uint x, uint y, address beneficiary, uint tokenId) public;
-  function assignMultipleParcels(uint[] x, uint[] y, address beneficiary, uint tokenId) public;
-  function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary, uint tokenId) public;
+  function assignNewParcel(uint x, uint y, address beneficiary, string data) public;
+  function assignNewParcel(uint x, uint y, address beneficiary) public;
+  function assignMultipleParcels(uint[] x, uint[] y, address beneficiary) public;
+  function assignMultipleParcels(uint[] x, uint[] y, address[] beneficiary) public;
 
   function ping() public;
   function clearLand(uint[] x, uint[] y) public;

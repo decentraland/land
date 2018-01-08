@@ -7,7 +7,7 @@ contract Ownable is OwnableStorage, IApplication {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function initialize(bytes data) public {
+  function initialize(bytes) public {
     owner = msg.sender;
   }
 
