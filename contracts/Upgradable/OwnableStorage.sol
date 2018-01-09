@@ -4,7 +4,7 @@ contract OwnableStorage {
 
   address public owner;
 
-  function OwnableStorage() {
+  function OwnableStorage() internal {
     owner = msg.sender;
   }
 

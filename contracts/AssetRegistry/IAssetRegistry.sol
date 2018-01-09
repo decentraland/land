@@ -13,44 +13,44 @@ interface IAssetRegistry {
   /**
    * Asset-centric getter functions
    */
-  function exists(uint256 _assetId) public constant returns (bool);
-  function holderOf(uint256 _assetId) public constant returns (address);
-  function assetData(uint256 _assetId) public constant returns (string);
+  function exists(uint256 assetId) public constant returns (bool);
+  function holderOf(uint256 assetId) public constant returns (address);
+  function assetData(uint256 assetId) public constant returns (string);
 
   /**
    * Holder-centric getter functions
    */
-  function assetsCount(address _holder) public constant returns (uint256);
-  function assetByIndex(address _holder, uint256 _index) public constant returns (uint256);
-  function allAssetsOf(address _holder) public constant returns (uint256[]);
+  function assetsCount(address holder) public constant returns (uint256);
+  function assetByIndex(address holder, uint256 index) public constant returns (uint256);
+  function allAssetsOf(address holder) public constant returns (uint256[]);
 
   /**
    * Transfer Operations
    */
-  function transfer(address _to, uint256 _assetId) public;
-  function transfer(address _to, uint256 _assetId, bytes _userData) public;
-  function operatorTransfer(address _to, uint256 _assetId, bytes userData, bytes operatorData) public;
+  function transfer(address to, uint256 assetId) public;
+  function transfer(address to, uint256 assetId, bytes userData) public;
+  function operatorTransfer(address to, uint256 assetId, bytes userData, bytes operatorData) public;
 
   /**
    * Data modification operations
    */
-  function update(uint256 _assetId, string _data) public;
+  function update(uint256 assetId, string data) public;
 
   /**
    * Supply-altering operations
    */
-  function generate(uint256 _assetId, string _data) public;
-  function destroy(uint256 _assetId) public;
+  function generate(uint256 assetId, string data) public;
+  function destroy(uint256 assetId) public;
 
   /**
    * Authorization operations
    */
-  function authorizeOperator(address _operator, bool _authorized) public;
+  function authorizeOperator(address operator, bool authorized) public;
 
   /**
    * Authorization getters
    */
-  function isOperatorAuthorizedFor(address _operator, address _assetHolder)
+  function isOperatorAuthorizedFor(address operator, address assetHolder)
     public constant returns (bool);
 
   /**

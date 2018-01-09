@@ -42,17 +42,19 @@ contract('LANDRegistry', accounts => {
   const _firstParcelId = 1
   const _secondParcelId = 2
   const _unknownParcelId = 3
+  const creationParams = {
+    gas: 4e6,
+    gasPrice: 21e9,
+    from: creator
+  }
 
   beforeEach(async function() {
-    proxy = await LANDProxy.new({ gas: 4e7, gasPrice: 21e9, from: creator })
-    registry = await LANDRegistry.new({
-      gas: 6e7,
-      gasPrice: 21e9,
-      from: creator
-    })
+    proxy = await LANDProxy.new(creationParams)
+    registry = await LANDRegistry.new(creationParams)
+
     await proxy.upgrade(registry.address, '', { from: creator })
     land = await LANDRegistry.at(proxy.address)
-    await land.initialize('')
+    await land.initialize('', { from: creator })
     await land.assignNewParcel(0, 1, user, { from: creator })
     await land.assignNewParcel(0, 2, anotherUser, { from: creator })
   })
@@ -64,24 +66,37 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe('symbol', function() {
-    it('has a symbol', async function() {
+  describe('symbol', () => {
+    it('has a symbol', async () => {
       const symbol = await land.symbol()
       symbol.should.be.equal(_symbol)
     })
   })
 
-  describe('totalSupply', function() {
-    it('has a total supply equivalent to the inital supply', async function() {
+  describe('totalSupply', () => {
+    it('has a total supply equivalent to the inital supply', async () => {
       const totalSupply = await land.totalSupply()
       totalSupply.should.be.bignumber.equal(2)
     })
-    it('has a total supply that increases after creating a new land', async function() {
+    it('has a total supply that increases after creating a new land', async () => {
       let totalSupply = await land.totalSupply()
       totalSupply.should.be.bignumber.equal(2)
       await land.assignNewParcel(-123, 3423, anotherUser, { from: creator })
       totalSupply = await land.totalSupply()
       totalSupply.should.be.bignumber.equal(3)
+    })
+  })
+
+  describe('new parcel assignment,', () => {
+    describe('one at a time:', () => {
+      it('only allows the creator to assign parcels', async () => {
+        await assertRevert(land.assignNewParcel(1, 1, anotherUser, { from: anotherUser }))
+      })
+      it('allows the creator to assign parcels', async () => {
+        await land.assignNewParcel(1, 1, anotherUser, { from: creator })
+        const owner = await land.ownerOfLand(1, 1)
+        owner.should.be.equal(anotherUser)
+      })
     })
   })
 })

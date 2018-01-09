@@ -12,10 +12,10 @@ import './ILANDRegistry.sol';
 
 contract LANDRegistry is Storage,
   Ownable, StandardAssetRegistry,
-  IApplication, ILANDRegistry
+  ILANDRegistry
 {
 
-  function initialize(bytes /* data */) onlyOwner public {
+  function initialize(bytes /* data */) public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
@@ -39,13 +39,13 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function generate(uint256 _assetId, address _beneficiary, string _data) onlyOwner public {
-    doGenerate(_assetId, _beneficiary, _data);
+  function generate(uint256 assetId, address beneficiary, string data) onlyOwner public {
+    doGenerate(assetId, beneficiary, data);
   }
 
-  function destroy(uint256 _assetId) onlyOwner public {
-    _removeAssetFrom(_holderOf[_assetId], _assetId);
-    Destroy(_holderOf[_assetId], _assetId, msg.sender);
+  function destroy(uint256 assetId) onlyOwner public {
+    _removeAssetFrom(_holderOf[assetId], assetId);
+    Destroy(_holderOf[assetId], assetId, msg.sender);
   }
 
   //
@@ -110,8 +110,8 @@ contract LANDRegistry is Storage,
   //
   // Update LAND
   //
-  function updateLandData(int x, int y, string _metadata) public {
-    return update(buildTokenId(x, y), _metadata);
+  function updateLandData(int x, int y, string data) public {
+    return update(buildTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {

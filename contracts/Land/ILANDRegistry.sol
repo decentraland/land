@@ -22,6 +22,6 @@ interface ILANDRegistry {
   function transferManyLand(int[] x, int[] y, address to) public;
 
   // Update LAND
-  function updateLandData(int x, int y, string _metadata) public;
+  function updateLandData(int x, int y, string data) public;
   function updateManyLandData(int[] x, int[] y, string data) public;
 }

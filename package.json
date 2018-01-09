@@ -4,6 +4,7 @@
   "description": "Contract for Decentraland's LAND",
   "scripts": {
     "test": "scripts/test.sh",
+    "test:watch": "nodemon test/** contracts/** --exec 'npm test'",
     "lint": "npx eslint test",
     "lint:fix": "npx eslint --fix test"
   },
@@ -12,23 +13,22 @@
     "url": "git+https://github.com/decentraland/land.git"
   },
   "author": "The Decentraland Team <hello@decentraland.org>",
-  "license": "Apache2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/decentraland/land/issues"
   },
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
-    "babel-eslint": "^8.2.1",
-    "eslint": "^4.15.0",
-    "eslint-config-prettier": "^2.9.0",
-    "eslint-plugin-prettier": "^2.4.0",
-    "gatsby": "^1.9.149",
-    "npx": "^9.7.1",
-    "prettier": "^1.9.2",
-    "truffle-flattener": "^1.2.0",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
+    "eslint": "^4.15.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-prettier": "^2.4.0",
+    "npx": "^9.7.1",
+    "prettier": "^1.9.2",
+    "truffle-flattener": "^1.2.0",
+    "babel-eslint": "^8.2.1",
     "babel-polyfill": "^6.26.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
