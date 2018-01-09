@@ -42,6 +42,7 @@ contract('LANDRegistry', accounts => {
   const _firstParcelId = 1
   const _secondParcelId = 2
   const _unknownParcelId = 3
+  const sentByCreator = { from: creator }
   const creationParams = {
     gas: 4e6,
     gasPrice: 21e9,
@@ -52,11 +53,11 @@ contract('LANDRegistry', accounts => {
     proxy = await LANDProxy.new(creationParams)
     registry = await LANDRegistry.new(creationParams)
 
-    await proxy.upgrade(registry.address, '', { from: creator })
+    await proxy.upgrade(registry.address, '', sentByCreator)
     land = await LANDRegistry.at(proxy.address)
-    await land.initialize('', { from: creator })
-    await land.assignNewParcel(0, 1, user, { from: creator })
-    await land.assignNewParcel(0, 2, anotherUser, { from: creator })
+    await land.initialize('', sentByCreator)
+    await land.assignNewParcel(0, 1, user, sentByCreator)
+    await land.assignNewParcel(0, 2, anotherUser, sentByCreator)
   })
 
   describe('name', () => {
@@ -81,7 +82,7 @@ contract('LANDRegistry', accounts => {
     it('has a total supply that increases after creating a new land', async () => {
       let totalSupply = await land.totalSupply()
       totalSupply.should.be.bignumber.equal(2)
-      await land.assignNewParcel(-123, 3423, anotherUser, { from: creator })
+      await land.assignNewParcel(-123, 3423, anotherUser, sentByCreator)
       totalSupply = await land.totalSupply()
       totalSupply.should.be.bignumber.equal(3)
     })
@@ -90,10 +91,10 @@ contract('LANDRegistry', accounts => {
   describe('new parcel assignment,', () => {
     describe('one at a time:', () => {
       it('only allows the creator to assign parcels', async () => {
-        await assertRevert(land.assignNewParcel(1, 1, anotherUser, { from: anotherUser }))
+        await assertRevert(land.assignNewParcel(1, 1, anotherUser, sentByCreator))
       })
       it('allows the creator to assign parcels', async () => {
-        await land.assignNewParcel(1, 1, anotherUser, { from: creator })
+        await land.assignNewParcel(1, 1, anotherUser, sentByCreator)
         const owner = await land.ownerOfLand(1, 1)
         owner.should.be.equal(anotherUser)
       })
