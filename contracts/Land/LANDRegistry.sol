@@ -15,7 +15,7 @@ contract LANDRegistry is Storage,
   IApplication, ILANDRegistry
 {
 
-  function initialize(bytes /* data */) public {
+  function initialize(bytes /* data */) onlyOwner public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';

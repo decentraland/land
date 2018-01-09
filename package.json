@@ -4,7 +4,8 @@
   "description": "Contract for Decentraland's LAND",
   "scripts": {
     "test": "scripts/test.sh",
-    "build": ""
+    "lint": "npx eslint test",
+    "lint:fix": "npx eslint --fix test"
   },
   "repository": {
     "type": "git",
@@ -17,7 +18,13 @@
   },
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
+    "babel-eslint": "^8.2.1",
+    "eslint": "^4.15.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-prettier": "^2.4.0",
     "gatsby": "^1.9.149",
+    "npx": "^9.7.1",
+    "prettier": "^1.9.2",
     "truffle-flattener": "^1.2.0",
     "zeppelin-solidity": "^1.5.0"
   },
