@@ -59,6 +59,10 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
     return _assetsOf[holder][index];
   }
 
+  function assetsOf(address holder) public view returns (uint256[]) {
+    return allAssetsOf(holder);
+  }
+
   function allAssetsOf(address holder) public view returns (uint256[]) {
     uint size = _assetsOf[holder].length;
     uint[] memory result = new uint[](size);

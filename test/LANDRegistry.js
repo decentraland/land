@@ -57,7 +57,7 @@ contract('LANDRegistry', accounts => {
     land = await LANDRegistry.at(proxy.address)
     await land.initialize('', sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
-    await land.assignNewParcel(0, 2, anotherUser, sentByCreator)
+    await land.assignNewParcel(0, 2, user, sentByCreator)
   })
 
   describe('name', () => {
@@ -91,12 +91,71 @@ contract('LANDRegistry', accounts => {
   describe('new parcel assignment,', () => {
     describe('one at a time:', () => {
       it('only allows the creator to assign parcels', async () => {
-        await assertRevert(land.assignNewParcel(1, 1, anotherUser, sentByCreator))
+        await assertRevert(land.assignNewParcel(1, 2, user, {
+          from: anotherUser
+        }))
       })
       it('allows the creator to assign parcels', async () => {
-        await land.assignNewParcel(1, 1, anotherUser, sentByCreator)
+        await land.assignNewParcel(1, 1, user, sentByCreator)
         const owner = await land.ownerOfLand(1, 1)
-        owner.should.be.equal(anotherUser)
+        owner.should.be.equal(user)
+      })
+    })
+    describe('buildTokenId', () => {
+      const values = [
+        {
+          x: 0, y: 0, expected: '0x0000000000000000000000000000000000000000000000000000000000000000'
+        },
+        {
+          x: 0, y: 1, expected: '0x0000000000000000000000000000000000000000000000000000000000000001'
+        },
+        {
+          x: 1, y: 0, expected: '0x0000000000000000000000000000000100000000000000000000000000000000'
+        },
+        {
+          x: 0, y: -1, expected: '0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff'
+        },
+        {
+          x: -1, y: -1, expected: '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+        },
+        {
+          x: 0, y: 256, expected: '0x0000000000000000000000000000000000000000000000000000000000000100'
+        },
+        {
+          x: -256, y: 0, expected: '0xffffffffffffffffffffffffffffff0000000000000000000000000000000000'
+        }
+      ]
+      const buildFn = value => async () => {
+        const expected = new BigNumber(value.expected)
+        const result = await land.buildTokenId(value.x, value.y)
+        result.should.bignumber.equal(expected)
+      }
+      for (let value of values) {
+        it(`correctly encodes ${value.x},${value.y}`, buildFn(value))
+      }
+    })
+    describe('multiple:', () => {
+      describe('successfully registers 10 parcels', async () => {
+        const x = []
+        const y = []
+        const limit = 10
+        for (let i = 4; x.length < limit; i*=-2) {
+          x.push(i)
+        }
+        for (let j = -3; y.length < x.length; j*=-3) {
+          y.push(j)
+        }
+        let assetIds
+        before(async() => {
+          await (land.assignMultipleParcels(x, y, anotherUser, sentByCreator))
+          assetIds = await land.allAssetsOf(anotherUser)
+        })
+        for (let i = 0; i < x.length; i++) {
+          it(`works for ${x[i]},${y[i]}`, ((i) => async() => {
+            const registeredId = await land.buildTokenId(x[i], y[i])
+            registeredId.should.bignumber.equal(assetIds[i])
+          })(i))
+        }
       })
     })
   })
