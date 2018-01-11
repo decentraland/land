@@ -159,4 +159,23 @@ contract('LANDRegistry', accounts => {
       })
     })
   })
+
+  describe('getters', () => {
+    describe('ownerOfLand', () => {
+      it('gets the owner of a parcel of land', async () => {
+        const owner = await land.ownerOfLand(0, 1)
+        owner.should.be.equal(user)
+      })
+    })
+
+    describe('ownerOfLandMany', () => {
+      it('gets the address of owners for a list of parcels', async () => {
+        await land.assignNewParcel(0, 3, anotherUser, sentByCreator)
+        const owners = await land.ownerOfLandMany([0, 0, 0], [1, 2, 3])
+        owners[0].should.be.equal(user)
+        owners[1].should.be.equal(user)
+        owners[2].should.be.equal(anotherUser)
+      })
+    })
+  })
 })

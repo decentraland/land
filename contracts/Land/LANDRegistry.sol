@@ -88,6 +88,18 @@ contract LANDRegistry is Storage,
     return holderOf(buildTokenId(x, y));
   }
 
+  function ownerOfLandMany(int[] x, int[] y) view public returns (address[]) {
+    require(x.length > 0);
+    require(x.length == y.length);
+
+    address[] memory addrs = new address[](x.length);
+    for (uint i = 0; i < x.length; i++) {
+      addrs[i] = ownerOfLand(x[i], y[i]);
+    }
+
+    return addrs;
+  }
+
   function landData(int x, int y) view public returns (string) {
     return assetData(buildTokenId(x, y));
   }
@@ -110,6 +122,7 @@ contract LANDRegistry is Storage,
   //
   // Update LAND
   //
+
   function updateLandData(int x, int y, string data) public {
     return update(buildTokenId(x, y), data);
   }
