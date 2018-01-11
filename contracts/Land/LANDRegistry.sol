@@ -26,16 +26,16 @@ contract LANDRegistry is Storage,
   //
 
   function assignNewParcel(int x, int y, address beneficiary, string data) public {
-    generate(buildTokenId(x, y), beneficiary, data);
+    generate(encodeTokenId(x, y), beneficiary, data);
   }
 
   function assignNewParcel(int x, int y, address beneficiary) public {
-    generate(buildTokenId(x, y), beneficiary, '');
+    generate(encodeTokenId(x, y), beneficiary, '');
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
-      generate(buildTokenId(x[i], y[i]), beneficiary, '');
+      generate(encodeTokenId(x[i], y[i]), beneficiary, '');
     }
   }
 
@@ -63,7 +63,7 @@ contract LANDRegistry is Storage,
   function clearLand(int[] x, int[] y) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      uint landId = buildTokenId(x[i], y[i]);
+      uint landId = encodeTokenId(x[i], y[i]);
       address holder = holderOf(landId);
       if (latestPing[holder] < now - 1 years) {
         _removeAssetFrom(holder, landId);
@@ -76,16 +76,22 @@ contract LANDRegistry is Storage,
   // LAND Getters
   //
 
-  function buildTokenId(int x, int y) view public returns (uint) {
+  function encodeTokenId(int x, int y) view public returns (uint) {
     return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
 
+  function decodeTokenId(uint value) view public returns (int, int) {
+    int x = int((value & clearLow) >> 128);
+    int y = int(value & clearHigh);
+    return (x, y);
+  }
+
   function exists(int x, int y) view public returns (bool) {
-    return exists(buildTokenId(x, y));
+    return exists(encodeTokenId(x, y));
   }
 
   function ownerOfLand(int x, int y) view public returns (address) {
-    return holderOf(buildTokenId(x, y));
+    return holderOf(encodeTokenId(x, y));
   }
 
   function ownerOfLandMany(int[] x, int[] y) view public returns (address[]) {
@@ -101,7 +107,7 @@ contract LANDRegistry is Storage,
   }
 
   function landData(int x, int y) view public returns (string) {
-    return assetData(buildTokenId(x, y));
+    return assetData(encodeTokenId(x, y));
   }
 
   //
@@ -109,13 +115,13 @@ contract LANDRegistry is Storage,
   //
 
   function transferLand(int x, int y, address to) public {
-    return transfer(to, buildTokenId(x, y));
+    return transfer(to, encodeTokenId(x, y));
   }
 
   function transferManyLand(int[] x, int[] y, address to) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      return transfer(to, buildTokenId(x[i], y[i]));
+      return transfer(to, encodeTokenId(x[i], y[i]));
     }
   }
 
@@ -124,13 +130,13 @@ contract LANDRegistry is Storage,
   //
 
   function updateLandData(int x, int y, string data) public {
-    return update(buildTokenId(x, y), data);
+    return update(encodeTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      update(buildTokenId(x[i], y[i]), data);
+      update(encodeTokenId(x[i], y[i]), data);
     }
   }
 }

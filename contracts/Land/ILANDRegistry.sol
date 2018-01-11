@@ -12,7 +12,8 @@ interface ILANDRegistry {
   function clearLand(int[] x, int[] y) public;
 
   // LAND-centric getters
-  function buildTokenId(int x, int y) view public returns (uint256);
+  function encodeTokenId(int x, int y) view public returns (uint256);
+  function decodeTokenId(uint value) view public returns (int, int);
   function exists(int x, int y) view public returns (bool);
   function ownerOfLand(int x, int y) view public returns (address);
   function landData(int x, int y) view public returns (string);
