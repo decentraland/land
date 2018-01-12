@@ -113,6 +113,22 @@ contract LANDRegistry is Storage,
     return addrs;
   }
 
+  function landOf(address owner) view public returns (int[], int[]) {
+    uint256[] memory assets = assetsOf(owner);
+    int[] memory x = new int[](assets.length);
+    int[] memory y = new int[](assets.length);
+
+    int assetX;
+    int assetY;
+    for (uint i = 0; i < assets.length; i++) {
+      (assetX, assetY) = decodeTokenId(assets[i]);
+      x[i] = assetX;
+      y[i] = assetY;
+    }
+
+    return (x, y);
+  }
+
   function landData(int x, int y) view public returns (string) {
     return assetData(encodeTokenId(x, y));
   }
