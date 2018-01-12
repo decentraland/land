@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import './Storage.sol';
-import './Upgradable/Proxy.sol';
+import './upgradable/Proxy.sol';
 
 contract LANDProxy is Storage, Proxy {
 }

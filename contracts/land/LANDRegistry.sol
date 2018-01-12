@@ -2,11 +2,11 @@ pragma solidity ^0.4.18;
 
 import '../Storage.sol';
 
-import '../Upgradable/Ownable.sol';
+import '../upgradable/Ownable.sol';
 
-import '../Upgradable/IApplication.sol';
+import '../upgradable/IApplication.sol';
 
-import '../AssetRegistry/StandardAssetRegistry.sol';
+import '../registry/StandardAssetRegistry.sol';
 
 import './ILANDRegistry.sol';
 
