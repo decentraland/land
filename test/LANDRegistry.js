@@ -101,39 +101,7 @@ contract('LANDRegistry', accounts => {
         owner.should.be.equal(user)
       })
     })
-    describe('buildTokenId', () => {
-      const values = [
-        {
-          x: 0, y: 0, expected: '0x0000000000000000000000000000000000000000000000000000000000000000'
-        },
-        {
-          x: 0, y: 1, expected: '0x0000000000000000000000000000000000000000000000000000000000000001'
-        },
-        {
-          x: 1, y: 0, expected: '0x0000000000000000000000000000000100000000000000000000000000000000'
-        },
-        {
-          x: 0, y: -1, expected: '0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff'
-        },
-        {
-          x: -1, y: -1, expected: '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-        },
-        {
-          x: 0, y: 256, expected: '0x0000000000000000000000000000000000000000000000000000000000000100'
-        },
-        {
-          x: -256, y: 0, expected: '0xffffffffffffffffffffffffffffff0000000000000000000000000000000000'
-        }
-      ]
-      const buildFn = value => async () => {
-        const expected = new BigNumber(value.expected)
-        const result = await land.buildTokenId(value.x, value.y)
-        result.should.bignumber.equal(expected)
-      }
-      for (let value of values) {
-        it(`correctly encodes ${value.x},${value.y}`, buildFn(value))
-      }
-    })
+
     describe('multiple:', () => {
       describe('successfully registers 10 parcels', async () => {
         const x = []
@@ -152,10 +120,83 @@ contract('LANDRegistry', accounts => {
         })
         for (let i = 0; i < x.length; i++) {
           it(`works for ${x[i]},${y[i]}`, ((i) => async() => {
-            const registeredId = await land.buildTokenId(x[i], y[i])
+            const registeredId = await land.encodeTokenId(x[i], y[i])
             registeredId.should.bignumber.equal(assetIds[i])
           })(i))
         }
+      })
+    })
+  })
+
+  describe('tokenId', () => {
+    const values = [
+      {
+        x: 0, y: 0, encoded: '0x0000000000000000000000000000000000000000000000000000000000000000'
+      },
+      {
+        x: 0, y: 1, encoded: '0x0000000000000000000000000000000000000000000000000000000000000001'
+      },
+      {
+        x: 1, y: 0, encoded: '0x0000000000000000000000000000000100000000000000000000000000000000'
+      },
+      {
+        x: 0, y: -1, encoded: '0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff'
+      },
+      {
+        x: -1, y: -1, encoded: '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+      },
+      {
+        x: 0, y: 256, encoded: '0x0000000000000000000000000000000000000000000000000000000000000100'
+      },
+      {
+        x: -256, y: 0, encoded: '0xffffffffffffffffffffffffffffff0000000000000000000000000000000000'
+      }
+    ]
+
+    describe('encodeTokenId', () => {
+      const encodeFn = value => async () => {
+        const encoded = new BigNumber(value.encoded)
+        const result = await land.encodeTokenId(value.x, value.y)
+        result.should.bignumber.equal(encoded)
+      }
+      for (let value of values) {
+        it(`correctly encodes ${value.x},${value.y}`, encodeFn(value))
+      }
+    })
+
+    describe('decodeTokenId', () => {
+      const decodeFn = value => async () => {
+        const encoded = new BigNumber(value.encoded)
+        const result = await land.decodeTokenId(encoded)
+
+        const [x, y] = result
+        console.log(x.toString())
+        console.log(y.toString())
+
+        x.should.bignumber.equal(value.x)
+        y.should.bignumber.equal(value.y)
+      }
+      for (let value of values) {
+        it(`correctly decodes ${value.encoded}`, decodeFn(value))
+      }
+    })
+  })
+
+  describe('getters', () => {
+    describe('ownerOfLand', () => {
+      it('gets the owner of a parcel of land', async () => {
+        const owner = await land.ownerOfLand(0, 1)
+        owner.should.be.equal(user)
+      })
+    })
+
+    describe('ownerOfLandMany', () => {
+      it('gets the address of owners for a list of parcels', async () => {
+        await land.assignNewParcel(0, 3, anotherUser, sentByCreator)
+        const owners = await land.ownerOfLandMany([0, 0, 0], [1, 2, 3])
+        owners[0].should.be.equal(user)
+        owners[1].should.be.equal(user)
+        owners[2].should.be.equal(anotherUser)
       })
     })
   })
