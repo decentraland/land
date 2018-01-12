@@ -81,9 +81,16 @@ contract LANDRegistry is Storage,
   }
 
   function decodeTokenId(uint value) view public returns (int, int) {
-    int x = int((value & clearLow) >> 128);
-    int y = int(value & clearHigh);
-    return (x, y);
+    uint x = (value & clearLow) >> 128;
+    uint y = (value & clearHigh);
+    return (expandNegative128BitCast(x), expandNegative128BitCast(y));
+  }
+
+  function expandNegative128BitCast(uint value) view public returns (int) {
+    if (value & (1<<127) != 0) {
+      return int(value | clearLow);
+    }
+    return int(value);
   }
 
   function exists(int x, int y) view public returns (bool) {

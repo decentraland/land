@@ -170,8 +170,6 @@ contract('LANDRegistry', accounts => {
         const result = await land.decodeTokenId(encoded)
 
         const [x, y] = result
-        console.log(x.toString())
-        console.log(y.toString())
 
         x.should.bignumber.equal(value.x)
         y.should.bignumber.equal(value.y)
