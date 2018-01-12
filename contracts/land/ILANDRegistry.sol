@@ -16,6 +16,7 @@ interface ILANDRegistry {
   function decodeTokenId(uint value) view public returns (int, int);
   function exists(int x, int y) view public returns (bool);
   function ownerOfLand(int x, int y) view public returns (address);
+  function landOf(address owner) view public returns (int[], int[]);
   function landData(int x, int y) view public returns (string);
 
   // Transfer LAND

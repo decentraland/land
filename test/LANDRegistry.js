@@ -197,5 +197,15 @@ contract('LANDRegistry', accounts => {
         owners[2].should.be.equal(anotherUser)
       })
     })
+
+    describe('landOf', () => {
+      it('gets the parcel coordinates for a certain owner', async () => {
+        const [x, y] = await land.landOf(user)
+        x[0].should.be.bignumber.equal(0)
+        x[1].should.be.bignumber.equal(0)
+        y[0].should.be.bignumber.equal(1)
+        y[1].should.be.bignumber.equal(2)
+      })
+    })
   })
 })
