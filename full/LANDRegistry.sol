@@ -1,6 +1,18 @@
 pragma solidity ^0.4.18;
 
-// File: contracts/AssetRegistry/AssetRegistryStorage.sol
+// File: contracts/land/LANDStorage.sol
+
+contract LANDStorage {
+
+  mapping (address => uint) latestPing;
+
+  uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
+  uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
+  uint256 constant factor = 0x100000000000000000000000000000000;
+
+}
+
+// File: contracts/registry/AssetRegistryStorage.sol
 
 contract AssetRegistryStorage {
 
@@ -45,31 +57,19 @@ contract AssetRegistryStorage {
   bool internal _reentrancy;
 }
 
-// File: contracts/Land/LANDStorage.sol
-
-contract LANDStorage {
-
-  mapping (address => uint) latestPing;
-
-  uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
-  uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
-  uint256 constant factor = 0x100000000000000000000000000000000;
-
-}
-
-// File: contracts/Upgradable/OwnableStorage.sol
+// File: contracts/upgradable/OwnableStorage.sol
 
 contract OwnableStorage {
 
   address public owner;
 
-  function OwnableStorage() {
+  function OwnableStorage() internal {
     owner = msg.sender;
   }
 
 }
 
-// File: contracts/Upgradable/ProxyStorage.sol
+// File: contracts/upgradable/ProxyStorage.sol
 
 contract ProxyStorage {
 
@@ -85,7 +85,7 @@ contract ProxyStorage {
 contract Storage is ProxyStorage, OwnableStorage, AssetRegistryStorage, LANDStorage {
 }
 
-// File: contracts/AssetRegistry/IAssetHolder.sol
+// File: contracts/registry/IAssetHolder.sol
 
 interface IAssetHolder {
   function onAssetReceived(
@@ -99,7 +99,7 @@ interface IAssetHolder {
   ) public;
 }
 
-// File: contracts/AssetRegistry/IAssetRegistry.sol
+// File: contracts/registry/IAssetRegistry.sol
 
 interface IAssetRegistry {
 
@@ -114,44 +114,44 @@ interface IAssetRegistry {
   /**
    * Asset-centric getter functions
    */
-  function exists(uint256 _assetId) public constant returns (bool);
-  function holderOf(uint256 _assetId) public constant returns (address);
-  function assetData(uint256 _assetId) public constant returns (string);
+  function exists(uint256 assetId) public constant returns (bool);
+  function holderOf(uint256 assetId) public constant returns (address);
+  function assetData(uint256 assetId) public constant returns (string);
 
   /**
    * Holder-centric getter functions
    */
-  function assetsCount(address _holder) public constant returns (uint256);
-  function assetByIndex(address _holder, uint256 _index) public constant returns (uint256);
-  function allAssetsOf(address _holder) public constant returns (uint256[]);
+  function assetsCount(address holder) public constant returns (uint256);
+  function assetByIndex(address holder, uint256 index) public constant returns (uint256);
+  function allAssetsOf(address holder) public constant returns (uint256[]);
 
   /**
    * Transfer Operations
    */
-  function transfer(address _to, uint256 _assetId) public;
-  function transfer(address _to, uint256 _assetId, bytes _userData) public;
-  function operatorTransfer(address _to, uint256 _assetId, bytes userData, bytes operatorData) public;
+  function transfer(address to, uint256 assetId) public;
+  function transfer(address to, uint256 assetId, bytes userData) public;
+  function operatorTransfer(address to, uint256 assetId, bytes userData, bytes operatorData) public;
 
   /**
    * Data modification operations
    */
-  function update(uint256 _assetId, string _data) public;
+  function update(uint256 assetId, string data) public;
 
   /**
    * Supply-altering operations
    */
-  function generate(uint256 _assetId, string _data) public;
-  function destroy(uint256 _assetId) public;
+  function generate(uint256 assetId, string data) public;
+  function destroy(uint256 assetId) public;
 
   /**
    * Authorization operations
    */
-  function authorizeOperator(address _operator, bool _authorized) public;
+  function authorizeOperator(address operator, bool authorized) public;
 
   /**
    * Authorization getters
    */
-  function isOperatorAuthorizedFor(address _operator, address _assetHolder)
+  function isOperatorAuthorizedFor(address operator, address assetHolder)
     public constant returns (bool);
 
   /**
@@ -224,7 +224,7 @@ library SafeMath {
   }
 }
 
-// File: contracts/AssetRegistry/StandardAssetRegistry.sol
+// File: contracts/registry/StandardAssetRegistry.sol
 
 contract StandardAssetRegistry is Storage, IAssetRegistry {
   using SafeMath for uint256;
@@ -253,35 +253,39 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Asset-centric getter functions
   //
 
-  function exists(uint256 _assetId) public view returns (bool) {
-    return _holderOf[_assetId] != 0;
+  function exists(uint256 assetId) public view returns (bool) {
+    return _holderOf[assetId] != 0;
   }
 
-  function holderOf(uint256 _assetId) public view returns (address) {
-    return _holderOf[_assetId];
+  function holderOf(uint256 assetId) public view returns (address) {
+    return _holderOf[assetId];
   }
 
-  function assetData(uint256 _assetId) public view returns (string) {
-    return _assetData[_assetId];
+  function assetData(uint256 assetId) public view returns (string) {
+    return _assetData[assetId];
   }
 
   //
   // Holder-centric getter functions
   //
 
-  function assetsCount(address _holder) public view returns (uint256) {
-    return _assetsOf[_holder].length;
+  function assetsCount(address holder) public view returns (uint256) {
+    return _assetsOf[holder].length;
   }
 
-  function assetByIndex(address _holder, uint256 _index) public view returns (uint256) {
-    return _assetsOf[_holder][_index];
+  function assetByIndex(address holder, uint256 index) public view returns (uint256) {
+    return _assetsOf[holder][index];
   }
 
-  function allAssetsOf(address _holder) public view returns (uint256[]) {
-    uint size = _assetsOf[_holder].length;
+  function assetsOf(address holder) public view returns (uint256[]) {
+    return allAssetsOf(holder);
+  }
+
+  function allAssetsOf(address holder) public view returns (uint256[]) {
+    uint size = _assetsOf[holder].length;
     uint[] memory result = new uint[](size);
     for (uint i = 0; i < size; i++) {
-      result[i] = _assetsOf[_holder][i];
+      result[i] = _assetsOf[holder][i];
     }
     return result;
   }
@@ -290,74 +294,74 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Authorization getters
   //
 
-  function isOperatorAuthorizedFor(address _operator, address _assetHolder)
+  function isOperatorAuthorizedFor(address operator, address assetHolder)
     public view returns (bool)
   {
-    return _operators[_assetHolder][_operator];
+    return _operators[assetHolder][operator];
   }
 
-  function authorizeOperator(address _operator, bool _authorized) public {
+  function authorizeOperator(address operator, bool _authorized) public {
     if (_authorized) {
-      require(!isOperatorAuthorizedFor(_operator, msg.sender));
-      _addAuthorization(_operator, msg.sender);
+      require(!isOperatorAuthorizedFor(operator, msg.sender));
+      _addAuthorization(operator, msg.sender);
     } else {
-      require(isOperatorAuthorizedFor(_operator, msg.sender));
-      _clearAuthorization(_operator, msg.sender);
+      require(isOperatorAuthorizedFor(operator, msg.sender));
+      _clearAuthorization(operator, msg.sender);
     }
-    AuthorizeOperator(_operator, msg.sender, _authorized);
+    AuthorizeOperator(operator, msg.sender, _authorized);
   }
 
-  function _addAuthorization(address _operator, address _holder) private {
-    _operators[_holder][_operator] = true;
+  function _addAuthorization(address operator, address holder) private {
+    _operators[holder][operator] = true;
   }
 
-  function _clearAuthorization(address _operator, address _holder) private {
-    _operators[_holder][_operator] = false;
+  function _clearAuthorization(address operator, address holder) private {
+    _operators[holder][operator] = false;
   }
 
   //
   // Internal Operations
   //
 
-  function _addAssetTo(address _to, uint256 _assetId) internal {
-    _holderOf[_assetId] = _to;
+  function _addAssetTo(address to, uint256 assetId) internal {
+    _holderOf[assetId] = to;
 
-    uint256 length = assetsCount(_to);
+    uint256 length = assetsCount(to);
 
-    _assetsOf[_to].push(_assetId);
+    _assetsOf[to].push(assetId);
 
-    _indexOfAsset[_assetId] = length;
+    _indexOfAsset[assetId] = length;
 
     _count = _count.add(1);
   }
 
-  function _addAssetTo(address _to, uint256 _assetId, string _data) internal {
-    _addAssetTo(_to, _assetId);
+  function _addAssetTo(address to, uint256 assetId, string data) internal {
+    _addAssetTo(to, assetId);
 
-    _assetData[_assetId] = _data;
+    _assetData[assetId] = data;
   }
 
-  function _removeAssetFrom(address _from, uint256 _assetId) internal {
-    uint256 assetIndex = _indexOfAsset[_assetId];
-    uint256 lastAssetIndex = assetsCount(_from).sub(1);
-    uint256 lastAssetId = _assetsOf[_from][lastAssetIndex];
+  function _removeAssetFrom(address from, uint256 assetId) internal {
+    uint256 assetIndex = _indexOfAsset[assetId];
+    uint256 lastAssetIndex = assetsCount(from).sub(1);
+    uint256 lastAssetId = _assetsOf[from][lastAssetIndex];
 
-    _holderOf[_assetId] = 0;
+    _holderOf[assetId] = 0;
 
     // Insert the last asset into the position previously occupied by the asset to be removed
-    _assetsOf[_from][assetIndex] = lastAssetId;
+    _assetsOf[from][assetIndex] = lastAssetId;
 
     // Resize the array
-    _assetsOf[_from][lastAssetIndex] = 0;
-    _assetsOf[_from].length--;
+    _assetsOf[from][lastAssetIndex] = 0;
+    _assetsOf[from].length--;
 
     // Remove the array if no more assets are owned to prevent pollution
-    if (_assetsOf[_from].length == 0) {
-      delete _assetsOf[_from];
+    if (_assetsOf[from].length == 0) {
+      delete _assetsOf[from];
     }
 
     // Update the index of positions for the asset
-    _indexOfAsset[_assetId] = 0;
+    _indexOfAsset[assetId] = 0;
     _indexOfAsset[lastAssetId] = assetIndex;
 
     _count = _count.sub(1);
@@ -367,36 +371,36 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   // Supply-altering functions
   //
 
-  function generate(uint256 _assetId) public {
-    generate(_assetId, msg.sender, '');
+  function generate(uint256 assetId) public {
+    generate(assetId, msg.sender, '');
   }
 
-  function generate(uint256 _assetId, string _data) public {
-    generate(_assetId, msg.sender, _data);
+  function generate(uint256 assetId, string data) public {
+    generate(assetId, msg.sender, data);
   }
 
-  function generate(uint256 _assetId, address _beneficiary, string _data) public {
-    doGenerate(_assetId, _beneficiary, _data);
+  function generate(uint256 assetId, address _beneficiary, string data) public {
+    doGenerate(assetId, _beneficiary, data);
   }
 
-  function doGenerate(uint256 _assetId, address _beneficiary, string _data) internal {
-    require(_holderOf[_assetId] == 0);
+  function doGenerate(uint256 assetId, address _beneficiary, string data) internal {
+    require(_holderOf[assetId] == 0);
 
-    _addAssetTo(_beneficiary, _assetId, _data);
+    _addAssetTo(_beneficiary, assetId, data);
 
-    Create(_beneficiary, _assetId, msg.sender, _data);
+    Create(_beneficiary, assetId, msg.sender, data);
   }
 
-  function destroy(uint256 _assetId) public {
-    address holder = _holderOf[_assetId];
+  function destroy(uint256 assetId) public {
+    address holder = _holderOf[assetId];
     require(holder != 0);
 
     require(holder == msg.sender
          || isOperatorAuthorizedFor(msg.sender, holder));
 
-    _removeAssetFrom(holder, _assetId);
+    _removeAssetFrom(holder, assetId);
 
-    Destroy(holder, _assetId, msg.sender);
+    Destroy(holder, assetId, msg.sender);
   }
 
   //
@@ -414,47 +418,47 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
     _;
   }
 
-  function transfer(address _to, uint256 _assetId)
-    onlyHolder(_assetId)
+  function transfer(address to, uint256 assetId)
+    onlyHolder(assetId)
     public
   {
-    return doSend(_to, _assetId, '', 0, '');
+    return doSend(to, assetId, '', 0, '');
   }
 
-  function transfer(address _to, uint256 _assetId, bytes _userData)
-    onlyHolder(_assetId)
+  function transfer(address to, uint256 assetId, bytes _userData)
+    onlyHolder(assetId)
     public
   {
-    return doSend(_to, _assetId, _userData, 0, '');
+    return doSend(to, assetId, _userData, 0, '');
   }
 
   function operatorTransfer(
-    address _to, uint256 _assetId, bytes userData, bytes operatorData
+    address to, uint256 assetId, bytes userData, bytes operatorData
   )
-    onlyOperator(_assetId)
+    onlyOperator(assetId)
     public
   {
-    return doSend(_to, _assetId, userData, msg.sender, operatorData);
+    return doSend(to, assetId, userData, msg.sender, operatorData);
   }
 
   function doSend(
-    address _to, uint256 assetId, bytes userData, address operator, bytes operatorData
+    address to, uint256 assetId, bytes userData, address operator, bytes operatorData
   )
     internal
   {
     address holder = _holderOf[assetId];
     _removeAssetFrom(holder, assetId);
-    _addAssetTo(_to, assetId);
+    _addAssetTo(to, assetId);
 
     // TODO: Implement EIP 820
-    if (isContract(_to)) {
+    if (isContract(to)) {
       require(_reentrancy == false);
       _reentrancy = true;
-      IAssetHolder(_to).onAssetReceived(assetId, holder, _to, userData, operator, operatorData);
+      IAssetHolder(to).onAssetReceived(assetId, holder, to, userData, operator, operatorData);
       _reentrancy = false;
     }
 
-    Transfer(holder, _to, assetId, operator, userData, operatorData);
+    Transfer(holder, to, assetId, operator, userData, operatorData);
   }
 
   //
@@ -467,9 +471,9 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
     _;
   }
 
-  function update(uint256 _assetId, string _data) onlyIfUpdateAllowed(_assetId) public {
-    _assetData[_assetId] = _data;
-    Update(_assetId, _holderOf[_assetId], msg.sender, _data);
+  function update(uint256 assetId, string data) onlyIfUpdateAllowed(assetId) public {
+    _assetData[assetId] = data;
+    Update(assetId, _holderOf[assetId], msg.sender, data);
   }
 
   //
@@ -483,13 +487,13 @@ contract StandardAssetRegistry is Storage, IAssetRegistry {
   }
 }
 
-// File: contracts/Upgradable/IApplication.sol
+// File: contracts/upgradable/IApplication.sol
 
 contract IApplication {
   function initialize(bytes data) public;
 }
 
-// File: contracts/Upgradable/Ownable.sol
+// File: contracts/upgradable/Ownable.sol
 
 contract Ownable is Storage {
 
@@ -500,13 +504,16 @@ contract Ownable is Storage {
     _;
   }
 
+  function initialize(bytes) public {
+  }
+
   function transferOwnership(address _newOwner) public onlyOwner {
     require(_newOwner != owner);
     owner = _newOwner;
   }
 }
 
-// File: contracts/Land/ILANDRegistry.sol
+// File: contracts/land/ILANDRegistry.sol
 
 interface ILANDRegistry {
 
@@ -520,7 +527,8 @@ interface ILANDRegistry {
   function clearLand(int[] x, int[] y) public;
 
   // LAND-centric getters
-  function buildTokenId(int x, int y) view public returns (uint256);
+  function encodeTokenId(int x, int y) view public returns (uint256);
+  function decodeTokenId(uint value) view public returns (int, int);
   function exists(int x, int y) view public returns (bool);
   function ownerOfLand(int x, int y) view public returns (address);
   function landData(int x, int y) view public returns (string);
@@ -530,18 +538,18 @@ interface ILANDRegistry {
   function transferManyLand(int[] x, int[] y, address to) public;
 
   // Update LAND
-  function updateLandData(int x, int y, string _metadata) public;
+  function updateLandData(int x, int y, string data) public;
   function updateManyLandData(int[] x, int[] y, string data) public;
 }
 
-// File: contracts/Land/LANDRegistry.sol
+// File: contracts/land/LANDRegistry.sol
 
 contract LANDRegistry is Storage,
   Ownable, StandardAssetRegistry,
-  IApplication, ILANDRegistry
+  ILANDRegistry
 {
 
-  function initialize(bytes /* data */) onlyOwner public {
+  function initialize(bytes /* data */) public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
@@ -552,26 +560,26 @@ contract LANDRegistry is Storage,
   //
 
   function assignNewParcel(int x, int y, address beneficiary, string data) public {
-    generate(buildTokenId(x, y), beneficiary, data);
+    generate(encodeTokenId(x, y), beneficiary, data);
   }
 
   function assignNewParcel(int x, int y, address beneficiary) public {
-    generate(buildTokenId(x, y), beneficiary, '');
+    generate(encodeTokenId(x, y), beneficiary, '');
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
     for (uint i = 0; i < x.length; i++) {
-      generate(buildTokenId(x[i], y[i]), beneficiary, '');
+      generate(encodeTokenId(x[i], y[i]), beneficiary, '');
     }
   }
 
-  function generate(uint256 _assetId, address _beneficiary, string _data) onlyOwner public {
-    doGenerate(_assetId, _beneficiary, _data);
+  function generate(uint256 assetId, address beneficiary, string data) onlyOwner public {
+    doGenerate(assetId, beneficiary, data);
   }
 
-  function destroy(uint256 _assetId) onlyOwner public {
-    _removeAssetFrom(_holderOf[_assetId], _assetId);
-    Destroy(_holderOf[_assetId], _assetId, msg.sender);
+  function destroy(uint256 assetId) onlyOwner public {
+    _removeAssetFrom(_holderOf[assetId], assetId);
+    Destroy(_holderOf[assetId], assetId, msg.sender);
   }
 
   //
@@ -589,7 +597,7 @@ contract LANDRegistry is Storage,
   function clearLand(int[] x, int[] y) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      uint landId = buildTokenId(x[i], y[i]);
+      uint landId = encodeTokenId(x[i], y[i]);
       address holder = holderOf(landId);
       if (latestPing[holder] < now - 1 years) {
         _removeAssetFrom(holder, landId);
@@ -602,20 +610,38 @@ contract LANDRegistry is Storage,
   // LAND Getters
   //
 
-  function buildTokenId(int x, int y) view public returns (uint) {
+  function encodeTokenId(int x, int y) view public returns (uint) {
     return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
 
+  function decodeTokenId(uint value) view public returns (int, int) {
+    int x = int((value & clearLow) >> 128);
+    int y = int(value & clearHigh);
+    return (x, y);
+  }
+
   function exists(int x, int y) view public returns (bool) {
-    return exists(buildTokenId(x, y));
+    return exists(encodeTokenId(x, y));
   }
 
   function ownerOfLand(int x, int y) view public returns (address) {
-    return holderOf(buildTokenId(x, y));
+    return holderOf(encodeTokenId(x, y));
+  }
+
+  function ownerOfLandMany(int[] x, int[] y) view public returns (address[]) {
+    require(x.length > 0);
+    require(x.length == y.length);
+
+    address[] memory addrs = new address[](x.length);
+    for (uint i = 0; i < x.length; i++) {
+      addrs[i] = ownerOfLand(x[i], y[i]);
+    }
+
+    return addrs;
   }
 
   function landData(int x, int y) view public returns (string) {
-    return assetData(buildTokenId(x, y));
+    return assetData(encodeTokenId(x, y));
   }
 
   //
@@ -623,27 +649,28 @@ contract LANDRegistry is Storage,
   //
 
   function transferLand(int x, int y, address to) public {
-    return transfer(to, buildTokenId(x, y));
+    return transfer(to, encodeTokenId(x, y));
   }
 
   function transferManyLand(int[] x, int[] y, address to) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      return transfer(to, buildTokenId(x[i], y[i]));
+      return transfer(to, encodeTokenId(x[i], y[i]));
     }
   }
 
   //
   // Update LAND
   //
-  function updateLandData(int x, int y, string _metadata) public {
-    return update(buildTokenId(x, y), _metadata);
+
+  function updateLandData(int x, int y, string data) public {
+    return update(encodeTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      update(buildTokenId(x[i], y[i]), data);
+      update(encodeTokenId(x[i], y[i]), data);
     }
   }
 }

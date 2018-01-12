@@ -5,5 +5,5 @@ PROXY=LANDProxy.sol
 
 OUTPUT=full
 
-truffle-flattener contracts/Land/$REGISTRY > $OUTPUT/$REGISTRY
-truffle-flattener contracts/Upgradable/$PROXY > $OUTPUT/$PROXY
+truffle-flattener contracts/land/$REGISTRY > $OUTPUT/$REGISTRY
+truffle-flattener contracts/upgradable/$PROXY > $OUTPUT/$PROXY
