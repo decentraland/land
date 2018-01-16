@@ -150,6 +150,9 @@ contract('LANDRegistry', accounts => {
       },
       {
         x: -256, y: 0, encoded: '0xffffffffffffffffffffffffffffff0000000000000000000000000000000000'
+      },
+      {
+        x: -23, y: -23, encoded: '0xffffffffffffffffffffffffffffffe9ffffffffffffffffffffffffffffffe9'
       }
     ]
 
