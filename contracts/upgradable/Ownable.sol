@@ -11,7 +11,8 @@ contract Ownable is Storage {
     _;
   }
 
-  function initialize(bytes) public {
+  function initialize(bytes data) public {
+    owner = address(data);
   }
 
   function transferOwnership(address _newOwner) public onlyOwner {
