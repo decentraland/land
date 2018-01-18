@@ -3,7 +3,6 @@ pragma solidity ^0.4.18;
 interface ILANDRegistry {
 
   // LAND can be assigned by the owner
-  function assignNewParcel(int x, int y, address beneficiary, string data) public;
   function assignNewParcel(int x, int y, address beneficiary) public;
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) public;
 

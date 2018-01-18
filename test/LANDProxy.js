@@ -1,10 +1,3 @@
-/**
- * Ported over from zeppelin-solidity tests for NonFungibleland.sol
- *
- * Given that the test is mostly for common functionality, it should work mostly as-is.
- *
- * Deleted functionality: `burn`
- */
 import assertRevert from './helpers/assertRevert'
 const BigNumber = web3.BigNumber
 
