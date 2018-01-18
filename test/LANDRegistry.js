@@ -44,7 +44,7 @@ contract('LANDRegistry', accounts => {
   const _unknownParcelId = 3
   const sentByCreator = { from: creator }
   const creationParams = {
-    gas: 4e6,
+    gas: 6e6,
     gasPrice: 21e9,
     from: creator
   }
@@ -53,9 +53,9 @@ contract('LANDRegistry', accounts => {
     proxy = await LANDProxy.new(creationParams)
     registry = await LANDRegistry.new(creationParams)
 
-    await proxy.upgrade(registry.address, '', sentByCreator)
+    await proxy.upgrade(registry.address, creator, sentByCreator)
     land = await LANDRegistry.at(proxy.address)
-    await land.initialize('', sentByCreator)
+    await land.initialize(creator, sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
     await land.assignNewParcel(0, 2, user, sentByCreator)
   })
@@ -116,7 +116,7 @@ contract('LANDRegistry', accounts => {
         let assetIds
         before(async() => {
           await (land.assignMultipleParcels(x, y, anotherUser, sentByCreator))
-          assetIds = await land.allAssetsOf(anotherUser)
+          assetIds = await land.assetsOf(anotherUser)
         })
         for (let i = 0; i < x.length; i++) {
           it(`works for ${x[i]},${y[i]}`, ((i) => async() => {

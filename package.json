@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
+    "erc821": "https://github.com/decentraland/erc821",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
@@ -37,7 +38,7 @@
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.1",
-    "ethereumjs-testrpc": "^6.0.1",
+    "ganache-cli": "^6.0.3",
     "mocha": "^3.5.3",
     "solidity-sha3": "^0.4.1",
     "truffle": "^4.0.4",

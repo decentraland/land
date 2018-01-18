@@ -6,7 +6,7 @@ import '../upgradable/Ownable.sol';
 
 import '../upgradable/IApplication.sol';
 
-import '../registry/StandardAssetRegistry.sol';
+import 'erc821/contracts/StandardAssetRegistry.sol';
 
 import './ILANDRegistry.sol';
 
@@ -15,10 +15,11 @@ contract LANDRegistry is Storage,
   ILANDRegistry
 {
 
-  function initialize(bytes /* data */) public {
+  function initialize(bytes data) public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
+    super.initialize(data);
   }
 
   //
@@ -40,12 +41,11 @@ contract LANDRegistry is Storage,
   }
 
   function generate(uint256 assetId, address beneficiary, string data) onlyOwner public {
-    doGenerate(assetId, beneficiary, data);
+    _generate(assetId, beneficiary, data);
   }
 
   function destroy(uint256 assetId) onlyOwner public {
-    _removeAssetFrom(_holderOf[assetId], assetId);
-    Destroy(_holderOf[assetId], assetId, msg.sender);
+    _destroy(assetId);
   }
 
   //
@@ -66,8 +66,7 @@ contract LANDRegistry is Storage,
       uint landId = encodeTokenId(x[i], y[i]);
       address holder = holderOf(landId);
       if (latestPing[holder] < now - 1 years) {
-        _removeAssetFrom(holder, landId);
-        Destroy(holder, landId, msg.sender);
+        _destroy(landId);
       }
     }
   }
@@ -113,15 +112,15 @@ contract LANDRegistry is Storage,
     return addrs;
   }
 
-  function landOf(address owner) view public returns (int[], int[]) {
-    uint256[] memory assets = assetsOf(owner);
-    int[] memory x = new int[](assets.length);
-    int[] memory y = new int[](assets.length);
+  function landOf(address owner) public view returns (int[], int[]) {
+    int[] memory x = new int[](_assetsOf[owner].length);
+    int[] memory y = new int[](_assetsOf[owner].length);
 
     int assetX;
     int assetY;
-    for (uint i = 0; i < assets.length; i++) {
-      (assetX, assetY) = decodeTokenId(assets[i]);
+    uint length = _assetsOf[owner].length;
+    for (uint i = 0; i < length; i++) {
+      (assetX, assetY) = decodeTokenId(_assetsOf[owner][i]);
       x[i] = assetX;
       y[i] = assetY;
     }
@@ -152,14 +151,19 @@ contract LANDRegistry is Storage,
   // Update LAND
   //
 
-  function updateLandData(int x, int y, string data) public {
-    return update(encodeTokenId(x, y), data);
+  modifier onlyOperator(int x, int y) {
+    require(isOperatorAuthorizedFor(msg.sender, holderOf(encodeTokenId(x, y))));
+    _;
+  }
+
+  function updateLandData(int x, int y, string data) public onlyOperator(x, y) {
+    return _update(encodeTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      update(encodeTokenId(x[i], y[i]), data);
+      _update(encodeTokenId(x[i], y[i]), data);
     }
   }
 }

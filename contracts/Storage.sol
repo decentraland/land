@@ -4,7 +4,7 @@ import './upgradable/ProxyStorage.sol';
 
 import './upgradable/OwnableStorage.sol';
 
-import './registry/AssetRegistryStorage.sol';
+import 'erc821/contracts/AssetRegistryStorage.sol';
 
 import './land/LANDStorage.sol';
 

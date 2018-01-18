@@ -5,6 +5,6 @@ contract ProxyStorage {
   /**
    * Current contract to which we are proxing
    */
-  address currentContract;
-
+  address public currentContract;
+  address public proxyOwner;
 }
