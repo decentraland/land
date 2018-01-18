@@ -32,7 +32,7 @@ contract('LANDProxy', accounts => {
 
   const sentByCreator = { from: creator }
   const creationParams = {
-    gas: 4e6,
+    gas: 6e6,
     gasPrice: 21e9,
     from: creator
   }
