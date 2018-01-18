@@ -28,7 +28,7 @@ contract Proxy is Storage, DelegateProxy {
 
   function upgrade(IApplication newContract, bytes data) public onlyProxyOwner {
     currentContract = newContract;
-    newContract.initialize(data);
+    IApplication(this).initialize(data);
 
     Upgrade(newContract, data);
   }

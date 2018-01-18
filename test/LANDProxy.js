@@ -16,9 +16,7 @@ const NONE = '0x0000000000000000000000000000000000000000'
 function checkUpgradeLog(log, newContract, initializedWith) {
   log.event.should.be.eq('Upgrade')
   log.args.newContract.should.be.equal(newContract)
-  log.args.initializedWith.should.be.equal(
-    '0x' + new Buffer(initializedWith).toString('hex')
-  )
+  log.args.initializedWith.should.be.equal(initializedWith)
 }
 
 require('chai')
@@ -30,7 +28,8 @@ contract('LANDProxy', accounts => {
   const [creator, owner, hacker] = accounts
   let registry = null
   let proxy = null
-  const DATA = ''
+  let land = null
+
   const sentByCreator = { from: creator }
   const creationParams = {
     gas: 4e6,
@@ -38,20 +37,28 @@ contract('LANDProxy', accounts => {
     from: creator
   }
 
-  beforeEach(async function() {
-    proxy = await LANDProxy.new(creationParams)
-    registry = await LANDRegistry.new(creationParams)
-  })
-
   describe('upgrade', () => {
+
+    beforeEach(async function() {
+      proxy = await LANDProxy.new(creationParams)
+      registry = await LANDRegistry.new(creationParams)
+      land = await LANDRegistry.at(proxy.address)
+    })
+
     it('should upgrade proxy by owner', async () => {
-      const {logs} = await proxy.upgrade(registry.address, DATA, creationParams)
-      await checkUpgradeLog(logs[0], registry.address, DATA)
+      const {logs} = await proxy.upgrade(registry.address, owner, creationParams)
+      await checkUpgradeLog(logs[0], registry.address, owner)
+      const landName = await land.name()
+      landName.should.be.equal('Decentraland LAND')
+      const ownerAddress = await land.owner()
+      ownerAddress.should.be.equal(owner)
+      const proxyOwner = await land.proxyOwner()
+      proxyOwner.should.be.equal(creator)
     })
 
     it('should throw if not owner upgrade proxy', async () => {
       await assertRevert(proxy.upgrade(
-        registry.address, DATA, Object.assign(creationParams, {from: hacker})
+        registry.address, hacker, Object.assign({}, creationParams, {from: hacker})
       ))
     })
   })

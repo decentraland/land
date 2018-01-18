@@ -6,19 +6,12 @@ contract Ownable is Storage {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function bytesToAddress (bytes b) constant returns (address) {
+  function bytesToAddress (bytes b) pure public returns (address) {
     uint result = 0;
-    for (uint i = 0; i < b.length; i++) {
-        uint c = uint(b[i]);
-        if (c >= 48 && c <= 57) {
-            result = result * 16 + (c - 48);
-        }
-        if(c >= 65 && c<= 90) {
-            result = result * 16 + (c - 55);
-        }
-        if(c >= 97 && c<= 122) {
-            result = result * 16 + (c - 87);
-        }
+    for (uint i = b.length-1; i+1 > 0; i--) {
+      uint c = uint(b[i]);
+      uint to_inc = c * ( 16 ** ((b.length - i-1) * 2));
+      result += to_inc;
     }
     return address(result);
   }

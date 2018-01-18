@@ -15,10 +15,11 @@ contract LANDRegistry is Storage,
   ILANDRegistry
 {
 
-  function initialize(bytes /* data */) public {
+  function initialize(bytes data) public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
+    super.initialize(data);
   }
 
   //

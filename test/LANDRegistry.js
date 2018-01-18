@@ -55,7 +55,7 @@ contract('LANDRegistry', accounts => {
 
     await proxy.upgrade(registry.address, '', sentByCreator)
     land = await LANDRegistry.at(proxy.address)
-    await land.initialize('', sentByCreator)
+    await land.initialize(creator, sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
     await land.assignNewParcel(0, 2, user, sentByCreator)
   })
