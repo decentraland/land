@@ -25,7 +25,6 @@ contract('LANDRegistry', accounts => {
   const _unknownParcelId = 3
   const sentByUser = { from: user }
   const sentByCreator = { from: creator }
-  const sentByUser = { from: user }
   const creationParams = {
     gas: 6e6,
     gasPrice: 21e9,
