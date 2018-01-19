@@ -8,6 +8,7 @@ const abiDecoder = require('abi-decoder')
 
 const LANDRegistry = artifacts.require('LANDRegistry')
 let land
+let globalLock = false
 
 const filename = './deployment.json'
 const gasPrice = 24e9
@@ -50,44 +51,52 @@ async function executeAndSave(func, input, target, field, filename) {
 }
 
 async function updateStatus(input, workerIndex) {
-  const parallelism = input.concurrency.accountPasswords.length
+  const parallelism = input.concurrency.accounts.length
 
   let index = parallelism
-  const length = input.coordinates.length
-  for (let index = parallelism; index < length; index++) {
+  const length = input.parcels.length
+  for (let index = parallelism; index < length; index += parallelism) {
+    const parcel = input.parcels[index]
+    if (!parcel) continue
     if (parcel.pendingTransaction) {
       const receipt = await web3.eth.getTransactionReceipt(parcel.pendingTransaction)
       if (receipt && receipt.status) {
         parcel.successfulTransaction = receipt.transactionHash
-        parcel.pickedUp = false
         delete parcel.pendingTransaction
-      } else {
+      } else if (receipt) {
         parcel.errorTransaction = receipt.transactionHash
         parcel.pickedUp = false
         delete parcel.pendingTransaction
       }
     }
   }
+  await syncInput(input)
 }
 
-async function pickupParcels(input, workerIndex, offset = 0) {
-  const parallelism = input.concurrency.accountPasswords.length
-  let index = parallelism * (offset + 1)
-  const length = input.coordinates.length
+const NULL = '0x0000000000000000000000000000000000000000'
+
+async function pickupParcels(input, workerIndex) {
+  const parallelism = input.concurrency.accounts.length
+  const length = input.parcels.length
   const parcels = []
 
-  for (let index = parallelism; index < length; index++) {
-    const parcel = coords[index]
-    index += parallelism
+  for (let index = workerIndex; index < length; index += parallelism) {
+    const parcel = input.parcels[index]
+    if (!parcel) continue
 
     if (!parcel.pickedUp) {
       if (parcels.length && parcel.address !== parcels[parcels.length - 1].address) {
         break
       }
+      const owner = await land.ownerOfLand(parcel.x, parcel.y)
+      if (owner !== NULL && owner !== parcel.address) {
+        console.log(`Problem! owner of ${parcel.x}, ${parcel.y} is ${owner} and not ${parcel.address}`)
+        continue
+      }
       parcels.push(parcel)
     }
   }
-  return parcels
+  return parcels.slice(0, input.concurrency.parcelsPerTransaction)
 }
 
 function getXY(parcels) {
@@ -99,17 +108,29 @@ function getXY(parcels) {
   return { x, y }
 }
 
-async function sendTransactionAndWait(input, parcels) {
-  return new Promise((resolve, reject) => {
-    const { x, y } = getXY(parcels)
-    const pendingTransaction = land.assignMultipleParcels(x, y, parcels[0].address, function(err, result) {
-      if (err) {
-        return reject(err)
+async function sendTransactionAndWait(input, workerIndex, parcels) {
+  const { x, y } = getXY(parcels)
+  const account = web3.eth.accounts[input.concurrency.accounts[workerIndex].index]
+  try {
+    await web3.personal.unlockAccount(account, input.concurrency.accounts[workerIndex].password, 10000)
+    console.log('sending', x, y, parcels[0].address)
+    const pendingTransaction = await land.assignMultipleParcels.sendTransaction(
+      x,
+      y,
+      parcels[0].address,
+      {
+        gas: input.gasLimit,
+        gasPrice: input.gasPrice,
+        value: 0,
+        from: account
       }
-      return resolve(result)
-    })
+    )
     parcels.map(parcel => parcel.pendingTransaction = pendingTransaction)
-  })
+  } catch (e) {
+    console.log(e.stack)
+  } finally {
+    await syncInput(input)
+  }
 }
 
 async function syncInput(input) {
@@ -125,11 +146,10 @@ async function markPickupParcels(input, parcels) {
   for (let parcel of parcels) {
     parcel.pickedUp = true
   }
-  await syncInput(input)
 }
 
 async function launchWorker(input, workerIndex) {
-  const password = input.concurrency.accountPasswords[workerIndex]
+  const password = input.concurrency.accounts[workerIndex].password
 
   while (true) {
     const parcels = await pickupParcels(input, workerIndex)
@@ -138,19 +158,19 @@ async function launchWorker(input, workerIndex) {
     }
 
     await markPickupParcels(input, parcels)
-    await sendTransactionAndWait(input, parcels)
-
+    await sendTransactionAndWait(input, workerIndex, parcels)
     await syncInput(input)
   }
 }
 
 async function optimizeOrder(input) {
-  const length = input.coordinates.length
-  const workers = input.concurrency.accountPasswords.length
+  const length = input.parcels.length
+  const workers = input.concurrency.accounts.length
   const map = {}
   const sorted = []
   const item = {}
-  for (let parcel of input.coordinates) {
+  for (let parcel of input.parcels) {
+    if (!parcel) continue
     map[parcel.address] = map[parcel.address] || []
     map[parcel.address].push(parcel)
   }
@@ -158,17 +178,21 @@ async function optimizeOrder(input) {
   let key = 0
   let worker = 0
   for (let i = 0; i < workers; i++) {
-    workers[i] = 0
+    item[i] = 0
   }
   for (const address of values) {
-    for (const item in address) {
-      sorted[(worker + item[worker] * workers) % length] = address[item]
+    for (const i in address) {
+      let index = (worker + item[worker] * workers)
+      while (index > length) {
+        worker++;
+        worker %= workers;
+        index = (worker + item[worker] * workers)
+      }
+      sorted[(worker + item[worker] * workers)] = address[i]
       item[worker]++;
     }
-    worker++;
-    worker %= workers;
   }
-  input.coordinates = sorted
+  input.parcels = sorted
   await syncInput(input)
 }
 
@@ -183,21 +207,23 @@ async function run() {
 
   await optimizeOrder(input)
 
-  // for (let index = 0; index < input.concurrency.accountPasswords.length; i++) {
-  //   await updateStatus(input, index)
-  //   try {
-  //     launchWorker(input, index)
-  //   } catch (error) {
-  //     console.log(error.stack)
-  //     process.exit(0)
-  //   }
-  // }
+  for (let index = 0; index < input.concurrency.accounts.length; index++) {
+    await updateStatus(input, index)
+  }
+  for (let index = 0; index < input.concurrency.accounts.length; index++) {
+    try {
+      launchWorker(input, index)
+    } catch (error) {
+      console.log(error.stack)
+      process.exit(0)
+    }
+  }
 }
 
 const ret = function(callback) {
   run().then(() => callback()).catch(console.log).catch(callback)
 }
 Object.assign(ret, {
-  readJSON, saveJSON, run, deploy, executeAndSave, fund
+  readJSON, saveJSON, run
 })
 module.exports = ret

@@ -25,6 +25,9 @@ contract LANDRegistry is Storage,
   function authorizeDeploy(address beneficiary) public onlyOwner {
     authorizedDeploy[beneficiary] = true;
   }
+  function forbidDeploy(address beneficiary) public onlyOwner {
+    authorizedDeploy[beneficiary] = false;
+  }
 
   function assignNewParcel(int x, int y, address beneficiary) public {
     require(authorizedDeploy[msg.sender]);
