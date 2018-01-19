@@ -1,4 +1,6 @@
 import assertRevert from './helpers/assertRevert'
+import { increaseTimeTo, duration, latestTime } from './helpers/increaseTime'
+
 const BigNumber = web3.BigNumber
 
 const LANDRegistry = artifacts.require('LANDRegistry')
@@ -22,6 +24,7 @@ contract('LANDRegistry', accounts => {
   const _secondParcelId = 2
   const _unknownParcelId = 3
   const sentByCreator = { from: creator }
+  const sentByUser = { from: user }
   const creationParams = {
     gas: 6e6,
     gasPrice: 21e9,
@@ -38,6 +41,7 @@ contract('LANDRegistry', accounts => {
     await land.authorizeDeploy(creator, sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
     await land.assignNewParcel(0, 2, user, sentByCreator)
+    await land.ping(sentByUser)
   })
 
   describe('name', () => {
@@ -189,6 +193,46 @@ contract('LANDRegistry', accounts => {
         y[0].should.be.bignumber.equal(1)
         y[1].should.be.bignumber.equal(2)
       })
+    })
+  })
+
+  describe('Test inactive parcels', () => {
+    it('does not clean parcels inactive for less than 1 year', async () => {
+      let coords = await land.landOf(user)
+      coords[0].length.should.be.equal(2)
+      coords[1].length.should.be.equal(2)
+
+      await increaseTimeTo(latestTime() + duration.years(1) - duration.seconds(1))
+      await land.clearLand(coords[0], coords[1])
+      coords = await land.landOf(user)
+      coords[0].length.should.be.equal(2)
+      coords[1].length.should.be.equal(2)
+    })
+    it('cleans parcels inactive for at least 1 year', async () => {
+      let coords = await land.landOf(user)
+      coords[0].length.should.be.equal(2)
+      coords[1].length.should.be.equal(2)
+
+      await increaseTimeTo(latestTime() + duration.years(1) + duration.seconds(1))
+      await land.clearLand(coords[0], coords[1])
+      coords = await land.landOf(user)
+      coords[0].length.should.be.equal(0)
+      coords[1].length.should.be.equal(0)
+    })
+    it('does not cleans parcels when owner pings', async () => {
+      let coords = await land.landOf(user)
+      coords[0].length.should.be.equal(2)
+      coords[1].length.should.be.equal(2)
+
+      await increaseTimeTo(latestTime() + duration.years(1) + duration.seconds(1))
+      await land.setLatestToNow(user)
+      await land.clearLand(coords[0], coords[1])
+      coords = await land.landOf(user)
+      coords[0].length.should.be.equal(2)
+      coords[1].length.should.be.equal(2)
+    })
+    it('reverts if setLatestToNow is called by not the owner', async () => {
+      await assertRevert(land.setLatestToNow(user, sentByUser))
     })
   })
 })
