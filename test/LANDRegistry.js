@@ -208,6 +208,7 @@ contract('LANDRegistry', accounts => {
       coords[0].length.should.be.equal(2)
       coords[1].length.should.be.equal(2)
     })
+
     it('cleans parcels inactive for at least 1 year', async () => {
       let coords = await land.landOf(user)
       coords[0].length.should.be.equal(2)
@@ -219,6 +220,7 @@ contract('LANDRegistry', accounts => {
       coords[0].length.should.be.equal(0)
       coords[1].length.should.be.equal(0)
     })
+
     it('does not clean parcels when owner pings', async () => {
       let coords = await land.landOf(user)
       coords[0].length.should.be.equal(2)
@@ -231,8 +233,11 @@ contract('LANDRegistry', accounts => {
       coords[0].length.should.be.equal(2)
       coords[1].length.should.be.equal(2)
     })
+
     it('reverts if setLatestToNow is called by not the owner', async () => {
-      await assertRevert(land.setLatestToNow(user, sentByUser))
+      await assertRevert(
+        land.setLatestToNow(user, sentByUser)
+      )
     })
   })
 })
