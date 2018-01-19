@@ -1,4 +1,6 @@
 {
+  "landProxy": "",
+  "backendLand": "",
   "landRegistry": "",
   "gasPrice": 27e9,
   "gasLimit": 1e6,
@@ -6,7 +8,7 @@
     "parcelsPerTransaction": 5,
     "accountPasswords": [""]
   },
-  "coordinates": [
+  "parcels": [
     { "id": "0,0", "x": 0, "y": 0, "address": "1" },
     { "id": "0,1", "x": 0, "y": 1, "address": "1" },
     { "id": "0,2", "x": 0, "y": 2, "address": "1" },

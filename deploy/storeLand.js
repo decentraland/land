@@ -10,9 +10,9 @@ const LANDRegistry = artifacts.require('LANDRegistry')
 let land
 let globalLock = false
 
-const filename = './deployment.json'
+const filename = './deployment.example.json'
 const gasPrice = 24e9
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 function readJSON(filename) {
   return JSON.parse(fs.readFileSync(filename).toString())
@@ -32,7 +32,11 @@ async function fund(input, target) {
   const contract = target.contract.address
   const balance = await MANA.balanceOf(contract)
   if (balance.equals(new web3.BigNumber(0))) {
-    await MANA.transfer(contract, new web3.BigNumber(target.tokens).mul(1e18), { from: web3.eth.accounts[2], gas: 400000, gasPrice })
+    await MANA.transfer(contract, new web3.BigNumber(target.tokens).mul(1e18), {
+      from: web3.eth.accounts[2],
+      gas: 400000,
+      gasPrice
+    })
   } else {
     console.log(`Balance of ${contract}, ${balance.toString()} is not cero`)
   }
@@ -59,7 +63,9 @@ async function updateStatus(input, workerIndex) {
     const parcel = input.parcels[index]
     if (!parcel) continue
     if (parcel.pendingTransaction) {
-      const receipt = await web3.eth.getTransactionReceipt(parcel.pendingTransaction)
+      const receipt = await web3.eth.getTransactionReceipt(
+        parcel.pendingTransaction
+      )
       if (receipt && receipt.status) {
         parcel.successfulTransaction = receipt.transactionHash
         delete parcel.pendingTransaction
@@ -85,12 +91,19 @@ async function pickupParcels(input, workerIndex) {
     if (!parcel) continue
 
     if (!parcel.pickedUp) {
-      if (parcels.length && parcel.address !== parcels[parcels.length - 1].address) {
+      if (
+        parcels.length &&
+        parcel.address !== parcels[parcels.length - 1].address
+      ) {
         break
       }
       const owner = await land.ownerOfLand(parcel.x, parcel.y)
       if (owner !== NULL && owner !== parcel.address) {
-        console.log(`Problem! owner of ${parcel.x}, ${parcel.y} is ${owner} and not ${parcel.address}`)
+        console.log(
+          `Problem! owner of ${parcel.x}, ${parcel.y} is ${owner} and not ${
+            parcel.address
+          }`
+        )
         continue
       }
       parcels.push(parcel)
@@ -100,7 +113,8 @@ async function pickupParcels(input, workerIndex) {
 }
 
 function getXY(parcels) {
-  const x = [], y = []
+  const x = [],
+    y = []
   for (let parcel of parcels) {
     x.push(parcel.x)
     y.push(parcel.y)
@@ -110,9 +124,14 @@ function getXY(parcels) {
 
 async function sendTransactionAndWait(input, workerIndex, parcels) {
   const { x, y } = getXY(parcels)
-  const account = web3.eth.accounts[input.concurrency.accounts[workerIndex].index]
+  const account =
+    web3.eth.accounts[input.concurrency.accounts[workerIndex].index]
   try {
-    await web3.personal.unlockAccount(account, input.concurrency.accounts[workerIndex].password, 10000)
+    await web3.personal.unlockAccount(
+      account,
+      input.concurrency.accounts[workerIndex].password,
+      10000
+    )
     console.log('sending', x, y, parcels[0].address)
     const pendingTransaction = await land.assignMultipleParcels.sendTransaction(
       x,
@@ -125,7 +144,7 @@ async function sendTransactionAndWait(input, workerIndex, parcels) {
         from: account
       }
     )
-    parcels.map(parcel => parcel.pendingTransaction = pendingTransaction)
+    parcels.map(parcel => (parcel.pendingTransaction = pendingTransaction))
   } catch (e) {
     console.log(e.stack)
   } finally {
@@ -182,14 +201,14 @@ async function optimizeOrder(input) {
   }
   for (const address of values) {
     for (const i in address) {
-      let index = (worker + item[worker] * workers)
+      let index = worker + item[worker] * workers
       while (index > length) {
-        worker++;
-        worker %= workers;
-        index = (worker + item[worker] * workers)
+        worker++
+        worker %= workers
+        index = worker + item[worker] * workers
       }
-      sorted[(worker + item[worker] * workers)] = address[i]
-      item[worker]++;
+      sorted[worker + item[worker] * workers] = address[i]
+      item[worker]++
     }
   }
   input.parcels = sorted
@@ -221,9 +240,14 @@ async function run() {
 }
 
 const ret = function(callback) {
-  run().then(() => callback()).catch(console.log).catch(callback)
+  run()
+    .then(() => callback())
+    .catch(console.log)
+    .catch(callback)
 }
 Object.assign(ret, {
-  readJSON, saveJSON, run
+  readJSON,
+  saveJSON,
+  run
 })
 module.exports = ret
