@@ -134,13 +134,13 @@ contract LANDRegistry is Storage,
   //
 
   function transferLand(int x, int y, address to) public {
-    return transfer(to, encodeTokenId(x, y));
+    transfer(to, encodeTokenId(x, y));
   }
 
   function transferManyLand(int[] x, int[] y, address to) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      return transfer(to, encodeTokenId(x[i], y[i]));
+      transfer(to, encodeTokenId(x[i], y[i]));
     }
   }
 

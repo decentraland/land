@@ -21,6 +21,7 @@ contract('LANDRegistry', accounts => {
   const _firstParcelId = 1
   const _secondParcelId = 2
   const _unknownParcelId = 3
+  const sentByUser = { from: user }
   const sentByCreator = { from: creator }
   const creationParams = {
     gas: 6e6,
@@ -188,6 +189,132 @@ contract('LANDRegistry', accounts => {
         x[1].should.be.bignumber.equal(0)
         y[0].should.be.bignumber.equal(1)
         y[1].should.be.bignumber.equal(2)
+      })
+    })
+  })
+
+  describe('Transfers', () => {
+    describe('transferLand', () => {
+      it('transfers land if it is called by owner', async () => {
+        const [xUser, yUser] = await land.landOf(user)
+        xUser[0].should.be.bignumber.equal(0)
+        xUser[1].should.be.bignumber.equal(0)
+        yUser[0].should.be.bignumber.equal(1)
+        yUser[1].should.be.bignumber.equal(2)
+
+        await land.transferLand(0, 1, creator, sentByUser)
+        const [xCreator, yCreator] = await land.landOf(creator)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xCreator[0].should.be.bignumber.equal(0)
+        yCreator[0].should.be.bignumber.equal(1)
+        xCreator.length.should.be.equal(1)
+        yCreator.length.should.be.equal(1)
+
+        xNewUser[0].should.be.bignumber.equal(0)
+        yNewUser[0].should.be.bignumber.equal(2)
+        xNewUser.length.should.be.equal(1)
+        yNewUser.length.should.be.equal(1)
+      })
+
+      it('transfers land if it is called by operator', async () => {
+        const [xUser, yUser] = await land.landOf(user)
+        xUser[0].should.be.bignumber.equal(0)
+        xUser[1].should.be.bignumber.equal(0)
+        yUser[0].should.be.bignumber.equal(1)
+        yUser[1].should.be.bignumber.equal(2)
+
+        await land.authorizeOperator(operator, true, sentByUser)
+        await land.transferLand(0, 1, creator, { from: operator })
+        const [xCreator, yCreator] = await land.landOf(creator)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xCreator[0].should.be.bignumber.equal(0)
+        yCreator[0].should.be.bignumber.equal(1)
+        xCreator.length.should.be.equal(1)
+        yCreator.length.should.be.equal(1)
+
+        xNewUser[0].should.be.bignumber.equal(0)
+        yNewUser[0].should.be.bignumber.equal(2)
+        xNewUser.length.should.be.equal(1)
+        yNewUser.length.should.be.equal(1)
+      })
+
+      it('does not transfer land if it is called by not authorized operator', async () => {
+        await assertRevert(
+          land.transferLand(0, 1, creator, { from: operator })
+        )
+      })
+
+      it('does not transfer land if land does not exist', async () => {
+        await assertRevert(
+          land.transferLand(1, 1, creator, sentByUser)
+        )
+      })
+    })
+
+    describe('transferManyLand', () => {
+      it('transfers lands if it is called by owner', async () => {
+        const [xUser, yUser] = await land.landOf(user)
+        xUser[0].should.be.bignumber.equal(0)
+        xUser[1].should.be.bignumber.equal(0)
+        yUser[0].should.be.bignumber.equal(1)
+        yUser[1].should.be.bignumber.equal(2)
+
+        await land.transferManyLand(xUser, yUser, creator, sentByUser)
+        const [xCreator, yCreator] = await land.landOf(creator)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xCreator[0].should.be.bignumber.equal(0)
+        xCreator[1].should.be.bignumber.equal(0)
+        yCreator[0].should.be.bignumber.equal(1)
+        yCreator[1].should.be.bignumber.equal(2)
+        xCreator.length.should.be.equal(2)
+        yCreator.length.should.be.equal(2)
+
+        xNewUser.length.should.be.equal(0)
+        yNewUser.length.should.be.equal(0)
+      })
+
+      it('transfers lands if it is called by operator', async () => {
+        const [xUser, yUser] = await land.landOf(user)
+        xUser[0].should.be.bignumber.equal(0)
+        xUser[1].should.be.bignumber.equal(0)
+        yUser[0].should.be.bignumber.equal(1)
+        yUser[1].should.be.bignumber.equal(2)
+
+        await land.authorizeOperator(operator, true, sentByUser)
+        await land.transferManyLand(xUser, yUser, creator, { from: operator })
+        const [xCreator, yCreator] = await land.landOf(creator)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xCreator[0].should.be.bignumber.equal(0)
+        xCreator[1].should.be.bignumber.equal(0)
+        yCreator[0].should.be.bignumber.equal(1)
+        yCreator[1].should.be.bignumber.equal(2)
+        xCreator.length.should.be.equal(2)
+        yCreator.length.should.be.equal(2)
+
+        xNewUser.length.should.be.equal(0)
+        yNewUser.length.should.be.equal(0)
+      })
+
+      it('does not transfer lands if it is called by not authorized operator', async () => {
+        const [xUser, yUser] = await land.landOf(user)
+        await assertRevert(
+          land.transferManyLand(xUser, yUser, creator, { from: operator })
+        )
+      })
+
+      it('does not transfer lands if land does not exist', async () => {
+        await assertRevert(
+          land.transferManyLand([12, 4], [1, 2], creator, sentByUser)
+        )
+      })
+      it('does not transfer lands if x length is not equal to y length', async () => {
+        await assertRevert(
+          land.transferManyLand([0, 0], [0, 1, 3], creator, sentByUser)
+        )
       })
     })
   })
