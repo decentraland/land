@@ -6,4 +6,8 @@ contract LANDRegistryTest is LANDRegistry {
   function existsProxy(int x, int y) view public returns (bool) {
     return exists(encodeTokenId(x, y));
   }
+
+  function isDeploymentAuthorized(address beneficiary) view public returns (bool) {
+    return authorizedDeploy[beneficiary];
+  }
 }

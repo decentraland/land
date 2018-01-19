@@ -247,5 +247,97 @@ contract('LANDRegistry', accounts => {
       })
     })
 
+    describe('updateLandData', () => {
+      it('updates the parcel data if authorized', async () => {
+        await land.authorizeOperator(user, true, sentByUser)
+
+        const originalData = await land.landData(0, 1, sentByUser)
+        originalData.should.be.equal('')        
+        await land.updateLandData(0, 1, 'test_data', sentByUser)
+        const data = await land.landData(0, 1, sentByUser)
+        data.should.be.equal('test_data')
+      })
+
+      it('sets an empty string if invalid data is provided', async () => {
+        await land.authorizeOperator(user, true, sentByUser)
+
+        const originalData = await land.landData(0, 1, sentByUser) 
+        originalData.should.be.equal('')
+        
+        await land.updateLandData(0, 1, 'test-data', sentByUser)
+        const intermediateData = await land.landData(0, 1, sentByUser)        
+        intermediateData.should.be.equal('test-data')
+
+        await land.updateLandData(0, 1, 999, sentByUser)
+        const finalData = await land.landData(0, 1, sentByUser)
+        finalData.should.be.equal('')
+      })
+
+      it('reverts if the sender is not an authorized operator', async () => {
+        await assertRevert(land.updateLandData(1, 1, 'test_data', sentByCreator))
+      })
+    })
+
+    describe('authorizeDeploy', () => {
+      it('authorizes an address', async () => {
+        await land.authorizeDeploy(user)
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.true
+      })
+
+      it('verifies that deployments are not authorized by default', async () => {
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.false
+      })
+
+      it('authorizes an address twice without reverting', async () => {
+        await land.authorizeDeploy(user)
+        await land.authorizeDeploy(user)    
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.true
+      })
+
+      it('reverts if the sender is not the owner', async () => {
+        await assertRevert(land.authorizeDeploy(user, sentByUser))
+      })
+
+      it('throws if provided with an invalid address', async () => {
+        return Promise.all([assertRevert(land.authorizeDeploy(NONE)).should.be.rejected])
+      })
+    })
+
+    describe('forbidDeploy', () => {
+      it('forbids the deployment for an specific address', async () => {
+        await land.forbidDeploy(user)
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.false   
+      })
+
+      it('forbids the deployment for an specific address twice without reverting', async () => {
+        await land.forbidDeploy(user)
+        await land.forbidDeploy(user)        
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.false   
+      })
+
+      it('forbids the deployment for an specific address after authorization', async () => {
+        await land.authorizeDeploy(user)
+        const isAuthorized = await land.isDeploymentAuthorized(user)
+        isAuthorized.should.be.true
+        
+        await land.forbidDeploy(user)
+        const isAuthorizedFinal = await land.isDeploymentAuthorized(user)
+        isAuthorizedFinal.should.be.false
+      })
+
+      it('reverts if the sender is not the owner', async () => {
+        await assertRevert(land.forbidDeploy(user, sentByUser))
+      })
+
+      it('throws if provided with an invalid address', async () => {
+        return Promise.all([assertRevert(land.forbidDeploy(NONE)).should.be.rejected])
+      })
+    })
+
   })
 })
