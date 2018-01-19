@@ -148,19 +148,14 @@ contract LANDRegistry is Storage,
   // Update LAND
   //
 
-  modifier onlyOperator(int x, int y) {
-    require(isOperatorAuthorizedFor(msg.sender, holderOf(encodeTokenId(x, y))));
-    _;
-  }
-
-  function updateLandData(int x, int y, string data) public onlyOperator(x, y) {
+  function updateLandData(int x, int y, string data) public onlyOperatorOrHolder(encodeTokenId(x, y)) {
     return _update(encodeTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
-      _update(encodeTokenId(x[i], y[i]), data);
+      updateLandData(x[i], y[i], data);
     }
   }
 }

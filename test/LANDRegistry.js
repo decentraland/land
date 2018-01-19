@@ -220,23 +220,31 @@ contract('LANDRegistry', accounts => {
         const data = await land.landData(0, 1)
         data.should.be.equal('')
       })
-      
-      it('returns land data for a given set of parcel coordinates', async () => {
-        await land.authorizeOperator(user, true, sentByUser)
+
+      it('allows updating your own land data', async () => {
         await land.updateLandData(0, 1, 'test_data', sentByUser)
         const data = await land.landData(0, 1, sentByUser)
         data.should.be.equal('test_data')
       })
 
+      it('throws if updating another user land data', async () => {
+        await assertRevert(land.updateLandData(0, 1, 'test_data', sentByCreator))
+      })
+
+      it('allow updating land data if given authorization', async () => {
+        await land.authorizeOperator(creator, true, sentByUser)
+        await land.updateLandData(0, 1, 'test_data', sentByCreator)
+      })
+
       it('returns land data for a parcel that belongs to another holder', async () => {
         await land.assignNewParcel(1, 1, creator, sentByCreator)
-        await land.authorizeOperator(creator, true, sentByCreator)
-        await land.updateLandData(1, 1, 'test_data', sentByCreator)
-        const data = await land.landData(1, 1, sentByUser) // user queries creator's land 
+        await land.authorizeOperator(user, true, sentByCreator)
+        await land.updateLandData(1, 1, 'test_data', sentByUser)
+        const data = await land.landData(1, 1, sentByCreator) // user queries creator's land 
         data.should.be.equal('test_data')
       })
 
-      it('returns an empty string for a set of coordidnates wth no associated parcel', async () => {
+      it('returns an empty string for a set of coordidnates with no associated parcel', async () => {
         const data = await land.landData(14, 13)
         data.should.be.equal('')
       })
@@ -341,7 +349,6 @@ contract('LANDRegistry', accounts => {
         return Promise.all([assertRevert(land.forbidDeploy(NONE)).should.be.rejected])
       })
     })
-
   })
 
   describe('Test inactive parcels', () => {
