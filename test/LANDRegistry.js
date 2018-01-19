@@ -219,7 +219,7 @@ contract('LANDRegistry', accounts => {
       coords[0].length.should.be.equal(0)
       coords[1].length.should.be.equal(0)
     })
-    it('does not cleans parcels when owner pings', async () => {
+    it('does not clean parcels when owner pings', async () => {
       let coords = await land.landOf(user)
       coords[0].length.should.be.equal(2)
       coords[1].length.should.be.equal(2)
