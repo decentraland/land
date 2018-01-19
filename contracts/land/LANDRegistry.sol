@@ -22,26 +22,23 @@ contract LANDRegistry is Storage,
     super.initialize(data);
   }
 
-  //
-  // Land is assignable by the owner
-  //
-
-  function assignNewParcel(int x, int y, address beneficiary, string data) public {
-    generate(encodeTokenId(x, y), beneficiary, data);
+  function authorizeDeploy(address beneficiary) public onlyOwner {
+    authorizedDeploy[beneficiary] = true;
+  }
+  function forbidDeploy(address beneficiary) public onlyOwner {
+    authorizedDeploy[beneficiary] = false;
   }
 
   function assignNewParcel(int x, int y, address beneficiary) public {
-    generate(encodeTokenId(x, y), beneficiary, '');
+    require(authorizedDeploy[msg.sender]);
+    _generate(encodeTokenId(x, y), beneficiary, '');
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
+    require(authorizedDeploy[msg.sender]);
     for (uint i = 0; i < x.length; i++) {
-      generate(encodeTokenId(x[i], y[i]), beneficiary, '');
+      _generate(encodeTokenId(x[i], y[i]), beneficiary, '');
     }
-  }
-
-  function generate(uint256 assetId, address beneficiary, string data) onlyOwner public {
-    _generate(assetId, beneficiary, data);
   }
 
   function destroy(uint256 assetId) onlyOwner public {

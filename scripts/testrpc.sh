@@ -1,4 +1,4 @@
-testrpc_port=18545
+ganache_port=18545
 
 accounts=(
   --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200,1000000000000000000000000"
@@ -13,4 +13,4 @@ accounts=(
   --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501209,1000000000000000000000000"
 )
 
-node_modules/.bin/testrpc --gasLimit 10000000000 "${accounts[@]}" --port "$testrpc_port"
+node_modules/.bin/ganache-cli --gasLimit 10000000000 "${accounts[@]}" --port "$ganache_port"

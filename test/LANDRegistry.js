@@ -1,10 +1,3 @@
-/**
- * Ported over from zeppelin-solidity tests for NonFungibleland.sol
- *
- * Given that the test is mostly for common functionality, it should work mostly as-is.
- *
- * Deleted functionality: `burn`
- */
 import assertRevert from './helpers/assertRevert'
 const BigNumber = web3.BigNumber
 
@@ -12,20 +5,6 @@ const LANDRegistry = artifacts.require('LANDRegistry')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const NONE = '0x0000000000000000000000000000000000000000'
-
-function checkTransferLog(log, parcelId, from, to) {
-  log.event.should.be.eq('Transfer')
-  log.args.parcelId.should.be.bignumber.equal(parcelId)
-  log.args.from.should.be.equal(from)
-  log.args.to.should.be.equal(to)
-}
-
-function checkApproveLog(log, parcelId, from, to) {
-  log.event.should.be.eq('Approve')
-  log.args.parcelId.should.be.bignumber.equal(parcelId)
-  log.args.owner.should.be.equal(from)
-  log.args.beneficiary.should.be.equal(to)
-}
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -56,6 +35,7 @@ contract('LANDRegistry', accounts => {
     await proxy.upgrade(registry.address, creator, sentByCreator)
     land = await LANDRegistry.at(proxy.address)
     await land.initialize(creator, sentByCreator)
+    await land.authorizeDeploy(creator, sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
     await land.assignNewParcel(0, 2, user, sentByCreator)
   })

@@ -8,4 +8,6 @@ contract LANDStorage {
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
   uint256 constant factor = 0x100000000000000000000000000000000;
 
+  mapping (address => bool) authorizedDeploy;
+
 }
