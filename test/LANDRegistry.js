@@ -1,7 +1,7 @@
 import assertRevert from './helpers/assertRevert'
 const BigNumber = web3.BigNumber
 
-const LANDRegistry = artifacts.require('LANDRegistry')
+const LANDRegistry = artifacts.require('LANDRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const NONE = '0x0000000000000000000000000000000000000000'
@@ -22,6 +22,7 @@ contract('LANDRegistry', accounts => {
   const _secondParcelId = 2
   const _unknownParcelId = 3
   const sentByCreator = { from: creator }
+  const sentByUser = { from: user }  
   const creationParams = {
     gas: 6e6,
     gasPrice: 21e9,
@@ -190,5 +191,61 @@ contract('LANDRegistry', accounts => {
         y[1].should.be.bignumber.equal(2)
       })
     })
+
+    describe('exists', () => {
+      it('returns true if the parcel has been assigned', async () => {
+        const exists = await land.existsProxy(0, 1) // Truffle still fails to correctly handle function overloading
+        exists.should.be.true
+      })
+
+      it('returns false if the hasn\'t been assigned', async () => {
+        const exists = await land.existsProxy(1, 1)
+        exists.should.be.false
+      })
+
+      it('throws if invalid coordinates are provided', async () => {
+        return Promise.all([land.existsProxy('a', 'b').should.be.rejected])
+      })
+
+      it('throws if no coordinates are provided', async () => {
+        return Promise.all([land.existsProxy().should.be.rejected])
+      })
+    })
+
+    describe('landData', () => {
+      it('returns an empty string for a freshly-assigned parcel', async () => {
+        const data = await land.landData(0, 1)
+        data.should.be.equal('')
+      })
+      
+      it('returns land data for a given set of parcel coordinates', async () => {
+        await land.authorizeOperator(user, true, sentByUser)
+        await land.updateLandData(0, 1, 'test_data', sentByUser)
+        const data = await land.landData(0, 1, sentByUser)
+        data.should.be.equal('test_data')
+      })
+
+      it('returns land data for a parcel that belongs to another holder', async () => {
+        await land.assignNewParcel(1, 1, creator, sentByCreator)
+        await land.authorizeOperator(creator, true, sentByCreator)
+        await land.updateLandData(1, 1, 'test_data', sentByCreator)
+        const data = await land.landData(1, 1, sentByUser) // user queries creator's land 
+        data.should.be.equal('test_data')
+      })
+
+      it('returns an empty string for a set of coordidnates wth no associated parcel', async () => {
+        const data = await land.landData(14, 13)
+        data.should.be.equal('')
+      })
+
+      it('throws if invalid coordinates are provided', async () => {
+        return Promise.all([land.landData('a', 'b').should.be.rejected])
+      })
+
+      it('throws if no coordinates are provided', async () => {
+        return Promise.all([land.landData().should.be.rejected])
+      })
+    })
+
   })
 })
