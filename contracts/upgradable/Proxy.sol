@@ -20,9 +20,9 @@ contract Proxy is Storage, DelegateProxy {
   }
 
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != owner);
+    require(_newOwner != proxyOwner);
 
-    OwnerUpdate(owner, _newOwner);
+    OwnerUpdate(proxyOwner, _newOwner);
     proxyOwner = _newOwner;
   }
 
