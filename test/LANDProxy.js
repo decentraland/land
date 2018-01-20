@@ -31,7 +31,6 @@ contract('LANDProxy', accounts => {
   }
 
   describe('upgrade', () => {
-
     beforeEach(async function() {
       proxy = await LANDProxy.new(creationParams)
       registry = await LANDRegistry.new(creationParams)
@@ -39,7 +38,11 @@ contract('LANDProxy', accounts => {
     })
 
     it('should upgrade proxy by owner', async () => {
-      const {logs} = await proxy.upgrade(registry.address, owner, creationParams)
+      const { logs } = await proxy.upgrade(
+        registry.address,
+        owner,
+        creationParams
+      )
       await checkUpgradeLog(logs[0], registry.address, owner)
       const landName = await land.name()
       landName.should.be.equal('Decentraland LAND')
@@ -50,9 +53,13 @@ contract('LANDProxy', accounts => {
     })
 
     it('should throw if not owner upgrade proxy', async () => {
-      await assertRevert(proxy.upgrade(
-        registry.address, hacker, Object.assign({}, creationParams, {from: hacker})
-      ))
+      await assertRevert(
+        proxy.upgrade(
+          registry.address,
+          hacker,
+          Object.assign({}, creationParams, { from: hacker })
+        )
+      )
     })
   })
 })
