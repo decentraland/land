@@ -78,5 +78,9 @@ contract('LANDProxy', accounts => {
       await proxy.transferOwnership(otherOwner, { from: creator })
       await assertRevert(proxy.acceptOwnership({ from: hacker }))
     })
+
+    it('should throw if trying to transfer and not owner', async () => {
+      await assertRevert(proxy.transferOwnership(otherOwner, { from: hacker }))
+    })
   })
 })
