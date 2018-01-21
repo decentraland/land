@@ -18,12 +18,11 @@ require('chai')
   .should()
 
 contract('LANDProxy', accounts => {
-  const [creator, owner, hacker] = accounts
+  const [creator, owner, hacker, otherOwner] = accounts
   let registry = null
   let proxy = null
   let land = null
 
-  const sentByCreator = { from: creator }
   const creationParams = {
     gas: 6e6,
     gasPrice: 21e9,
@@ -60,6 +59,24 @@ contract('LANDProxy', accounts => {
           Object.assign({}, creationParams, { from: hacker })
         )
       )
+    })
+
+    it('transfer ownership should not change owner until accepted', async () => {
+      await proxy.transferOwnership(otherOwner, { from: creator })
+      const oldOwner = await proxy.proxyOwner()
+      oldOwner.should.be.equal(creator)
+    })
+
+    it('should transfer ownership when new owner accepts', async () => {
+      await proxy.transferOwnership(otherOwner, { from: creator })
+      await proxy.acceptOwnership({ from: otherOwner })
+      const newOwner = await proxy.proxyOwner()
+      newOwner.should.be.equal(otherOwner)
+    })
+
+    it('should throw if accepting ownership and not owner', async () => {
+      await proxy.transferOwnership(otherOwner, { from: creator })
+      await assertRevert(proxy.acceptOwnership({ from: hacker }))
     })
   })
 })

@@ -19,11 +19,16 @@ contract Proxy is Storage, DelegateProxy {
     _;
   }
 
-  function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != proxyOwner);
+  function acceptOwnership() public {
+    require(msg.sender == newProxyOwner);
+    OwnerUpdate(proxyOwner, newProxyOwner);
+    proxyOwner = newProxyOwner;
+    newProxyOwner = 0x0;
+  }
 
-    OwnerUpdate(proxyOwner, _newOwner);
-    proxyOwner = _newOwner;
+  function transferOwnership(address _newOwner) public onlyProxyOwner {
+    require(_newOwner != newProxyOwner);
+    newProxyOwner = _newOwner;
   }
 
   function upgrade(IApplication newContract, bytes data) public onlyProxyOwner {
