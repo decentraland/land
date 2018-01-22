@@ -82,7 +82,7 @@ contract LANDRegistry is Storage,
     return (expandNegative128BitCast(x), expandNegative128BitCast(y));
   }
 
-  function expandNegative128BitCast(uint value) view public returns (int) {
+  function expandNegative128BitCast(uint value) pure internal returns (int) {
     if (value & (1<<127) != 0) {
       return int(value | clearLow);
     }
