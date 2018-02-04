@@ -21,6 +21,11 @@ contract LANDRegistry is Storage,
     _description = 'Contract that stores the Decentraland LAND registry';
     super.initialize(data);
   }
+  
+  modifier canDeploy {
+    require(authorizedDeploy[msg.sender]);
+    _;
+  }
 
   function authorizeDeploy(address beneficiary) public onlyOwner {
     authorizedDeploy[beneficiary] = true;
@@ -29,13 +34,11 @@ contract LANDRegistry is Storage,
     authorizedDeploy[beneficiary] = false;
   }
 
-  function assignNewParcel(int x, int y, address beneficiary) public {
-    require(authorizedDeploy[msg.sender]);
+  function assignNewParcel(int x, int y, address beneficiary) public canDeploy {
     _generate(encodeTokenId(x, y), beneficiary, '');
   }
 
-  function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
-    require(authorizedDeploy[msg.sender]);
+  function assignMultipleParcels(int[] x, int[] y, address beneficiary) public canDeploy {
     for (uint i = 0; i < x.length; i++) {
       _generate(encodeTokenId(x[i], y[i]), beneficiary, '');
     }
