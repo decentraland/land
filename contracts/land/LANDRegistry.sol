@@ -22,10 +22,19 @@ contract LANDRegistry is Storage,
     super.initialize(data);
   }
 
-  function authorizeDeploy(address beneficiary) public onlyOwner {
+  modifier onlyProxyOwner() {
+    require(msg.sender == proxyOwner);
+    _;
+  }
+
+  //
+  // LAND Create and destroy
+  //
+
+  function authorizeDeploy(address beneficiary) public onlyProxyOwner {
     authorizedDeploy[beneficiary] = true;
   }
-  function forbidDeploy(address beneficiary) public onlyOwner {
+  function forbidDeploy(address beneficiary) public onlyProxyOwner {
     authorizedDeploy[beneficiary] = false;
   }
 
@@ -41,7 +50,7 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function destroy(uint256 assetId) onlyOwner public {
+  function destroy(uint256 assetId) onlyProxyOwner public {
     _destroy(assetId);
   }
 
@@ -53,7 +62,7 @@ contract LANDRegistry is Storage,
     latestPing[msg.sender] = now;
   }
 
-  function setLatestToNow(address user) onlyOwner public {
+  function setLatestToNow(address user) onlyProxyOwner public {
     latestPing[user] = now;
   }
 
@@ -130,7 +139,7 @@ contract LANDRegistry is Storage,
   }
 
   //
-  // Transfer LAND
+  // LAND Transfer
   //
 
   function transferLand(int x, int y, address to) public {
@@ -145,7 +154,7 @@ contract LANDRegistry is Storage,
   }
 
   //
-  // Update LAND
+  // LAND Update
   //
 
   function updateLandData(int x, int y, string data) public onlyOperatorOrHolder(encodeTokenId(x, y)) {
