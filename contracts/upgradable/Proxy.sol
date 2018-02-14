@@ -14,6 +14,10 @@ contract Proxy is Storage, DelegateProxy {
     proxyOwner = msg.sender;
   }
 
+  //
+  // Ownership
+  //
+
   modifier onlyProxyOwner() {
     require(msg.sender == proxyOwner);
     _;
@@ -31,12 +35,20 @@ contract Proxy is Storage, DelegateProxy {
     newProxyOwner = _newOwner;
   }
 
+  //
+  // Upgrade
+  //
+
   function upgrade(IApplication newContract, bytes data) public onlyProxyOwner {
     currentContract = newContract;
     IApplication(this).initialize(data);
 
     Upgrade(newContract, data);
   }
+
+  //
+  // Dispatch fallback
+  //
 
   function () payable public {
     require(currentContract != 0); // if app code hasn't been set yet, don't call
