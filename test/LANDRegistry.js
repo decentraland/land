@@ -521,32 +521,4 @@ contract('LANDRegistry', accounts => {
       })
     })
   })
-
-  describe('destroy', () => {
-    it('destroys land if it is the contract owner', async () => {
-      const landId = await land.encodeTokenId(0, 1)
-      await land.destroy(landId, sentByCreator)
-      const [x, y] = await land.landOf(user)
-      x[0].should.be.bignumber.equal(0)
-      y[0].should.be.bignumber.equal(2)
-      x.length.should.be.equal(1)
-      y.length.should.be.equal(1)
-    })
-
-    it('reverts when not the owner trying to destroy a land', async () => {
-      const landId = await land.encodeTokenId(0, 1)
-      await assertRevert(land.destroy(landId, sentByUser))
-    })
-
-    it('reverts when an operator trying to destroy a land', async () => {
-      await land.authorizeOperator(operator, true, sentByUser)
-      const landId = await land.encodeTokenId(0, 1)
-      await assertRevert(land.destroy(landId, { from: operator }))
-    })
-
-    it('reverts when trying to destroy a non-existent land', async () => {
-      const landId = await land.encodeTokenId(-10, 10)
-      await assertRevert(land.destroy(landId, sentByCreator))
-    })
-  })
 })
