@@ -21,10 +21,6 @@ contract Ownable is Storage {
     _;
   }
 
-  function initialize(bytes data) public {
-    owner = bytesToAddress(data);
-  }
-
   function transferOwnership(address _newOwner) public onlyOwner {
     require(_newOwner != owner);
     owner = _newOwner;

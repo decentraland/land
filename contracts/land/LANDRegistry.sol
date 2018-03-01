@@ -6,20 +6,19 @@ import '../upgradable/Ownable.sol';
 
 import '../upgradable/IApplication.sol';
 
-import 'erc821/contracts/StandardAssetRegistry.sol';
+import 'erc821/contracts/FullAssetRegistry.sol';
 
 import './ILANDRegistry.sol';
 
 contract LANDRegistry is Storage,
-  Ownable, StandardAssetRegistry,
+  Ownable, FullAssetRegistry,
   ILANDRegistry
 {
 
-  function initialize(bytes data) public {
+  function initialize(bytes) public {
     _name = 'Decentraland LAND';
     _symbol = 'LAND';
     _description = 'Contract that stores the Decentraland LAND registry';
-    super.initialize(data);
   }
 
   modifier onlyProxyOwner() {
@@ -31,6 +30,20 @@ contract LANDRegistry is Storage,
   // LAND Create and destroy
   //
 
+  modifier onlyOwnerOf(uint256 assetId) {
+    require(msg.sender == ownerOf(assetId));
+    _;
+  }
+
+  modifier onlyUpdateAuthorized(uint256 tokenId) {
+    require(msg.sender == ownerOf(tokenId) || isUpdateAuthorized(msg.sender, tokenId));
+    _;
+  }
+
+  function isUpdateAuthorized(address operator, uint256 assetId) public view returns (bool) {
+    return operator == ownerOf(assetId) || _updateAuthorized[assetId] == operator;
+  }
+
   function authorizeDeploy(address beneficiary) public onlyProxyOwner {
     authorizedDeploy[beneficiary] = true;
   }
@@ -38,15 +51,13 @@ contract LANDRegistry is Storage,
     authorizedDeploy[beneficiary] = false;
   }
 
-  function assignNewParcel(int x, int y, address beneficiary) public {
-    require(authorizedDeploy[msg.sender]);
-    _generate(encodeTokenId(x, y), beneficiary, '');
+  function assignNewParcel(int x, int y, address beneficiary) public onlyProxyOwner {
+    _generate(encodeTokenId(x, y), beneficiary);
   }
 
-  function assignMultipleParcels(int[] x, int[] y, address beneficiary) public {
-    require(authorizedDeploy[msg.sender]);
+  function assignMultipleParcels(int[] x, int[] y, address beneficiary) public onlyProxyOwner {
     for (uint i = 0; i < x.length; i++) {
-      _generate(encodeTokenId(x[i], y[i]), beneficiary, '');
+      _generate(encodeTokenId(x[i], y[i]), beneficiary);
     }
   }
 
@@ -62,7 +73,7 @@ contract LANDRegistry is Storage,
     latestPing[msg.sender] = now;
   }
 
-  function setLatestToNow(address user) onlyProxyOwner public {
+  function setLatestToNow(address user) public onlyProxyOwner {
     latestPing[user] = now;
   }
 
@@ -70,7 +81,7 @@ contract LANDRegistry is Storage,
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
       uint landId = encodeTokenId(x[i], y[i]);
-      address holder = holderOf(landId);
+      address holder = ownerOf(landId);
       if (latestPing[holder] < now - 1 years) {
         _destroy(landId);
       }
@@ -103,7 +114,7 @@ contract LANDRegistry is Storage,
   }
 
   function ownerOfLand(int x, int y) view public returns (address) {
-    return holderOf(encodeTokenId(x, y));
+    return ownerOf(encodeTokenId(x, y));
   }
 
   function ownerOfLandMany(int[] x, int[] y) view public returns (address[]) {
@@ -135,7 +146,7 @@ contract LANDRegistry is Storage,
   }
 
   function landData(int x, int y) view public returns (string) {
-    return assetData(encodeTokenId(x, y));
+    return tokenMetadata(encodeTokenId(x, y));
   }
 
   //
@@ -143,25 +154,34 @@ contract LANDRegistry is Storage,
   //
 
   function transferLand(int x, int y, address to) public {
-    transfer(to, encodeTokenId(x, y));
+    uint256 tokenId = encodeTokenId(x, y);
+    safeTransferFrom(ownerOf(tokenId), to, tokenId);
   }
 
   function transferManyLand(int[] x, int[] y, address to) public {
+    require(x.length > 0);
     require(x.length == y.length);
+
     for (uint i = 0; i < x.length; i++) {
-      transfer(to, encodeTokenId(x[i], y[i]));
+      uint256 tokenId = encodeTokenId(x[i], y[i]);
+      safeTransferFrom(ownerOf(tokenId), to, tokenId);
     }
+  }
+
+  function allowUpdateOperator(uint256 assetId, address operator) public onlyOwnerOf(assetId) {
+    _updateAuthorized[assetId] = operator;
   }
 
   //
   // LAND Update
   //
 
-  function updateLandData(int x, int y, string data) public onlyOperatorOrHolder(encodeTokenId(x, y)) {
+  function updateLandData(int x, int y, string data) public onlyUpdateAuthorized (encodeTokenId(x, y)) {
     return _update(encodeTokenId(x, y), data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
+    require(x.length > 0);
     require(x.length == y.length);
     for (uint i = 0; i < x.length; i++) {
       updateLandData(x[i], y[i], data);

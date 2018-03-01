@@ -5,13 +5,14 @@ import "./Ownable.sol";
 import "./DelegateProxy.sol";
 import "./IApplication.sol";
 
-contract Proxy is Storage, DelegateProxy {
+contract Proxy is Storage, DelegateProxy, Ownable {
 
   event Upgrade(address indexed newContract, bytes initializedWith);
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
   function Proxy() public {
     proxyOwner = msg.sender;
+    owner = msg.sender;
   }
 
   //

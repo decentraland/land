@@ -46,7 +46,7 @@ contract('LANDProxy', accounts => {
       const landName = await land.name()
       landName.should.be.equal('Decentraland LAND')
       const ownerAddress = await land.owner()
-      ownerAddress.should.be.equal(owner)
+      ownerAddress.should.be.equal(creator)
       const proxyOwner = await land.proxyOwner()
       proxyOwner.should.be.equal(creator)
     })

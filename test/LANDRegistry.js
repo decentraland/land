@@ -97,9 +97,9 @@ contract('LANDRegistry', accounts => {
           y.push(j)
         }
         let assetIds
-        before(async () => {
-          await land.assignMultipleParcels(x, y, anotherUser, sentByCreator)
-          assetIds = await land.assetsOf(anotherUser)
+        before(async() => {
+          await (land.assignMultipleParcels(x, y, anotherUser, sentByCreator))
+          assetIds = await land.tokensOf(anotherUser)
         })
         for (let i = 0; i < x.length; i++) {
           it(
@@ -260,13 +260,14 @@ contract('LANDRegistry', accounts => {
       })
 
       it('allow updating land data if given authorization', async () => {
-        await land.authorizeOperator(creator, true, sentByUser)
+        await land.allowUpdateOperator(1, creator, sentByUser)
         await land.updateLandData(0, 1, 'test_data', sentByCreator)
       })
 
       it('returns land data for a parcel that belongs to another holder', async () => {
+        const tokenId = await land.encodeTokenId(1, 1)
         await land.assignNewParcel(1, 1, creator, sentByCreator)
-        await land.authorizeOperator(user, true, sentByCreator)
+        await land.allowUpdateOperator(tokenId, user, sentByCreator)
         await land.updateLandData(1, 1, 'test_data', sentByUser)
         const data = await land.landData(1, 1, sentByCreator) // user queries creator's land
         data.should.be.equal('test_data')
@@ -288,8 +289,7 @@ contract('LANDRegistry', accounts => {
 
     describe('updateLandData', () => {
       it('updates the parcel data if authorized', async () => {
-        await land.authorizeOperator(user, true, sentByUser)
-
+        await land.allowUpdateOperator(1, user, sentByUser)
         const originalData = await land.landData(0, 1, sentByUser)
         originalData.should.be.equal('')
         await land.updateLandData(0, 1, 'test_data', sentByUser)
@@ -298,7 +298,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('sets an empty string if invalid data is provided', async () => {
-        await land.authorizeOperator(user, true, sentByUser)
+        await land.allowUpdateOperator(1, user, sentByUser)
 
         const originalData = await land.landData(0, 1, sentByUser)
         originalData.should.be.equal('')
@@ -473,7 +473,7 @@ contract('LANDRegistry', accounts => {
         yUser[0].should.be.bignumber.equal(1)
         yUser[1].should.be.bignumber.equal(2)
 
-        await land.authorizeOperator(operator, true, sentByUser)
+        await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, { from: operator })
         const [xCreator, yCreator] = await land.landOf(creator)
         const [xNewUser, yNewUser] = await land.landOf(user)
@@ -528,7 +528,7 @@ contract('LANDRegistry', accounts => {
         yUser[0].should.be.bignumber.equal(1)
         yUser[1].should.be.bignumber.equal(2)
 
-        await land.authorizeOperator(operator, true, sentByUser)
+        await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferManyLand(xUser, yUser, creator, { from: operator })
         const [xCreator, yCreator] = await land.landOf(creator)
         const [xNewUser, yNewUser] = await land.landOf(user)
@@ -581,7 +581,7 @@ contract('LANDRegistry', accounts => {
     })
 
     it('reverts when an operator trying to destroy a land', async () => {
-      await land.authorizeOperator(operator, true, sentByUser)
+      await land.setApprovalForAll(operator, true, sentByUser)
       const landId = await land.encodeTokenId(0, 1)
       await assertRevert(land.destroy(landId, { from: operator }))
     })
