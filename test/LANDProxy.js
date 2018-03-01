@@ -4,8 +4,6 @@ const BigNumber = web3.BigNumber
 const LANDRegistry = artifacts.require('LANDRegistry')
 const LANDProxy = artifacts.require('LANDProxy')
 
-const NONE = '0x0000000000000000000000000000000000000000'
-
 function checkUpgradeLog(log, newContract, initializedWith) {
   log.event.should.be.eq('Upgrade')
   log.args.newContract.should.be.equal(newContract)

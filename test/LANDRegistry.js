@@ -97,8 +97,8 @@ contract('LANDRegistry', accounts => {
           y.push(j)
         }
         let assetIds
-        before(async() => {
-          await (land.assignMultipleParcels(x, y, anotherUser, sentByCreator))
+        before(async () => {
+          await land.assignMultipleParcels(x, y, anotherUser, sentByCreator)
           assetIds = await land.tokensOf(anotherUser)
         })
         for (let i = 0; i < x.length; i++) {
@@ -227,7 +227,7 @@ contract('LANDRegistry', accounts => {
         exists.should.be.true
       })
 
-      it("returns false if the hasn't been assigned", async () => {
+      it('returns false if the has not been assigned', async () => {
         const exists = await land.existsProxy(1, 1)
         exists.should.be.false
       })
