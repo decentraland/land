@@ -10,4 +10,5 @@ contract LANDStorage {
 
   mapping (address => bool) authorizedDeploy;
 
+  mapping (uint256 => address) _updateAuthorized;
 }

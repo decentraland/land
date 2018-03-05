@@ -4,8 +4,6 @@ const BigNumber = web3.BigNumber
 const LANDRegistry = artifacts.require('LANDRegistry')
 const LANDProxy = artifacts.require('LANDProxy')
 
-const NONE = '0x0000000000000000000000000000000000000000'
-
 function checkUpgradeLog(log, newContract, initializedWith) {
   log.event.should.be.eq('Upgrade')
   log.args.newContract.should.be.equal(newContract)
@@ -46,7 +44,7 @@ contract('LANDProxy', accounts => {
       const landName = await land.name()
       landName.should.be.equal('Decentraland LAND')
       const ownerAddress = await land.owner()
-      ownerAddress.should.be.equal(owner)
+      ownerAddress.should.be.equal(creator)
       const proxyOwner = await land.proxyOwner()
       proxyOwner.should.be.equal(creator)
     })
