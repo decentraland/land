@@ -7,5 +7,4 @@ contract ProxyStorage {
    */
   address public currentContract;
   address public proxyOwner;
-  address newProxyOwner;
 }
