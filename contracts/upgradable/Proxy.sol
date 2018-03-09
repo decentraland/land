@@ -24,16 +24,10 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     _;
   }
 
-  function acceptOwnership() public {
-    require(msg.sender == newProxyOwner);
-    OwnerUpdate(proxyOwner, newProxyOwner);
-    proxyOwner = newProxyOwner;
-    newProxyOwner = 0x0;
-  }
-
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != newProxyOwner);
-    newProxyOwner = _newOwner;
+    require(_newOwner != address(0));
+    require(_newOwner != proxyOwner);
+    proxyOwner = _newOwner;
   }
 
   //

@@ -37,16 +37,19 @@ contract('LANDProxy', accounts => {
     it('should upgrade proxy by owner', async () => {
       const { logs } = await proxy.upgrade(
         registry.address,
-        owner,
+        creator,
         creationParams
       )
-      await checkUpgradeLog(logs[0], registry.address, owner)
+      await checkUpgradeLog(logs[0], registry.address, creator)
+
       const landName = await land.name()
       landName.should.be.equal('Decentraland LAND')
-      const ownerAddress = await land.owner()
-      ownerAddress.should.be.equal(creator)
+
       const proxyOwner = await land.proxyOwner()
       proxyOwner.should.be.equal(creator)
+
+      const ownerAddress = await land.owner()
+      ownerAddress.should.be.equal(creator)
     })
 
     it('should throw if not owner upgrade proxy', async () => {
@@ -59,22 +62,14 @@ contract('LANDProxy', accounts => {
       )
     })
 
-    it('transfer ownership should not change owner until accepted', async () => {
+    it('should transfer ownership', async () => {
       await proxy.transferOwnership(otherOwner, { from: creator })
-      const oldOwner = await proxy.proxyOwner()
-      oldOwner.should.be.equal(creator)
-    })
-
-    it('should transfer ownership when new owner accepts', async () => {
-      await proxy.transferOwnership(otherOwner, { from: creator })
-      await proxy.acceptOwnership({ from: otherOwner })
       const newOwner = await proxy.proxyOwner()
       newOwner.should.be.equal(otherOwner)
     })
 
-    it('should throw if accepting ownership and not owner', async () => {
-      await proxy.transferOwnership(otherOwner, { from: creator })
-      await assertRevert(proxy.acceptOwnership({ from: hacker }))
+    it('should throw if transfering to address 0x0', async () => {
+      await assertRevert(proxy.transferOwnership(0x0, { from: creator }))
     })
 
     it('should throw if trying to transfer and not owner', async () => {
