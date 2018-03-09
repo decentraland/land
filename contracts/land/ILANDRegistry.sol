@@ -26,4 +26,13 @@ interface ILANDRegistry {
   // Update LAND
   function updateLandData(int x, int y, string data) public;
   function updateManyLandData(int[] x, int[] y, string data) public;
+
+  // Events
+
+  event Update(  
+    uint256 indexed assetId, 
+    address indexed holder,  
+    address indexed operator,  
+    string data  
+  );
 }

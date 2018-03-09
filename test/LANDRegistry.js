@@ -13,6 +13,14 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should()
 
+function checkUpdateLog(log, assetId, holder, operator, data) {
+  log.event.should.be.eq('Update')
+  log.args.assetId.should.be.bignumber.equal(assetId)
+  log.args.holder.should.be.equal(holder)
+  log.args.operator.should.be.equal(operator)
+  log.args.data.should.be.equal(data)
+}
+
 contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
   let registry = null,
@@ -316,6 +324,16 @@ contract('LANDRegistry', accounts => {
         await assertRevert(
           land.updateLandData(1, 1, 'test_data', sentByCreator)
         )
+      })
+
+      it('emits Update event on LAND update', async () => {
+        const data = 'test_data'
+        const { logs } = await land.updateLandData(0, 1, data, sentByUser)
+
+        // Event emitted
+        const assetId = await land.encodeTokenId(0, 1)
+        logs.length.should.be.equal(1)
+        checkUpdateLog(logs[0], assetId, user, user, data)
       })
     })
 

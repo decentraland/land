@@ -177,7 +177,10 @@ contract LANDRegistry is Storage,
   //
 
   function updateLandData(int x, int y, string data) public onlyUpdateAuthorized (encodeTokenId(x, y)) {
-    return _update(encodeTokenId(x, y), data);
+    uint256 assetId = encodeTokenId(x, y);
+    _update(assetId, data);
+
+    Update(assetId, _holderOf[assetId], msg.sender, data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
