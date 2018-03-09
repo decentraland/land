@@ -36,7 +36,6 @@ contract ProxyStorage {
    */
   address public currentContract;
   address public proxyOwner;
-  address newProxyOwner;
 }
 
 // File: erc821/contracts/AssetRegistryStorage.sol
@@ -77,16 +76,6 @@ contract AssetRegistryStorage {
    * allowed to transfer and modify assets on behalf of them.
    */
   mapping(address => mapping(address => bool)) internal _operators;
-
-  /**
-   * Simple reentrancy lock
-   */
-  bool internal _reentrancy;
-
-  /**
-   * Complex reentrancy lock
-   */
-  uint256 internal _reentrancyCount;
 
   /**
    * Approval array
@@ -184,16 +173,10 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     _;
   }
 
-  function acceptOwnership() public {
-    require(msg.sender == newProxyOwner);
-    OwnerUpdate(proxyOwner, newProxyOwner);
-    proxyOwner = newProxyOwner;
-    newProxyOwner = 0x0;
-  }
-
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != newProxyOwner);
-    newProxyOwner = _newOwner;
+    require(_newOwner != address(0));
+    require(_newOwner != proxyOwner);
+    proxyOwner = _newOwner;
   }
 
   //

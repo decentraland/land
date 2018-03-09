@@ -36,7 +36,6 @@ contract ProxyStorage {
    */
   address public currentContract;
   address public proxyOwner;
-  address newProxyOwner;
 }
 
 // File: erc821/contracts/AssetRegistryStorage.sol
@@ -77,16 +76,6 @@ contract AssetRegistryStorage {
    * allowed to transfer and modify assets on behalf of them.
    */
   mapping(address => mapping(address => bool)) internal _operators;
-
-  /**
-   * Simple reentrancy lock
-   */
-  bool internal _reentrancy;
-
-  /**
-   * Complex reentrancy lock
-   */
-  uint256 internal _reentrancyCount;
 
   /**
    * Approval array
@@ -160,6 +149,15 @@ interface ILANDRegistry {
   // Update LAND
   function updateLandData(int x, int y, string data) public;
   function updateManyLandData(int[] x, int[] y, string data) public;
+
+  // Events
+
+  event Update(  
+    uint256 indexed assetId, 
+    address indexed holder,  
+    address indexed operator,  
+    string data  
+  );
 }
 
 // File: erc821/contracts/IERC721Base.sol
@@ -183,7 +181,7 @@ interface IERC721Base {
   function getApprovedAddress(uint256 assetId) public view returns (address);
   function isApprovedForAll(address operator, address assetOwner) public view returns (bool);
 
-  // function isAuthorized(address operator, uint256 assetId) public view returns (bool);
+  function isAuthorized(address operator, uint256 assetId) public view returns (bool);
 
   event Transfer(
     address indexed from,
@@ -903,7 +901,10 @@ contract LANDRegistry is Storage,
   //
 
   function updateLandData(int x, int y, string data) public onlyUpdateAuthorized (encodeTokenId(x, y)) {
-    return _update(encodeTokenId(x, y), data);
+    uint256 assetId = encodeTokenId(x, y);
+    _update(assetId, data);
+
+    Update(assetId, _holderOf[assetId], msg.sender, data);
   }
 
   function updateManyLandData(int[] x, int[] y, string data) public {
