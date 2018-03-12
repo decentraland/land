@@ -61,10 +61,6 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function destroy(uint256 assetId) onlyProxyOwner public {
-    _destroy(assetId);
-  }
-
   //
   // Inactive keys after 1 year lose ownership
   //
