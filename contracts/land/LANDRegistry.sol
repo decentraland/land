@@ -61,10 +61,6 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function destroy(uint256 assetId) onlyProxyOwner public {
-    _destroy(assetId);
-  }
-
   //
   // Inactive keys after 1 year lose ownership
   //
@@ -73,7 +69,8 @@ contract LANDRegistry is Storage,
     latestPing[msg.sender] = now;
   }
 
-  function setLatestToNow(address user) public onlyProxyOwner {
+  function setLatestToNow(address user) public {
+    require(msg.sender == proxyOwner || isApprovedForAll(msg.sender, user));
     latestPing[user] = now;
   }
 
