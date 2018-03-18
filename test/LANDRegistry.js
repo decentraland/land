@@ -268,14 +268,14 @@ contract('LANDRegistry', accounts => {
       })
 
       it('allow updating land data if given authorization', async () => {
-        await land.allowUpdateOperator(1, creator, sentByUser)
+        await land.setUpdateOperator(1, creator, sentByUser)
         await land.updateLandData(0, 1, 'test_data', sentByCreator)
       })
 
       it('returns land data for a parcel that belongs to another holder', async () => {
         const tokenId = await land.encodeTokenId(1, 1)
         await land.assignNewParcel(1, 1, creator, sentByCreator)
-        await land.allowUpdateOperator(tokenId, user, sentByCreator)
+        await land.setUpdateOperator(tokenId, user, sentByCreator)
         await land.updateLandData(1, 1, 'test_data', sentByUser)
         const data = await land.landData(1, 1, sentByCreator) // user queries creator's land
         data.should.be.equal('test_data')
@@ -297,7 +297,7 @@ contract('LANDRegistry', accounts => {
 
     describe('updateLandData', () => {
       it('updates the parcel data if authorized', async () => {
-        await land.allowUpdateOperator(1, user, sentByUser)
+        await land.setUpdateOperator(1, user, sentByUser)
         const originalData = await land.landData(0, 1, sentByUser)
         originalData.should.be.equal('')
         await land.updateLandData(0, 1, 'test_data', sentByUser)
@@ -306,7 +306,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('sets an empty string if invalid data is provided', async () => {
-        await land.allowUpdateOperator(1, user, sentByUser)
+        await land.setUpdateOperator(1, user, sentByUser)
 
         const originalData = await land.landData(0, 1, sentByUser)
         originalData.should.be.equal('')
@@ -582,37 +582,28 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe('destroy', () => {
-    it('destroys land if it is the contract owner', async () => {
-      const landId = await land.encodeTokenId(0, 1)
-      await land.destroy(landId, sentByCreator)
-      const [x, y] = await land.landOf(user)
-      x[0].should.be.bignumber.equal(0)
-      y[0].should.be.bignumber.equal(2)
-      x.length.should.be.equal(1)
-      y.length.should.be.equal(1)
+  describe('update authorized', () => {
+    it('update not allowed before setUpdateOperator', async () => {
+      await assertRevert(land.updateLandData(0, 1, '', { from: operator }))
     })
-
-    it('reverts when not the owner trying to destroy a land', async () => {
+    it('update allowed after setUpdateOperator', async () => {
       const landId = await land.encodeTokenId(0, 1)
-      await assertRevert(land.destroy(landId, sentByUser))
+      await land.setUpdateOperator(landId, operator, sentByUser)
+      await land.updateLandData(0, 1, 'newValue', { from: operator })
+      const data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
     })
-
-    it('reverts when an operator trying to destroy a land', async () => {
-      await land.setApprovalForAll(operator, true, sentByUser)
+    it('update disallowed after setUpdateOperator to different address', async () => {
       const landId = await land.encodeTokenId(0, 1)
-      await assertRevert(land.destroy(landId, { from: operator }))
+      await land.setUpdateOperator(landId, operator, sentByUser)
+      await land.setUpdateOperator(landId, anotherUser, sentByUser)
+      await assertRevert(land.updateLandData(0, 1, 'newValue', { from: operator }))
     })
-
-    it('reverts when trying to destroy a non-existent land', async () => {
-      const landId = await land.encodeTokenId(-10, 10)
-      await assertRevert(land.destroy(landId, sentByCreator))
-    })
-
-    it('should use proxy owner to validate destroy call', async () => {
+    it('update disallowed after transfer', async () => {
       const landId = await land.encodeTokenId(0, 1)
-      await land.initialize(hacker, { from: hacker })
-      await assertRevert(land.destroy(landId, { from: hacker }))
+      await land.setUpdateOperator(landId, operator, sentByUser)
+      await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
+      await assertRevert(land.updateLandData(0, 1, 'newValue', { from: operator }))
     })
   })
 })

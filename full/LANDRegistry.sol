@@ -4,15 +4,15 @@ pragma solidity ^0.4.18;
 
 contract LANDStorage {
 
-  mapping (address => uint) latestPing;
+  mapping (address => uint) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
   uint256 constant factor = 0x100000000000000000000000000000000;
 
-  mapping (address => bool) authorizedDeploy;
+  mapping (address => bool) public authorizedDeploy;
 
-  mapping (uint256 => address) _updateAuthorized;
+  mapping (uint256 => address) public updateOperator;
 }
 
 // File: contracts/upgradable/OwnableStorage.sol
@@ -76,6 +76,16 @@ contract AssetRegistryStorage {
    * allowed to transfer and modify assets on behalf of them.
    */
   mapping(address => mapping(address => bool)) internal _operators;
+
+  /**
+   * Simple reentrancy lock
+   */
+  bool internal _reentrancy;
+
+  /**
+   * Complex reentrancy lock
+   */
+  uint256 internal _reentrancyCount;
 
   /**
    * Approval array
@@ -181,7 +191,7 @@ interface IERC721Base {
   function getApprovedAddress(uint256 assetId) public view returns (address);
   function isApprovedForAll(address operator, address assetOwner) public view returns (bool);
 
-  function isAuthorized(address operator, uint256 assetId) public view returns (bool);
+  // function isAuthorized(address operator, uint256 assetId) public view returns (bool);
 
   event Transfer(
     address indexed from,
@@ -765,7 +775,7 @@ contract LANDRegistry is Storage,
   }
 
   function isUpdateAuthorized(address operator, uint256 assetId) public view returns (bool) {
-    return operator == ownerOf(assetId) || _updateAuthorized[assetId] == operator;
+    return operator == ownerOf(assetId) || updateOperator[assetId] == operator;
   }
 
   function authorizeDeploy(address beneficiary) public onlyProxyOwner {
@@ -785,10 +795,6 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function destroy(uint256 assetId) onlyProxyOwner public {
-    _destroy(assetId);
-  }
-
   //
   // Inactive keys after 1 year lose ownership
   //
@@ -797,7 +803,8 @@ contract LANDRegistry is Storage,
     latestPing[msg.sender] = now;
   }
 
-  function setLatestToNow(address user) public onlyProxyOwner {
+  function setLatestToNow(address user) public {
+    require(msg.sender == proxyOwner || isApprovedForAll(msg.sender, user));
     latestPing[user] = now;
   }
 
@@ -854,13 +861,13 @@ contract LANDRegistry is Storage,
   }
 
   function landOf(address owner) public view returns (int[], int[]) {
-    int[] memory x = new int[](_assetsOf[owner].length);
-    int[] memory y = new int[](_assetsOf[owner].length);
+    uint256 len = _assetsOf[owner].length;
+    int[] memory x = new int[](len);
+    int[] memory y = new int[](len);
 
     int assetX;
     int assetY;
-    uint length = _assetsOf[owner].length;
-    for (uint i = 0; i < length; i++) {
+    for (uint i = 0; i < len; i++) {
       (assetX, assetY) = decodeTokenId(_assetsOf[owner][i]);
       x[i] = assetX;
       y[i] = assetY;
@@ -892,8 +899,8 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function allowUpdateOperator(uint256 assetId, address operator) public onlyOwnerOf(assetId) {
-    _updateAuthorized[assetId] = operator;
+  function setUpdateOperator(uint256 assetId, address operator) public onlyOwnerOf(assetId) {
+    updateOperator[assetId] = operator;
   }
 
   //
@@ -913,5 +920,17 @@ contract LANDRegistry is Storage,
     for (uint i = 0; i < x.length; i++) {
       updateLandData(x[i], y[i], data);
     }
+  }
+
+  function _doTransferFrom(
+    address from,
+    address to,
+    uint256 assetId,
+    bytes userData,
+    address operator,
+    bool doCheck
+  ) internal {
+    updateOperator[assetId] = address(0);
+    super._doTransferFrom(from, to, assetId, userData, operator, doCheck);
   }
 }

@@ -4,15 +4,15 @@ pragma solidity ^0.4.18;
 
 contract LANDStorage {
 
-  mapping (address => uint) latestPing;
+  mapping (address => uint) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
   uint256 constant factor = 0x100000000000000000000000000000000;
 
-  mapping (address => bool) authorizedDeploy;
+  mapping (address => bool) public authorizedDeploy;
 
-  mapping (uint256 => address) _updateAuthorized;
+  mapping (uint256 => address) public updateOperator;
 }
 
 // File: contracts/upgradable/OwnableStorage.sol
@@ -76,6 +76,16 @@ contract AssetRegistryStorage {
    * allowed to transfer and modify assets on behalf of them.
    */
   mapping(address => mapping(address => bool)) internal _operators;
+
+  /**
+   * Simple reentrancy lock
+   */
+  bool internal _reentrancy;
+
+  /**
+   * Complex reentrancy lock
+   */
+  uint256 internal _reentrancyCount;
 
   /**
    * Approval array

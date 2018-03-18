@@ -41,7 +41,7 @@ contract LANDRegistry is Storage,
   }
 
   function isUpdateAuthorized(address operator, uint256 assetId) public view returns (bool) {
-    return operator == ownerOf(assetId) || _updateAuthorized[assetId] == operator;
+    return operator == ownerOf(assetId) || updateOperator[assetId] == operator;
   }
 
   function authorizeDeploy(address beneficiary) public onlyProxyOwner {
@@ -165,8 +165,8 @@ contract LANDRegistry is Storage,
     }
   }
 
-  function allowUpdateOperator(uint256 assetId, address operator) public onlyOwnerOf(assetId) {
-    _updateAuthorized[assetId] = operator;
+  function setUpdateOperator(uint256 assetId, address operator) public onlyOwnerOf(assetId) {
+    updateOperator[assetId] = operator;
   }
 
   //
@@ -186,5 +186,17 @@ contract LANDRegistry is Storage,
     for (uint i = 0; i < x.length; i++) {
       updateLandData(x[i], y[i], data);
     }
+  }
+
+  function _doTransferFrom(
+    address from,
+    address to,
+    uint256 assetId,
+    bytes userData,
+    address operator,
+    bool doCheck
+  ) internal {
+    updateOperator[assetId] = address(0);
+    super._doTransferFrom(from, to, assetId, userData, operator, doCheck);
   }
 }
