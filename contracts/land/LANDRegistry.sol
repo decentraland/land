@@ -127,13 +127,13 @@ contract LANDRegistry is Storage,
   }
 
   function landOf(address owner) public view returns (int[], int[]) {
-    int[] memory x = new int[](_assetsOf[owner].length);
-    int[] memory y = new int[](_assetsOf[owner].length);
+    uint256 len = _assetsOf[owner].length;
+    int[] memory x = new int[](len);
+    int[] memory y = new int[](len);
 
     int assetX;
     int assetY;
-    uint length = _assetsOf[owner].length;
-    for (uint i = 0; i < length; i++) {
+    for (uint i = 0; i < len; i++) {
       (assetX, assetY) = decodeTokenId(_assetsOf[owner][i]);
       x[i] = assetX;
       y[i] = assetY;
