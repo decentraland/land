@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
-    "erc821": "https://github.com/decentraland/erc821.git",
+    "erc821": "github:decentraland/erc821",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
