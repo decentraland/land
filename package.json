@@ -1,6 +1,6 @@
 {
   "name": "land",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Contract for Decentraland's LAND",
   "scripts": {
     "test": "scripts/test.sh",
@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
-    "erc821": "github:decentraland/erc821",
+    "erc821": "2.0.0",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {

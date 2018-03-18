@@ -78,16 +78,6 @@ contract AssetRegistryStorage {
   mapping(address => mapping(address => bool)) internal _operators;
 
   /**
-   * Simple reentrancy lock
-   */
-  bool internal _reentrancy;
-
-  /**
-   * Complex reentrancy lock
-   */
-  uint256 internal _reentrancyCount;
-
-  /**
    * Approval array
    */
   mapping(uint256 => address) internal _approval;
@@ -191,7 +181,7 @@ interface IERC721Base {
   function getApprovedAddress(uint256 assetId) public view returns (address);
   function isApprovedForAll(address operator, address assetOwner) public view returns (bool);
 
-  // function isAuthorized(address operator, uint256 assetId) public view returns (bool);
+  function isAuthorized(address operator, uint256 assetId) public view returns (bool);
 
   event Transfer(
     address indexed from,
@@ -219,7 +209,7 @@ interface IERC721Receiver {
     uint256 _tokenId,
     address _oldOwner,
     bytes   _userData
-  ) public;
+  ) public returns (bytes4);
 }
 
 // File: zeppelin-solidity/contracts/math/SafeMath.sol
@@ -558,8 +548,12 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     _addAssetTo(to, assetId);
 
     if (doCheck && _isContract(to)) {
-      IERC721Receiver(to).onERC721Received.gas(50000)(
-        assetId, holder, userData
+      // Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
+      bytes4 ERC721_RECEIVED = bytes4(0xf0b9e5ba);
+      require(
+        IERC721Receiver(to).onERC721Received(
+          assetId, holder, userData
+        ) == ERC721_RECEIVED
       );
     }
 
