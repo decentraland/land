@@ -74,17 +74,6 @@ contract LANDRegistry is Storage,
     latestPing[user] = now;
   }
 
-  function clearLand(int[] x, int[] y) public {
-    require(x.length == y.length);
-    for (uint i = 0; i < x.length; i++) {
-      uint landId = encodeTokenId(x[i], y[i]);
-      address holder = ownerOf(landId);
-      if (latestPing[holder] < now - 1 years) {
-        _destroy(landId);
-      }
-    }
-  }
-
   //
   // LAND Getters
   //

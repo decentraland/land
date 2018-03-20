@@ -131,7 +131,6 @@ interface ILANDRegistry {
 
   // After one year, land can be claimed from an inactive public key
   function ping() public;
-  function clearLand(int[] x, int[] y) public;
 
   // LAND-centric getters
   function encodeTokenId(int x, int y) view public returns (uint256);
@@ -800,17 +799,6 @@ contract LANDRegistry is Storage,
   function setLatestToNow(address user) public {
     require(msg.sender == proxyOwner || isApprovedForAll(msg.sender, user));
     latestPing[user] = now;
-  }
-
-  function clearLand(int[] x, int[] y) public {
-    require(x.length == y.length);
-    for (uint i = 0; i < x.length; i++) {
-      uint landId = encodeTokenId(x[i], y[i]);
-      address holder = ownerOf(landId);
-      if (latestPing[holder] < now - 1 years) {
-        _destroy(landId);
-      }
-    }
   }
 
   //

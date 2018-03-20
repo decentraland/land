@@ -411,55 +411,6 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe('Test inactive parcels', () => {
-    it('does not clean parcels inactive for less than 1 year', async () => {
-      let coords = await land.landOf(user)
-      coords[0].length.should.be.equal(2)
-      coords[1].length.should.be.equal(2)
-
-      await increaseTimeTo(
-        latestTime() + duration.years(1) - duration.seconds(1)
-      )
-      await land.clearLand(coords[0], coords[1])
-      coords = await land.landOf(user)
-      coords[0].length.should.be.equal(2)
-      coords[1].length.should.be.equal(2)
-    })
-
-    it('cleans parcels inactive for at least 1 year', async () => {
-      let coords = await land.landOf(user)
-      coords[0].length.should.be.equal(2)
-      coords[1].length.should.be.equal(2)
-
-      await increaseTimeTo(
-        latestTime() + duration.years(1) + duration.seconds(1)
-      )
-      await land.clearLand(coords[0], coords[1])
-      coords = await land.landOf(user)
-      coords[0].length.should.be.equal(0)
-      coords[1].length.should.be.equal(0)
-    })
-
-    it('does not clean parcels when owner pings', async () => {
-      let coords = await land.landOf(user)
-      coords[0].length.should.be.equal(2)
-      coords[1].length.should.be.equal(2)
-
-      await increaseTimeTo(
-        latestTime() + duration.years(1) + duration.seconds(1)
-      )
-      await land.setLatestToNow(user)
-      await land.clearLand(coords[0], coords[1])
-      coords = await land.landOf(user)
-      coords[0].length.should.be.equal(2)
-      coords[1].length.should.be.equal(2)
-    })
-
-    it('reverts if setLatestToNow is called by not the owner', async () => {
-      await assertRevert(land.setLatestToNow(user, sentByUser))
-    })
-  })
-
   describe('Transfers', () => {
     describe('transferLand', () => {
       it('transfers land if it is called by owner', async () => {

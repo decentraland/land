@@ -8,7 +8,6 @@ interface ILANDRegistry {
 
   // After one year, land can be claimed from an inactive public key
   function ping() public;
-  function clearLand(int[] x, int[] y) public;
 
   // LAND-centric getters
   function encodeTokenId(int x, int y) view public returns (uint256);
