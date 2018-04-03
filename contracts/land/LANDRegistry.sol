@@ -10,15 +10,18 @@ import "erc821/contracts/FullAssetRegistry.sol";
 
 import "./ILANDRegistry.sol";
 
-import "./IMetadataHolder.sol";
+import "../metadata/IMetadataHolder.sol";
 
+import "../estate/IEstateOwner.sol";
+
+import "../estate/IEstateFactory.sol";
 
 contract LANDRegistry is Storage,
   Ownable, FullAssetRegistry,
   ILANDRegistry
 {
 
-  bytes4 public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
+  bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
 
   function initialize(bytes) external {
     _name = "Decentraland LAND";
@@ -93,6 +96,7 @@ contract LANDRegistry is Storage,
     require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
     return _unsafeEncodeTokenId(x, y);
   }
+
   function _unsafeEncodeTokenId(int x, int y) pure internal returns (uint) {
     return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
@@ -165,7 +169,7 @@ contract LANDRegistry is Storage,
   function _tokenMetadata(uint256 assetId) internal view returns (string) {
     address _owner = _ownerOf(assetId);
     if (_isContract(_owner)) {
-      if (ERC165(_owner).supportsInterface(GET_METADATA)) {
+      if ((ERC165(_owner)).supportsInterface(GET_METADATA)) {
         return IMetadataHolder(_owner).getMetadata(assetId);
       }
     }
@@ -197,6 +201,31 @@ contract LANDRegistry is Storage,
 
   function setUpdateOperator(uint256 assetId, address operator) external onlyOwnerOf(assetId) {
     updateOperator[assetId] = operator;
+  }
+
+  // 
+  // Estate generation
+  // 
+
+  event EstateFactorySet(address indexed factory);
+
+  function setEstateFactory(address factory) onlyProxyOwner external {
+    estateFactory = IEstateFactory(factory);
+    emit EstateFactorySet(factory);
+  }
+
+  function createEstate(int[] x, int[] y, address beneficiary, bytes extra) external returns (address) {
+    require(x.length == y.length);
+    require(address(estateFactory) != 0);
+
+    address estate = estateFactory.buildEstate(this, beneficiary);
+
+    for (uint i = 0; i < x.length; i++) {
+      uint256 tokenId = _encodeTokenId(x[i], y[i]);
+      _moveToken(_ownerOf(tokenId), estate, tokenId, extra, this, true);
+    }
+
+    return address(estate);
   }
 
   //
