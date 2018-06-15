@@ -21,6 +21,12 @@ function checkUpdateLog(log, assetId, holder, operator, data) {
   log.args.data.should.be.equal(data)
 }
 
+function checkUpdateOperatorLog(log, assetId, operator) {
+  log.event.should.be.eq('UpdateOperator')
+  log.args.assetId.should.be.bignumber.equal(assetId)
+  log.args.operator.should.be.equal(operator)
+}
+
 contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
   let registry = null,
@@ -525,6 +531,7 @@ contract('LANDRegistry', accounts => {
           land.transferManyLand([12, 4], [1, 2], creator, sentByUser)
         )
       })
+
       it('does not transfer lands if x length is not equal to y length', async () => {
         await assertRevert(
           land.transferManyLand([0, 0], [0, 1, 3], creator, sentByUser)
@@ -537,6 +544,7 @@ contract('LANDRegistry', accounts => {
     it('update not allowed before setUpdateOperator', async () => {
       await assertRevert(land.updateLandData(0, 1, '', { from: operator }))
     })
+
     it('update allowed after setUpdateOperator', async () => {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
@@ -544,17 +552,36 @@ contract('LANDRegistry', accounts => {
       const data = await land.landData(0, 1)
       data.should.be.equal('newValue')
     })
+
     it('update disallowed after setUpdateOperator to different address', async () => {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
       await land.setUpdateOperator(landId, anotherUser, sentByUser)
-      await assertRevert(land.updateLandData(0, 1, 'newValue', { from: operator }))
+      await assertRevert(
+        land.updateLandData(0, 1, 'newValue', { from: operator })
+      )
     })
+
     it('update disallowed after transfer', async () => {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
       await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
-      await assertRevert(land.updateLandData(0, 1, 'newValue', { from: operator }))
+      await assertRevert(
+        land.updateLandData(0, 1, 'newValue', { from: operator })
+      )
+    })
+
+    it('update operator emits UpdateOperator event', async () => {
+      const assetId = await land.encodeTokenId(0, 1)
+      const { logs } = await land.setUpdateOperator(
+        assetId,
+        operator,
+        sentByUser
+      )
+
+      // Event emitted
+      logs.length.should.be.equal(1)
+      checkUpdateOperatorLog(logs[0], assetId, operator)
     })
   })
 })

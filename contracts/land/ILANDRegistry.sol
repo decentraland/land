@@ -34,4 +34,9 @@ interface ILANDRegistry {
     address indexed operator,  
     string data  
   );
+
+  event UpdateOperator(
+    uint256 indexed assetId, 
+    address indexed operator
+  );
 }

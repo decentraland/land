@@ -197,6 +197,7 @@ contract LANDRegistry is Storage,
 
   function setUpdateOperator(uint256 assetId, address operator) external onlyOwnerOf(assetId) {
     updateOperator[assetId] = operator;
+    emit UpdateOperator(assetId, operator);
   }
 
   //
