@@ -18,6 +18,7 @@ contract EstateOwner is MetadataHolderBase {
   string public data;
   address public operator;
   address public owner;
+  address public approved;
 
   uint256[] public tokenIds;
   mapping(uint256 => uint256) public index;
@@ -40,6 +41,11 @@ contract EstateOwner is MetadataHolderBase {
 
   modifier onlyDAR() {
     require(msg.sender == address(dar));
+    _;
+  }
+
+  modifier onlyAuthorized() {
+    require(_isAuthorized(msg.sender));
     _;
   }
 
@@ -74,7 +80,7 @@ contract EstateOwner is MetadataHolderBase {
   }
 
   function detectReceived(uint256 tokenId) external {
-    require(tokenIds[tokenId] == 0);
+    require(index[tokenId] == 0);
     require(dar.ownerOf(tokenId) == address(this));
 
     tokenIds.push(tokenId);
@@ -85,7 +91,7 @@ contract EstateOwner is MetadataHolderBase {
     uint256 tokenId,
     address destinatory
   )
-    onlyOwner
+    onlyAuthorized
     external
   {
     return _transferTo(tokenId, destinatory);
@@ -97,39 +103,39 @@ contract EstateOwner is MetadataHolderBase {
   )
     internal
   {
-    // /**
-    //  * Using 1-based indexing to be able to make this check
-    //  */
-    // require(index[tokenId] != 0);
+    /**
+     * Using 1-based indexing to be able to make this check
+     */
+    require(index[tokenId] != 0);
 
-    // uint lastIndexInArray = tokenIds.length - 1;
+    uint lastIndexInArray = tokenIds.length - 1;
 
-    // /**
-    //  * Get the index of this token in the tokenIds list
-    //  */
-    // uint indexInArray = index[tokenId] - 1;
+    /**
+     * Get the index of this token in the tokenIds list
+     */
+    uint indexInArray = index[tokenId] - 1;
 
-    // /**
-    //  * Get the tokenId at the end of the tokenIds list
-    //  */
-    // uint tempTokenId = tokenIds[lastIndexInArray];
+    /**
+     * Get the tokenId at the end of the tokenIds list
+     */
+    uint tempTokenId = tokenIds[lastIndexInArray];
 
-    // /**
-    //  * Store the last token in the position previously occupied by tokenId
-    //  */
-    // index[tempTokenId] = indexInArray + 1;
-    // tokenIds[indexInArray] = tempTokenId;
+    /**
+     * Store the last token in the position previously occupied by tokenId
+     */
+    index[tempTokenId] = indexInArray + 1;
+    tokenIds[indexInArray] = tempTokenId;
 
-    // /**
-    //  * Delete the tokenIds[last element]
-    //  */
-    // delete tokenIds[lastIndexInArray];
-    // tokenIds.length = lastIndexInArray;
+    /**
+     * Delete the tokenIds[last element]
+     */
+    delete tokenIds[lastIndexInArray];
+    tokenIds.length = lastIndexInArray;
 
-    // /**
-    //  * Drop this tokenId from both the index and tokenId list
-    //  */
-    // index[tokenId] = 0;
+    /**
+     * Drop this tokenId from both the index and tokenId list
+     */
+    index[tokenId] = 0;
 
     dar.safeTransferFrom(this, destinatory, tokenId);
   }
@@ -139,6 +145,7 @@ contract EstateOwner is MetadataHolderBase {
     address destinatory
   )
     external
+    onlyAuthorized
   {
     uint length = tokens.length;
     for (uint i = 0; i < length; i++) {
@@ -208,8 +215,6 @@ contract EstateOwner is MetadataHolderBase {
   }
 
 
-  address approved;
-
   function isApprovedForAll(address _operator)
     external view returns (bool)
   {
@@ -241,7 +246,10 @@ contract EstateOwner is MetadataHolderBase {
     bool authorized
   );
 
-  function setApprovalForAll(address _operator, bool authorized) external {
+  function setApprovalForAll(address _operator, bool authorized)
+    external
+    onlyOwner
+  {
     return _setApprovalForAll(_operator, authorized);
   }
   function _setApprovalForAll(address _operator, bool authorized) internal {
