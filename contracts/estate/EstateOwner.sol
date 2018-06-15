@@ -38,8 +38,15 @@ contract EstateOwner is MetadataHolderBase {
     _;
   }
 
-  function transferOwnership(address to) external {
+  modifier onlyDAR() {
+    require(msg.sender == address(dar));
+    _;
+  }
+
+  function transferOwnership(address to) external onlyOwner {
     require(to != 0);
+    operator = 0;
+    _clearAuthorization();
     owner = to;
   }
 
@@ -50,10 +57,9 @@ contract EstateOwner is MetadataHolderBase {
     bytes // unused
   )
     external
+    onlyDAR
     returns (bytes4)
   {
-    require(msg.sender == address(dar));
-
     /**
      * tokenId is a list of owned tokens
      */
@@ -75,51 +81,55 @@ contract EstateOwner is MetadataHolderBase {
     index[tokenId] = tokenIds.length;
   }
 
-  function send(
+  function transferTo(
     uint256 tokenId,
     address destinatory
   )
+    onlyOwner
     external
   {
-    return _send(tokenId, destinatory);
+    return _transferTo(tokenId, destinatory);
   }
 
-  function _send(
+  function _transferTo(
     uint256 tokenId,
     address destinatory
   )
     internal
-    onlyOwner
   {
-    /**
-     * Using 1-based indexing to be able to make this check
-     */
-    require(index[tokenId] != 0);
+    // /**
+    //  * Using 1-based indexing to be able to make this check
+    //  */
+    // require(index[tokenId] != 0);
 
-    uint lastIndex = tokenIds.length - 1;
+    // uint lastIndexInArray = tokenIds.length - 1;
 
-    /**
-     * Get the index of this token in the tokenIds list
-     */
-    uint indexInArray = index[tokenId] - 1;
+    // /**
+    //  * Get the index of this token in the tokenIds list
+    //  */
+    // uint indexInArray = index[tokenId] - 1;
 
-    /**
-     * Get the tokenId at the end of the tokenIds list
-     */
-    uint tempTokenId = tokenIds[lastIndex];
+    // /**
+    //  * Get the tokenId at the end of the tokenIds list
+    //  */
+    // uint tempTokenId = tokenIds[lastIndexInArray];
 
-    /**
-     * Store the last token in the position previously occupied by tokenId
-     */
-    index[tempTokenId] = indexInArray + 1;
-    tokenIds[indexInArray] = tempTokenId;
-    tokenIds.length = lastIndex;
+    // /**
+    //  * Store the last token in the position previously occupied by tokenId
+    //  */
+    // index[tempTokenId] = indexInArray + 1;
+    // tokenIds[indexInArray] = tempTokenId;
 
-    /**
-     * Drop this tokenId from both the index and tokenId list
-     */
-    index[tokenId] = 0;
-    delete tokenIds[lastIndex];
+    // /**
+    //  * Delete the tokenIds[last element]
+    //  */
+    // delete tokenIds[lastIndexInArray];
+    // tokenIds.length = lastIndexInArray;
+
+    // /**
+    //  * Drop this tokenId from both the index and tokenId list
+    //  */
+    // index[tokenId] = 0;
 
     dar.safeTransferFrom(this, destinatory, tokenId);
   }
@@ -132,7 +142,7 @@ contract EstateOwner is MetadataHolderBase {
   {
     uint length = tokens.length;
     for (uint i = 0; i < length; i++) {
-      _send(tokens[i], destinatory);
+      _transferTo(tokens[i], destinatory);
     }
   }
 
@@ -195,5 +205,61 @@ contract EstateOwner is MetadataHolderBase {
 
   function ping() onlyUpdateAuthorized external {
     dar.ping();
+  }
+
+
+  address approved;
+
+  function isApprovedForAll(address _operator)
+    external view returns (bool)
+  {
+    return _isApprovedForAll(_operator);
+  }
+  function _isApprovedForAll(address _operator)
+    internal view returns (bool)
+  {
+    return _operator == approved;
+  }
+
+  function isAuthorized(address _operator)
+    external
+    view
+    returns (bool)
+  {
+    return _isAuthorized(_operator);
+  }
+  function _isAuthorized(address _operator)
+    internal
+    view
+    returns (bool)
+  {
+    return (_operator == owner) || (_operator == approved);
+  }
+
+  event ApprovalForAll(
+    address operator,
+    bool authorized
+  );
+
+  function setApprovalForAll(address _operator, bool authorized) external {
+    return _setApprovalForAll(_operator, authorized);
+  }
+  function _setApprovalForAll(address _operator, bool authorized) internal {
+    if (authorized) {
+      require(!_isApprovedForAll(_operator));
+      _addAuthorization(_operator);
+    } else {
+      require(_isApprovedForAll(_operator));
+      _clearAuthorization();
+    }
+    emit ApprovalForAll(_operator, authorized);
+  }
+
+  function _addAuthorization(address _operator) private {
+    approved = _operator;
+  }
+
+  function _clearAuthorization() private {
+    approved = 0;
   }
 }
