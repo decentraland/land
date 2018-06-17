@@ -157,6 +157,11 @@ interface ILANDRegistry {
     address indexed operator,  
     string data  
   );
+
+  event UpdateOperator(
+    uint256 indexed assetId, 
+    address indexed operator
+  );
 }
 
 // File: erc821/contracts/ERC165.sol
@@ -974,6 +979,7 @@ contract LANDRegistry is Storage,
 
   function setUpdateOperator(uint256 assetId, address operator) external onlyOwnerOf(assetId) {
     updateOperator[assetId] = operator;
+    emit UpdateOperator(assetId, operator);
   }
 
   //
