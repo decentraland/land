@@ -58,21 +58,24 @@ contract('LANDRegistry', accounts => {
 
   describe('Combinations of calls', () => {
     it('before transfer, update is possible, after, it is not', async () => {
-      await assign({to: user, asset: assetOne, initialValue: initialValue})
-      await update({from: user, asset: assetOne, value: newValue})
-      await transfer({from: user, to: anotherUser, asset: assetOne})
-      await assertRevert(update({from: user, asset: assetOne, value: newValue}))
+      await assign({ to: user, asset: assetOne, initialValue: initialValue })
+      await update({ from: user, asset: assetOne, value: newValue })
+      await transfer({ from: user, to: anotherUser, asset: assetOne })
+      await assertRevert(
+        update({ from: user, asset: assetOne, value: newValue })
+      )
     })
     it('before owning, update is impossible, after, it is not', async () => {
-      await assign({to: user, asset: assetOne, initialValue: initialValue})
-      await assertRevert(update({from: anotherUser, asset: assetOne, value: newValue}))
-      await transfer({from: user, to: anotherUser, asset: assetOne})
-      await update({from: anotherUser, asset: assetOne, value: newValue})
+      await assign({ to: user, asset: assetOne, initialValue: initialValue })
+      await assertRevert(
+        update({ from: anotherUser, asset: assetOne, value: newValue })
+      )
+      await transfer({ from: user, to: anotherUser, asset: assetOne })
+      await update({ from: anotherUser, asset: assetOne, value: newValue })
     })
     /**
      * - Setup old contract and test upgrades
      * - Check for updates and
      */
   })
-
 })

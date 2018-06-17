@@ -10,7 +10,7 @@ contract Proxy is Storage, DelegateProxy, Ownable {
   event Upgrade(address indexed newContract, bytes initializedWith);
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function Proxy() public {
+  constructor() public {
     proxyOwner = msg.sender;
     owner = msg.sender;
   }
@@ -38,7 +38,7 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     currentContract = newContract;
     IApplication(this).initialize(data);
 
-    Upgrade(newContract, data);
+    emit Upgrade(newContract, data);
   }
 
   //

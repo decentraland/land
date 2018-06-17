@@ -4,8 +4,8 @@ require('babel-polyfill');
 module.exports = {
   networks: {
     livenet: {
-      host: "localhost",
-      port: 8545,
+      host: "172.0.17.1",
+      port: 8546,
       gas: 70000000,
       network_id: "*" // Match any network id
     },
