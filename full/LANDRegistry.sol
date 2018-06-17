@@ -338,12 +338,12 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    * @param assetHolder the address that provided the authorization
    * @return bool true if the operator has been authorized to move any assets
    */
-  function isApprovedForAll(address operator, address assetHolder)
+  function isApprovedForAll(address assetHolder, address operator)
     external view returns (bool)
   {
-    return _isApprovedForAll(operator, assetHolder);
+    return _isApprovedForAll(assetHolder, operator);
   }
-  function _isApprovedForAll(address operator, address assetHolder)
+  function _isApprovedForAll(address assetHolder, address operator)
     internal view returns (bool)
   {
     return _operators[assetHolder][operator];
@@ -354,6 +354,9 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    * @param assetId the asset to be queried for
    * @return bool true if the asset has been approved by the holder
    */
+  function getApproved(uint256 assetId) external view returns (address) {
+    return _getApprovedAddress(assetId);
+  }
   function getApprovedAddress(uint256 assetId) external view returns (address) {
     return _getApprovedAddress(assetId);
   }
@@ -377,7 +380,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     if (operator == owner) {
       return true;
     }
-    return _isApprovedForAll(operator, owner) || _getApprovedAddress(assetId) == operator;
+    return _isApprovedForAll(owner, operator) || _getApprovedAddress(assetId) == operator;
   }
 
   //
@@ -394,13 +397,13 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
   }
   function _setApprovalForAll(address operator, bool authorized) internal {
     if (authorized) {
-      require(!_isApprovedForAll(operator, msg.sender));
+      require(!_isApprovedForAll(msg.sender, operator));
       _addAuthorization(operator, msg.sender);
     } else {
-      require(_isApprovedForAll(operator, msg.sender));
+      require(_isApprovedForAll(msg.sender, operator));
       _clearAuthorization(operator, msg.sender);
     }
-    emit ApprovalForAll(operator, msg.sender, authorized);
+    emit ApprovalForAll(msg.sender, operator, authorized);
   }
 
   /**
@@ -410,7 +413,9 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    */
   function approve(address operator, uint256 assetId) external {
     address holder = _ownerOf(assetId);
+    require(msg.sender == holder || _isApprovedForAll(msg.sender, holder));
     require(operator != holder);
+
     if (_getApprovedAddress(assetId) != operator) {
       _approval[assetId] = operator;
       emit Approval(holder, operator, assetId);
@@ -620,7 +625,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     if (_interfaceID == 0xffffffff) {
       return false;
     }
-    return _interfaceID == 0x01ffc9a7 || _interfaceID == 0x80ac58cd;
+    return (_interfaceID == 0x01ffc9a7) || (_interfaceID == 0x7c0633c6);
   }
 
   //
