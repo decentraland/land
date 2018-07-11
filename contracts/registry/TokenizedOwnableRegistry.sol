@@ -2,7 +2,7 @@ pragma solidity ^0.4.23;
 
 import 'erc821/contracts/IERC721Base.sol';
 
-contract OwnerRegistry {
+contract TokenizedOwnableRegistry {
 
     IERC721Base public dar;
 
