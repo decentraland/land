@@ -91,7 +91,7 @@ contract('EstateOwner', accounts => {
   }
 
   async function assertEstateSize(expected) {
-    const balance = await estate.size()
+    const balance = await estate.getSize()
     balance.toString().should.be.equal(expected.toString())
   }
 
@@ -133,7 +133,7 @@ contract('EstateOwner', accounts => {
     it('creation through factory succeeds', async () => {
       await createSixParcels()
       estate = await createEstate([0, 1, -3], [2, 1, 2], user, sentByUser)
-      const owned = await estate.size()
+      const owned = await estate.getSize()
       owned.toString().should.be.equal('3')
     })
   })
@@ -350,7 +350,7 @@ contract('EstateOwner', accounts => {
       await assertNFTBalance(estate.address, 5)
       await assertNFTOwner(2, estate.address)
       await assertEstateSize(4)
-      await estate.detectReceived(2, sentByUser)
+      await estate.ammendReceived(2, sentByUser)
       await assertEstateSize(5)
       await assertTokenIdAtIndex(4, 2)
     })
@@ -358,7 +358,7 @@ contract('EstateOwner', accounts => {
       estate = await createUserEstateWithNumberedTokens()
       await transferOut(2)
       await unsafeTransferIn(2)
-      await estate.detectReceived(2, sentByAnotherUser)
+      await estate.ammendReceived(2, sentByAnotherUser)
       await assertTokenIdAtIndex(4, 2)
     })
   })

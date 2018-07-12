@@ -10,6 +10,9 @@ contract PingableDAR {
   function safeTransferFrom(address, address, uint256) public;
 }
 
+// EstateRegistry
+// Guarde que tokens tiene cada owner
+// Cuando recibo algo lo meto en un array que está relacionado a este token id (siendo el TId un state)
 contract EstateOwner is MetadataHolderBase {
   using SafeMath for uint256;
 
@@ -79,7 +82,7 @@ contract EstateOwner is MetadataHolderBase {
     return bytes4(0xf0b9e5ba);
   }
 
-  function detectReceived(uint256 tokenId) external {
+  function ammendReceived(uint256 tokenId) external {
     require(index[tokenId] == 0);
     require(dar.ownerOf(tokenId) == address(this));
 
@@ -153,7 +156,7 @@ contract EstateOwner is MetadataHolderBase {
     }
   }
 
-  function size() external view returns (uint256) {
+  function getSize() external view returns (uint256) {
     return tokenIds.length;
   }
 

@@ -4,7 +4,7 @@ contract IEstateOwner {
 
   function transferOwnership(address to) external;
 
-  function detectReceived(uint256 tokenId) external;
+  function ammendReceived(uint256 tokenId) external;
 
   function send(uint256 tokenId, address destinatory) external;
 
