@@ -1,6 +1,7 @@
 pragma solidity ^0.4.22;
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import 'zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol';
 
 import '../metadata/MetadataHolderBase.sol';
 
@@ -13,7 +14,7 @@ contract PingableDAR {
 // EstateRegistry
 // Guarde que tokens tiene cada owner
 // Cuando recibo algo lo meto en un array que está relacionado a este token id (siendo el TId un state)
-contract EstateOwner is MetadataHolderBase {
+contract EstateOwner is ERC721Token, MetadataHolderBase {
   using SafeMath for uint256;
 
   PingableDAR public dar;
@@ -27,9 +28,12 @@ contract EstateOwner is MetadataHolderBase {
   mapping(uint256 => uint256) public index;
 
   constructor(
+    string _name,
+    string _symbol,
     address _dar,
     address _owner
   )
+    ERC721Token(_name, _symbol)
     public
   {
     require(_dar != 0);
@@ -54,8 +58,8 @@ contract EstateOwner is MetadataHolderBase {
 
   function transferOwnership(address to) external onlyOwner {
     require(to != 0);
+    setApprovalForAll(to, false); // @nico TODO: Revise this
     operator = 0;
-    _clearAuthorization();
     owner = to;
   }
 
@@ -217,18 +221,6 @@ contract EstateOwner is MetadataHolderBase {
     dar.ping();
   }
 
-
-  function isApprovedForAll(address _operator)
-    external view returns (bool)
-  {
-    return _isApprovedForAll(_operator);
-  }
-  function _isApprovedForAll(address _operator)
-    internal view returns (bool)
-  {
-    return _operator == approved;
-  }
-
   function isAuthorized(address _operator)
     external
     view
@@ -241,36 +233,6 @@ contract EstateOwner is MetadataHolderBase {
     view
     returns (bool)
   {
-    return (_operator == owner) || (_operator == approved);
-  }
-
-  event ApprovalForAll(
-    address operator,
-    bool authorized
-  );
-
-  function setApprovalForAll(address _operator, bool authorized)
-    external
-    onlyOwner
-  {
-    return _setApprovalForAll(_operator, authorized);
-  }
-  function _setApprovalForAll(address _operator, bool authorized) internal {
-    if (authorized) {
-      require(!_isApprovedForAll(_operator));
-      _addAuthorization(_operator);
-    } else {
-      require(_isApprovedForAll(_operator));
-      _clearAuthorization();
-    }
-    emit ApprovalForAll(_operator, authorized);
-  }
-
-  function _addAuthorization(address _operator) private {
-    approved = _operator;
-  }
-
-  function _clearAuthorization() private {
-    approved = 0;
+    return (_operator == owner) || isApprovedForAll(owner, _operator); // @nico TODO: Revise this
   }
 }

@@ -6,9 +6,7 @@ contract IEstateOwner {
 
   function ammendReceived(uint256 tokenId) external;
 
-  function send(uint256 tokenId, address destinatory) external;
-
-  function size() external view returns (uint256);
+  function getSize() external view returns (uint256);
 
   function getMetadata(uint256 assetId) view external;
 

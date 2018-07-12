@@ -12,7 +12,10 @@ contract EstateFactory is IEstateFactory {
     );
 
     function buildEstate(address dar, address beneficiary) external returns (address) {
+        // @nico TODO: Revise this
         EstateOwner estate = new EstateOwner(
+            'Estate',
+            'EST',
             dar,
             beneficiary
         );

@@ -127,7 +127,7 @@ contract('EstateOwner', accounts => {
     beforeEach(setupRegistry)
 
     it('new Estate can be created', async() => {
-      await Estate.new(creator, user, sentByCreator)
+      await Estate.new('Estate', 'EST', creator, user, sentByCreator)
     })
 
     it('creation through factory succeeds', async () => {
