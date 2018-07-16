@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-import './EstateOwner.sol';
+import './EstateRegistry.sol';
 import './IEstateFactory.sol';
 
 contract EstateFactory is IEstateFactory {
@@ -13,7 +13,7 @@ contract EstateFactory is IEstateFactory {
 
     function buildEstate(address dar, address beneficiary) external returns (address) {
         // @nico TODO: Revise this
-        EstateOwner estate = new EstateOwner(
+        EstateRegistry estate = new EstateRegistry(
             'Estate',
             'EST',
             dar,

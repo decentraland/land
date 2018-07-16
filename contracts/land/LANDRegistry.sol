@@ -12,7 +12,7 @@ import "./ILANDRegistry.sol";
 
 import "../metadata/IMetadataHolder.sol";
 
-import "../estate/IEstateOwner.sol";
+import "../estate/IEstateRegistry.sol";
 
 import "../estate/IEstateFactory.sol";
 
@@ -204,9 +204,9 @@ contract LANDRegistry is Storage,
     emit UpdateOperator(assetId, operator);
   }
 
-  // 
+  //
   // Estate generation
-  // 
+  //
 
   event EstateFactorySet(address indexed factory);
 
