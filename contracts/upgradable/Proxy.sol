@@ -5,6 +5,7 @@ import "./Ownable.sol";
 import "./DelegateProxy.sol";
 import "./IApplication.sol";
 
+
 contract Proxy is Storage, DelegateProxy, Ownable {
 
   event Upgrade(address indexed newContract, bytes initializedWith);
@@ -13,6 +14,15 @@ contract Proxy is Storage, DelegateProxy, Ownable {
   constructor() public {
     proxyOwner = msg.sender;
     owner = msg.sender;
+  }
+
+  //
+  // Dispatch fallback
+  //
+
+  function () payable public {
+    require(currentContract != 0); // if app code hasn't been set yet, don't call
+    delegatedFwd(currentContract, msg.data);
   }
 
   //
@@ -39,14 +49,5 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     IApplication(this).initialize(data);
 
     emit Upgrade(newContract, data);
-  }
-
-  //
-  // Dispatch fallback
-  //
-
-  function () payable public {
-    require(currentContract != 0); // if app code hasn't been set yet, don't call
-    delegatedFwd(currentContract, msg.data);
   }
 }

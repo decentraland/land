@@ -16,11 +16,8 @@ import "../estate/IEstateRegistry.sol";
 
 import "../estate/IEstateFactory.sol";
 
-contract LANDRegistry is Storage,
-  Ownable, FullAssetRegistry,
-  ILANDRegistry
-{
 
+contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
 
   function initialize(bytes) external {
@@ -51,6 +48,7 @@ contract LANDRegistry is Storage,
   function isUpdateAuthorized(address operator, uint256 assetId) external view returns (bool) {
     return _isUpdateAuthorized(operator, assetId);
   }
+
   function _isUpdateAuthorized(address operator, uint256 assetId) internal view returns (bool) {
     return operator == _ownerOf(assetId) || updateOperator[assetId] == operator;
   }
@@ -58,6 +56,7 @@ contract LANDRegistry is Storage,
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
     authorizedDeploy[beneficiary] = true;
   }
+
   function forbidDeploy(address beneficiary) external onlyProxyOwner {
     authorizedDeploy[beneficiary] = false;
   }
@@ -77,12 +76,14 @@ contract LANDRegistry is Storage,
   //
 
   function ping() external {
-    latestPing[msg.sender] = now;
+    // solium-disable-next-line security/no-block-members
+    latestPing[msg.sender] = block.timestamp;
   }
 
   function setLatestToNow(address user) external {
     require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user));
-    latestPing[user] = now;
+    // solium-disable-next-line security/no-block-members
+    latestPing[user] = block.timestamp;
   }
 
   //
@@ -92,6 +93,7 @@ contract LANDRegistry is Storage,
   function encodeTokenId(int x, int y) pure external returns (uint) {
     return _encodeTokenId(x, y);
   }
+
   function _encodeTokenId(int x, int y) pure internal returns (uint result) {
     require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
     return _unsafeEncodeTokenId(x, y);
@@ -104,10 +106,12 @@ contract LANDRegistry is Storage,
   function decodeTokenId(uint value) pure external returns (int, int) {
     return _decodeTokenId(value);
   }
+
   function _unsafeDecodeTokenId(uint value) pure internal returns (int x, int y) {
     x = expandNegative128BitCast((value & clearLow) >> 128);
     y = expandNegative128BitCast(value & clearHigh);
   }
+
   function _decodeTokenId(uint value) pure internal returns (int x, int y) {
     (x, y) = _unsafeDecodeTokenId(value);
     require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
@@ -123,6 +127,7 @@ contract LANDRegistry is Storage,
   function exists(int x, int y) view external returns (bool) {
     return _exists(x, y);
   }
+
   function _exists(int x, int y) view internal returns (bool) {
     return _exists(_encodeTokenId(x, y));
   }
@@ -130,6 +135,7 @@ contract LANDRegistry is Storage,
   function ownerOfLand(int x, int y) view external returns (address) {
     return _ownerOfLand(x, y);
   }
+
   function _ownerOfLand(int x, int y) view internal returns (address) {
     return _ownerOf(_encodeTokenId(x, y));
   }
@@ -186,7 +192,14 @@ contract LANDRegistry is Storage,
 
   function transferLand(int x, int y, address to) external {
     uint256 tokenId = _encodeTokenId(x, y);
-    _doTransferFrom(_ownerOf(tokenId), to, tokenId, '', msg.sender, true);
+    _doTransferFrom(
+      _ownerOf(tokenId),
+      to,
+      tokenId,
+      "",
+      msg.sender,
+      true
+    );
   }
 
   function transferManyLand(int[] x, int[] y, address to) external {
@@ -195,7 +208,14 @@ contract LANDRegistry is Storage,
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
-      _doTransferFrom(_ownerOf(tokenId), to, tokenId, '', msg.sender, true);
+      _doTransferFrom(
+        _ownerOf(tokenId),
+        to,
+        tokenId,
+        "",
+        msg.sender,
+        true
+      );
     }
   }
 
@@ -215,7 +235,15 @@ contract LANDRegistry is Storage,
     emit EstateFactorySet(factory);
   }
 
-  function createEstate(int[] x, int[] y, address beneficiary, bytes extra) external returns (address) {
+  function createEstate(
+    int[] x,
+    int[] y,
+    address beneficiary,
+    bytes extra
+  )
+    external
+    returns (address)
+  {
     require(x.length == y.length);
     require(address(estateFactory) != 0);
 
@@ -223,7 +251,14 @@ contract LANDRegistry is Storage,
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
-      _moveToken(_ownerOf(tokenId), estate, tokenId, extra, this, true);
+      _moveToken(
+        _ownerOf(tokenId),
+        estate,
+        tokenId,
+        extra,
+        this,
+        true
+      );
     }
 
     return address(estate);
@@ -236,11 +271,17 @@ contract LANDRegistry is Storage,
   function updateLandData(int x, int y, string data) external onlyUpdateAuthorized (_encodeTokenId(x, y)) {
     return _updateLandData(x, y, data);
   }
+
   function _updateLandData(int x, int y, string data) internal onlyUpdateAuthorized (_encodeTokenId(x, y)) {
     uint256 assetId = _encodeTokenId(x, y);
     _update(assetId, data);
 
-    emit Update(assetId, _holderOf[assetId], msg.sender, data);
+    emit Update(
+      assetId,
+      _holderOf[assetId],
+      msg.sender,
+      data
+    );
   }
 
   function updateManyLandData(int[] x, int[] y, string data) external {
@@ -258,13 +299,24 @@ contract LANDRegistry is Storage,
     bytes userData,
     address operator,
     bool doCheck
-  ) internal {
+  )
+    internal
+  {
     updateOperator[assetId] = address(0);
-    super._doTransferFrom(from, to, assetId, userData, operator, doCheck);
+
+    super._doTransferFrom(
+      from,
+      to,
+      assetId,
+      userData,
+      operator,
+      doCheck
+    );
   }
 
   function _isContract(address addr) internal view returns (bool) {
     uint size;
+    // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
   }

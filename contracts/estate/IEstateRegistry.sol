@@ -1,5 +1,6 @@
 pragma solidity ^0.4.22;
 
+
 contract IEstateRegistry {
 
   function transferOwnership(address to) external;

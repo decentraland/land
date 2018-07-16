@@ -1,10 +1,11 @@
 pragma solidity ^0.4.22;
 
-import 'zeppelin-solidity/contracts/math/SafeMath.sol';
-import 'zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol';
-import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import '../metadata/MetadataHolderBase.sol';
+import "../metadata/MetadataHolderBase.sol";
+
 
 contract PingableDAR {
   function ping() public;
@@ -12,12 +13,13 @@ contract PingableDAR {
   function safeTransferFrom(address, address, uint256) public;
 }
 
+
 // @nico TODO: owner: it's on the constructor (Factory)
 // @nico TODO: token-assetId modifier
 // @nico TODO: Standalone Storage. This is kind of a mess if we want to use Zeppelin
-// @nico TODO: transferOwnership cleans _operators?
 // @nico TODO: Comment functions
 // @nico TODO: Metadata management (if on Estate, ask parent?)
+// @nico TODO: transferOwnership cleans _operators?
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   using SafeMath for uint256;
 
@@ -52,12 +54,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   }
 
   modifier onlyAuthorized(address assetId) {
-    require(_isAuthorized(msg.sender, assetId), 'Unauthorized user');
+    require(_isAuthorized(msg.sender, assetId), "Unauthorized user");
     _;
   }
 
   modifier onlyUpdateAuthorized(address assetId) {
-    require(_isUpdateAuthorized(msg.sender, assetId), 'Unauthorized user');
+    require(_isUpdateAuthorized(msg.sender, assetId), "Unauthorized user");
     _;
   }
 
