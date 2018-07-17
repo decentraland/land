@@ -14,30 +14,33 @@ contract PingableDAR {
 }
 
 
-// @nico TODO: owner: it's on the constructor (Factory)
-// @nico TODO: token-assetId modifier
-// @nico TODO: Standalone Storage. This is kind of a mess if we want to use Zeppelin
-// @nico TODO: Comment functions
-// @nico TODO: Metadata management (if on Estate, ask parent?)
+// @nico TODO: Standalone Storage.
+// @nico TODO: Document functions
 // @nico TODO: transferOwnership cleans _operators?
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   using SafeMath for uint256;
 
   PingableDAR public dar;
 
-  string public data;
+  // From Estate to list of owned tokenIds (LANDs)
+  mapping(uint256 => uint256[]) public estateTokenIds;
 
-  mapping(address => uint256[]) public assetTokenIds;
-  mapping(address => mapping(uint256 => uint256)) public assetTokenIndex;
+  // From tokenId (LAND) to its owner estateId of owned tokenIds
+  mapping(uint256 => uint256) public tokenIdEstate;
 
-  mapping(address => string) internal assetData;
-  mapping (address => address) public updateOperator;
+  // From Estate to mapping of tokenId to index on the array above
+  mapping(uint256 => mapping(uint256 => uint256)) public estateTokenIndex;
+
+  // Metadata of the Estate
+  mapping(uint256 => string) internal estateData;
+
+  // Operators of the Estate
+  mapping (uint256 => address) public updateOperator;
 
   constructor(
     string _name,
     string _symbol,
-    address _dar,
-    address _owner
+    address _dar
   )
     ERC721Token(_name, _symbol)
     Ownable()
@@ -45,7 +48,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   {
     require(_dar != 0);
     dar = PingableDAR(_dar);
-    owner = _owner; // @nico TODO: ownership while being created by another registry
   }
 
   modifier onlyDAR() {
@@ -53,74 +55,77 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     _;
   }
 
-  modifier onlyAuthorized(address assetId) {
-    require(_isAuthorized(msg.sender, assetId), "Unauthorized user");
+  modifier onlyAuthorized(uint256 estateId) {
+    require(_isAuthorized(msg.sender, estateId), "Unauthorized user");
     _;
   }
 
-  modifier onlyUpdateAuthorized(address assetId) {
-    require(_isUpdateAuthorized(msg.sender, assetId), "Unauthorized user");
+  modifier onlyUpdateAuthorized(uint256 estateId) {
+    require(_isUpdateAuthorized(msg.sender, estateId), "Unauthorized user");
     _;
+  }
+
+  function mintNext(address to) public returns (uint256) {
+    uint256 tokenId = getNewTokenId();
+    _mint(to, tokenId);
+    return tokenId;
+  }
+
+  function getNewTokenId() internal view returns (uint256) {
+    // This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
+    return uint256(keccak256(msg.sender, block.timestamp));
   }
 
   // onERC721Received: Count
   function onERC721Received(
     address /* oldOwner */,
     uint256 tokenId,
-    bytes // unused
+    bytes estateTokenIdBytes
   )
     external
     onlyDAR
     returns (bytes4)
   {
-    address assetId = address(this);
-    uint256[] storage tokenIds = assetTokenIds[assetId];
-    mapping(uint256 => uint256) tokenIndex = assetTokenIndex[assetId];
-
-    /**
-     * tokenId is a list of owned tokens
-     */
-    tokenIds.push(tokenId);
-
-    /**
-     * tokenIndex is the position (1-based) of the token in the array
-     */
-    tokenIndex[tokenId] = tokenIds.length;
-
+    uint256 estateId = bytesToBytes32(estateTokenIdBytes);
+    _pushTokenId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
 
-  function ammendReceived(address assetId, uint256 tokenId) external {
-    uint256[] storage tokenIds = assetTokenIds[assetId];
-    mapping(uint256 => uint256) tokenIndex = assetTokenIndex[assetId];
-
-    require(tokenIndex[tokenId] == 0);
-    require(dar.ownerOf(tokenId) == assetId);
-
-    tokenIds.push(tokenId);
-    tokenIndex[tokenId] = tokenIds.length;
+  function ammendReceived(uint256 estateId, uint256 tokenId) external {
+    _pushTokenId(estateId, tokenId);
   }
 
-  function transferTo(
-    address assetId,
+  function _pushTokenId(uint256 estateId, uint256 tokenId) internal {
+    require(estateTokenIds[estateId][tokenId] == 0);
+    require(dar.ownerOf(tokenId) == estateId);
+
+    estateTokenIds[estateId].push(tokenId);
+
+    tokenIdEstate[tokenId] = estateId;
+
+    estateTokenIds[estateId][tokenId] = estateTokenIds[estateId].length;
+  }
+
+  function transferToken(
+    uint256 estateId,
     uint256 tokenId,
     address destinatory
   )
-    onlyAuthorized(assetId)
+    onlyAuthorized(estateId)
     external
   {
-    return _transferTo(assetId, tokenId, destinatory);
+    return _transferToken(estateId, tokenId, destinatory);
   }
 
-  function _transferTo(
-    address assetId,
+  function _transferToken(
+    uint256 estateId,
     uint256 tokenId,
     address destinatory
   )
     internal
   {
-    uint256[] storage tokenIds = assetTokenIds[assetId];
-    mapping(uint256 => uint256) tokenIndex = assetTokenIndex[assetId];
+    uint256[] storage tokenIds = estateTokenIds[estateId];
+    mapping(uint256 => uint256) tokenIndex = estateTokenIndex[estateId];
 
     /**
      * Using 1-based indexing to be able to make this check
@@ -156,13 +161,22 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
      */
     tokenIndex[tokenId] = 0;
 
-    dar.safeTransferFrom(assetId, destinatory, tokenId);
+    /**
+     * Drop this tokenId estate
+     */
+    tokenIdEstate[tokenId] = 0;
+
+    dar.safeTransferFrom(estateId, destinatory, tokenId);
   }
 
-  function transferMany(address assetId, uint256[] tokens, address destinatory) onlyAuthorized(assetId) external {
+  function getTokenEstateId(uint256 tokenId) external view returns(uint256) {
+    return tokenIdEstate[tokenId];
+  }
+
+  function transferManyTokens(uint256 estateId, uint256[] tokens, address destinatory) onlyAuthorized(estateId) external {
     uint length = tokens.length;
     for (uint i = 0; i < length; i++) {
-      _transferTo(assetId, tokens[i], destinatory);
+      _transferToken(estateId, tokens[i], destinatory);
     }
   }
 
@@ -171,46 +185,52 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     dar.ping();
   }
 
-  function getSize(address assetId) external view returns (uint256) {
-    return assetTokenIds[assetId].length;
+  function getSize(uint256 estateId) external view returns (uint256) {
+    return estateTokenIds[estateId].length;
   }
 
-  function updateMetadata(address assetId, string _data) external onlyUpdateAuthorized(assetId) {
-    assetData[assetId] = _data;
+  function updateMetadata(uint256 estateId, string metadata) external onlyUpdateAuthorized(estateId) {
+    estateData[estateId] = metadata;
   }
 
-  function getMetadata(address assetId)
+  function getMetadata(uint256 estateId)
     view
     external
     returns (string)
   {
-    return assetData[assetId];
+    return estateData[estateId];
   }
 
   // @nico TODO: holderOf ?
-  function setUpdateOperator(address assetId, address operator) external onlyOwner {
-    updateOperator[assetId] = operator;
+  function setUpdateOperator(uint256 estateId, address operator) external onlyOwner {
+    updateOperator[estateId] = operator;
   }
 
   // @nico TODO: I don't like inverting the params here in terms of `setUpdateOperator`,
   // but LANDRegistry does this, so might be best to be consistent
-  function isUpdateAuthorized(address operator, address assetId) external view returns (bool) {
-    return _isUpdateAuthorized(operator, assetId);
+  function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
+    return _isUpdateAuthorized(operator, estateId);
   }
 
-  function _isUpdateAuthorized(address operator, address assetId) internal view returns (bool) {
-    // @nico: TODO: operator == ownerOf(assetId)
-    return owner == operator || updateOperator[assetId] == operator;
+  function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
+    return owner == operator || operator == ownerOf(estateId) || updateOperator[estateId] == operator;
   }
 
-  function isAuthorized(address _operator, address assetId) external view returns (bool) {
-    return _isAuthorized(_operator, assetId);
+  function isAuthorized(address operator, uint256 estateId) external view returns (bool) {
+    return _isAuthorized(operator, estateId);
   }
 
-  function _isAuthorized(address _operator, address assetId) internal view returns (bool) {
-    // @nico TODO: Revise this
-    require(_operator != address(0));
-    // @nico TODO: _operator == ownerOf(assetId)
-    return owner == _operator || isApprovedForAll(owner, _operator);
+  function _isAuthorized(address operator, uint256 estateId) internal view returns (bool) {
+    require(operator != address(0));
+    return owner == operator || operator == ownerOf(estateId) || isApprovedForAll(owner, operator);
+  }
+
+  function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+    bytes32 out;
+
+    for (uint i = 0; i < 32; i++) {
+      out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+    }
+    return out;
   }
 }

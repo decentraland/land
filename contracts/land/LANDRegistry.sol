@@ -14,8 +14,6 @@ import "../metadata/IMetadataHolder.sol";
 
 import "../estate/IEstateRegistry.sol";
 
-import "../estate/IEstateFactory.sol";
-
 
 contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
@@ -228,40 +226,44 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   // Estate generation
   //
 
-  event EstateFactorySet(address indexed factory);
+  event EstateRegistrySet(address indexed registry);
 
-  function setEstateFactory(address factory) onlyProxyOwner external {
-    estateFactory = IEstateFactory(factory);
-    emit EstateFactorySet(factory);
+  function setEstateRegistry(address registry) onlyProxyOwner external {
+    estateRegistry = IEstateRegistry(registry);
+    emit EstateFactorySet(registry);
   }
 
   function createEstate(
     int[] x,
     int[] y,
-    address beneficiary,
-    bytes extra
+    address beneficiary
   )
     external
     returns (address)
   {
     require(x.length == y.length);
-    require(address(estateFactory) != 0);
+    require(address(estateRegistry) != 0);
 
-    address estate = estateFactory.buildEstate(this, beneficiary);
+    uint256 estateTokenId = estateRegistry.mintNext(beneficiary, tokenId);
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
       _moveToken(
         _ownerOf(tokenId),
-        estate,
+        address(estateRegistry),
         tokenId,
-        extra,
+        toBytes(estateTokenId),
         this,
         true
       );
     }
 
-    return address(estate);
+    return estateTokenId;
+  }
+
+  function toBytes(uint256 x) internal pure returns (bytes b) {
+    b = new bytes(32);
+    assembly { mstore(add(b, 32), x) }
   }
 
   //
@@ -274,7 +276,14 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function _updateLandData(int x, int y, string data) internal onlyUpdateAuthorized (_encodeTokenId(x, y)) {
     uint256 assetId = _encodeTokenId(x, y);
-    _update(assetId, data);
+    address owner = _holderOf[assetId];
+
+    if (owner == address(estateRegistry)) {
+      uint256 estateId = estateRegistry.getTokenEstateId(tokenId);
+      estateRegistry.updateMetadata(estateId, data);
+    } else {
+      _update(assetId, data);
+    }
 
     emit Update(
       assetId,

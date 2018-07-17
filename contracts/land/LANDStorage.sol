@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-import "../estate/IEstateFactory.sol";
+import "../estate/IEstateRegistry.sol";
 
 
 contract LANDStorage {
@@ -14,5 +14,5 @@ contract LANDStorage {
 
   mapping (uint256 => address) public updateOperator;
 
-  IEstateFactory public estateFactory;
+  IEstateRegistry public estateRegistry;
 }
