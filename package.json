@@ -20,10 +20,10 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "erc821": "^4.0.0",
-    "solium": "^1.1.7",
     "zeppelin-solidity": "^1.10.0"
   },
   "devDependencies": {
+    "solium": "^1.1.7",
     "abi-decoder": "^1.0.9",
     "babel-eslint": "^8.2.1",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
