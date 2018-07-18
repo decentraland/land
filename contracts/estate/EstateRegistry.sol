@@ -65,7 +65,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     _;
   }
 
-  function mintNext(address to) public returns (uint256) {
+  function mint(address to) public returns (uint256) {
     uint256 tokenId = _getNewTokenId();
     _mint(to, tokenId);
     return tokenId;

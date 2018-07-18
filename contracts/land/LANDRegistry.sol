@@ -245,7 +245,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(x.length == y.length);
     require(address(estateRegistry) != 0);
 
-    uint256 estateTokenId = estateRegistry.mintNext(beneficiary);
+    uint256 estateTokenId = estateRegistry.mint(beneficiary);
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
