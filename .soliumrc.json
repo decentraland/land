@@ -3,7 +3,6 @@
   "plugins": ["security"],
   "rules": {
     "no-empty-blocks": "off",
-    "function-order": "off",
     "uppercase": "off",
     "quotes": ["error", "double"],
     "indentation": ["error", 2],

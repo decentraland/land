@@ -2,6 +2,9 @@ pragma solidity ^0.4.22;
 
 
 contract IEstateRegistry {
+  function mintNext(address to) public returns (uint256);
+
+  function getTokenEstateId(uint256 tokenId) external view returns(uint256);
 
   function transferOwnership(address to) external;
 
@@ -11,9 +14,11 @@ contract IEstateRegistry {
 
   function getMetadata(uint256 assetId) view external;
 
-  function setUpdateOperator(address _operator) external;
+  function updateMetadata(uint256 estateId, string metadata) external;
 
-  function isUpdateAuthorized(address _operator) external view;
+  function setUpdateOperator(address operator) external;
+
+  function isUpdateAuthorized(address operator) external view;
 
   function ping() external;
 

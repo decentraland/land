@@ -2,9 +2,8 @@ import assertRevert from './helpers/assertRevert'
 
 const BigNumber = web3.BigNumber
 
-const Estate = artifacts.require('EstateRegistry')
 const LANDRegistry = artifacts.require('LANDRegistryTest')
-const EstateFactory = artifacts.require('EstateFactory')
+const EstateRegistry = artifacts.require('EstateRegistry')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const NONE = '0x0000000000000000000000000000000000000000'
@@ -17,14 +16,12 @@ require('chai')
 contract('EstateRegistry', accounts => {
   const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
 
-  let registry = null,
-    proxy = null
+  let registry = null
+  let proxy = null
   let land = null
   let estate = null
-  let estateFactory = null
-
-  const _name = 'Decentraland LAND'
-  const _symbol = 'LAND'
+  const _name = 'Estate'
+  const _symbol = 'EST'
 
   const creationParams = {
     gas: 7e6,
@@ -43,22 +40,30 @@ contract('EstateRegistry', accounts => {
 
   const newMsg = 'new land content'
 
-
   async function setupRegistry() {
     proxy = await LANDProxy.new(creationParams)
     registry = await LANDRegistry.new(creationParams)
-    estateFactory = await EstateFactory.new(creationParams)
-
     await proxy.upgrade(registry.address, creator, sentByCreator)
+
     land = await LANDRegistry.at(proxy.address)
+    estate = await EstateRegistry.new(
+      _name,
+      _symbol,
+      proxy.address,
+      creationParams
+    )
+
     await land.initialize(creator, sentByCreator)
-    await land.setEstateFactory(estateFactory.address)
+    await land.setEstateRegistry(estate.address)
   }
 
   async function createEstate(xs, ys, owner, sendParams) {
-    const txReceipt = await land.createEstate(xs, ys, owner, '', sendParams)
-    const estateAddr = '0x' + txReceipt.receipt.logs[0].topics[1].slice(26)
-    return await Estate.at(estateAddr)
+    await land.createEstate(xs, ys, owner, sendParams)
+
+    const tokenCount = await estate.balanceOf.call(owner)
+    const token = await estate.tokenOfOwnerByIndex(owner, tokenCount - 1)
+
+    return token.toString()
   }
 
   async function createUserEstateWithToken1() {
@@ -76,23 +81,18 @@ contract('EstateRegistry', accounts => {
     return createEstate(sixX, sixY, user, sentByUser)
   }
 
-  async function assertOperator(estate, address) {
-    const operator = await estate.updateOperator.call(estate.address)
-    operator.should.be.equal(address)
-  }
-
-  async function assertMetadata(estate, requiredMetadata) {
-    const metadata = await estate.getMetadata(estate.address)
+  async function assertMetadata(estateId, requiredMetadata) {
+    const metadata = await estate.getMetadata(estateId)
     metadata.should.be.equal(requiredMetadata)
   }
 
-  async function assertNFTBalance(user, value) {
+  async function assertNFTBalance(user, expected) {
     const balance = await land.balanceOf(user)
-    balance.toString().should.be.equal(value.toString())
+    balance.toString().should.be.equal(expected.toString())
   }
 
-  async function assertEstateSize(expected) {
-    const balance = await estate.getSize(estate.address)
+  async function assertEstateSize(estateId, expected) {
+    const balance = await estate.getSize(estateId)
     balance.toString().should.be.equal(expected.toString())
   }
 
@@ -101,290 +101,230 @@ contract('EstateRegistry', accounts => {
     owner.should.be.equal(expectedOwner)
   }
 
-  async function assertOwner(estate, value) {
-    const owner = await estate.owner()
-    owner.should.be.equal(value)
-  }
-
-  function transferOut(index, who) {
+  function transferOut(estateId, index, who) {
     if (!who) {
-        who = sentByUser
+      who = sentByUser
     }
-    return estate.transferTo(estate.address, index, anotherUser, who)
+    return estate.transferToken(estateId, index, anotherUser, who)
   }
-  function transferIn(index) {
-    return land.safeTransferFrom(anotherUser, estate.address, index, sentByAnotherUser)
+
+  function transferIn(estateId, index, userAddress = anotherUser) {
+    let params = sentByAnotherUser
+
+    if (userAddress === user) {
+      params = sentByUser
+    } else if (userAddress === creator) {
+      params = sentByCreator
+    }
+
+    return land.safeTransferFromFull(
+      userAddress,
+      estate.address,
+      index,
+      estateId,
+      params
+    )
   }
+
   function unsafeTransferIn(index) {
-    return land.transferFrom(anotherUser, estate.address, index, sentByAnotherUser)
+    return land.transferFrom(
+      anotherUser,
+      estate.address,
+      index,
+      sentByAnotherUser
+    )
   }
-  async function assertTokenIdAtIndex(index, value) {
-    const retVal = await estate.assetTokenIds.call(estate.address, index)
-    retVal.toString().should.be.equal(value.toString())
+
+  async function assertTokenIdAtIndex(estateId, index, value) {
+    const tokenId = await estate.estateTokenIds.call(estateId, index)
+    tokenId.toString().should.be.equal(value.toString())
   }
 
-  describe('basic creation', () => {
-    beforeEach(setupRegistry)
+  beforeEach(setupRegistry)
 
-    it('new Estate can be created', async() => {
-      await Estate.new('Estate', 'EST', creator, user, sentByCreator)
-    })
-
-    it('creation through factory succeeds', async () => {
-      await createSixParcels()
-      estate = await createEstate([0, 1, -3], [2, 1, 2], user, sentByUser)
-      const owned = await estate.getSize(estate.address)
-      owned.toString().should.be.equal('3')
+  describe('name', function() {
+    it('has a name', async function() {
+      const name = await estate.name()
+      name.should.be.equal(_name)
     })
   })
 
-  describe('transfer ownership', async () => {
-    beforeEach(setupRegistry)
-
-    it('is allowed', async() => {
-      estate = await createUserEstateWithToken1()
-      await assertOwner(estate, user)
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertOwner(estate, anotherUser)
-    })
-
-    xit('clears update operator', async() => {
-      estate = await createUserEstateWithToken1()
-
-      await estate.setUpdateOperator(estate.address, yetAnotherUser, sentByUser)
-
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertOperator(estate, NONE)
-    })
-
-    it('old owner can not take tokens out', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertRevert(estate.transferTo(estate.address, 1, user, sentByUser))
-    })
-
-    it('new owner can take tokens out', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertNFTBalance(estate.address, 1)
-      await assertNFTOwner(1, estate.address)
-      await estate.transferTo(estate.address, 1, yetAnotherUser, sentByAnotherUser)
-      await assertNFTBalance(estate.address, 0)
-      await assertNFTBalance(yetAnotherUser, 1)
-    })
-
-    it('new owner can not take tokens out before transfer', async() => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.transferTo(estate.address, 1, yetAnotherUser, sentByAnotherUser))
-      await estate.transferOwnership(anotherUser, sentByUser)
-    })
-
-    it('new owner can set operator', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await estate.setUpdateOperator(estate.address, yetAnotherUser, sentByAnotherUser)
-      await assertOperator(estate, yetAnotherUser)
-    })
-
-    it('old owner can not set operator', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertRevert(estate.setUpdateOperator(estate.address, yetAnotherUser, sentByUser))
-    })
-
-    it('new owner can not update before transfer', async() => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.updateMetadata(estate.address, newMsg, sentByAnotherUser))
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await estate.updateMetadata(estate.address, newMsg, sentByAnotherUser)
-      await assertMetadata(estate, newMsg)
-    })
-
-    it('old owner can update before transfer', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.updateMetadata(estate.address, newMsg, sentByUser)
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertMetadata(estate, newMsg)
-    })
-
-    it('old owner can not update after transfer', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await assertRevert(estate.updateMetadata(estate.address, newMsg, sentByUser))
-      await assertMetadata(estate, '')
-    })
-
-    it('new owner can update after transfer', async() => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferOwnership(anotherUser, sentByUser)
-      await estate.updateMetadata(estate.address, newMsg, sentByAnotherUser)
-      await assertMetadata(estate, newMsg)
+  describe('symbol', function() {
+    it('has a symbol', async function() {
+      const symbol = await estate.symbol()
+      symbol.should.be.equal(_symbol)
     })
   })
 
-  describe('update metadata', async () => {
-    beforeEach(setupRegistry)
+  describe('update metadata', async function() {
+    it('update works correctly', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.updateMetadata(estateId, newMsg, sentByUser)
+      await assertMetadata(estateId, newMsg)
+    })
 
-    it('update works correctly', async () => {
-      estate = await createUserEstateWithToken1()
-      await estate.updateMetadata(estate.address, newMsg, sentByUser)
-      await assertMetadata(estate, newMsg)
+    it('unauthorized user can not update', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.updateMetadata(estateId, newMsg, sentByAnotherUser)
+      )
     })
-    it('unauthorized user can not update', async () => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.updateMetadata(estate.address, newMsg, sentByAnotherUser))
+
+    it('unauthorized user can not set update operator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.setUpdateOperator(estateId, yetAnotherUser, sentByAnotherUser)
+      )
     })
-    it('unauthorized user can not set update operator', async () => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.setUpdateOperator(estate.address, yetAnotherUser, sentByAnotherUser))
-    })
-    it('update operator can not transfer tokens out', async () => {
-      estate = await createUserEstateWithToken1()
-      await estate.setUpdateOperator(estate.address, anotherUser, sentByUser)
-      await assertRevert(estate.transferTo(estate.address, 1, yetAnotherUser, sentByAnotherUser))
+
+    it('update operator can not transfer tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await assertRevert(
+        estate.transferToken(estateId, 1, yetAnotherUser, sentByAnotherUser)
+      )
     })
   })
 
-  describe('transfer tokens', async () => {
-    beforeEach(setupRegistry)
-
-    it('owner can transfer tokens in', async () => {
-      estate = await createUserEstateWithToken1()
+  describe('transfer tokens', async function() {
+    it('owner can transfer tokens in', async function() {
+      const estateId = await createUserEstateWithToken1()
       await land.assignMultipleParcels([0], [2], user, sentByCreator)
-      await land.safeTransferFrom(user, estate.address, 2, sentByUser)
-      await assertEstateSize(2)
+      await transferIn(estateId, 2, user)
+      await assertEstateSize(estateId, 2)
     })
 
-    it('random user can transfer tokens in', async () => {
-      estate = await createUserEstateWithToken1()
+    it('random user can transfer tokens in', async function() {
+      const estateId = await createUserEstateWithToken1()
       await land.assignMultipleParcels([0], [2], anotherUser, sentByCreator)
-      await land.safeTransferFrom(anotherUser, estate.address, 2, sentByAnotherUser)
-      await assertEstateSize(2)
+      await transferIn(estateId, 2, anotherUser)
+      await assertEstateSize(estateId, 2)
     })
 
-    it('random user can not transfer tokens out', async () => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.transferTo(estate.address, 1, hacker, sentByAnotherUser))
+    it('random user can not transfer tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.transferToken(estateId, 1, hacker, sentByAnotherUser)
+      )
     })
 
-    it('random user can not transfer many tokens out', async () => {
-      estate = await createUserEstateWithToken1()
-      await assertRevert(estate.transferMany(estate.address, [1], hacker, sentByAnotherUser))
+    it('random user can not transfer many tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.transferManyTokens(estateId, [1], hacker, sentByAnotherUser)
+      )
     })
 
-    it('owner can transfer tokens out', async () => {
-      estate = await createUserEstateWithToken1()
-      await estate.transferTo(estate.address, 1, anotherUser, sentByUser)
-      await assertEstateSize(0)
+    it('owner can transfer tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.transferToken(estateId, 1, anotherUser, sentByUser)
+      await assertEstateSize(estateId, 0)
     })
 
-    it('owner can transfer many tokens out', async () => {
-      estate = await createUserEstateWithNumberedTokens()
-      await estate.transferMany(estate.address, [1, 2, 3], anotherUser, sentByUser)
-      await assertEstateSize(2)
+    it('owner can transfer many tokens out', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      await estate.transferManyTokens(
+        estateId,
+        [1, 2, 3],
+        anotherUser,
+        sentByUser
+      )
+      await assertEstateSize(estateId, 2)
     })
   })
 
-  describe('operator transfering tokens', async () => {
-    beforeEach(setupRegistry)
-
-    it('operator can transfer tokens in', async () => {
-      estate = await createUserEstateWithToken1()
+  describe('operator transfering tokens', async function() {
+    it('operator can transfer tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await land.assignMultipleParcels([0], [2], anotherUser, sentByCreator)
-      await transferIn(2)
-      await assertEstateSize(2)
+      await transferOut(estateId, 1, sentByAnotherUser)
     })
 
-    it('operator can transfer tokens out', async () => {
-      estate = await createUserEstateWithToken1()
+    it('operator can transfer many tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await transferOut(1, sentByAnotherUser)
+      await estate.transferManyTokens(
+        estateId,
+        [1],
+        anotherUser,
+        sentByAnotherUser
+      )
     })
 
-    it('operator can transfer many tokens out', async () => {
-      estate = await createUserEstateWithToken1()
+    it('operator can not transfer tokens out after deauth', async function() {
+      const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await estate.transferMany(estate.address, [1], anotherUser, sentByAnotherUser)
-    })
-
-    it('operator can not transfer tokens out after deauth', async () => {
-      estate = await createUserEstateWithToken1()
-      await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await transferOut(1, sentByAnotherUser)
-      await transferIn(1)
+      await transferOut(estateId, 1, sentByAnotherUser)
+      await transferIn(estateId, 1)
       await estate.setApprovalForAll(anotherUser, false, sentByUser)
-      await assertRevert(transferOut(1, sentByAnotherUser))
+      await assertRevert(transferOut(estateId, 1, sentByAnotherUser))
     })
 
-    it('operator can not transfer many tokens out after deauth', async () => {
-      estate = await createUserEstateWithToken1()
+    it('operator can not transfer many tokens out after deauth', async function() {
+      const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await transferOut(1, sentByAnotherUser)
-      await transferIn(1)
+      await transferOut(estateId, 1, sentByAnotherUser)
+      await transferIn(estateId, 1)
       await estate.setApprovalForAll(anotherUser, false, sentByUser)
-      await assertRevert(estate.transferMany(estate.address, [1], anotherUser, sentByAnotherUser))
+      await assertRevert(
+        estate.transferManyTokens(estateId, [1], anotherUser, sentByAnotherUser)
+      )
     })
   })
 
-
-  describe('order of tokens is correctly accounted', async () => {
-    beforeEach(setupRegistry)
-
-    it('five in, middle out, one in, middle out', async () => {
-      estate = await createUserEstateWithNumberedTokens()
+  describe('order of tokens is correctly accounted', async function() {
+    it('five in, middle out, one in, middle out', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
       await assertNFTBalance(estate.address, 5)
-      await transferOut(2)
-      await assertTokenIdAtIndex(1, 5)
-      await transferIn(2)
-      await assertTokenIdAtIndex(4, 2)
-      await transferOut(3)
-      await assertTokenIdAtIndex(2, 2)
+      await transferOut(estateId, 2)
+      await assertTokenIdAtIndex(estateId, 1, 5)
+      await transferIn(estateId, 2)
+      await assertTokenIdAtIndex(estateId, 4, 2)
+      await transferOut(estateId, 3)
+      await assertTokenIdAtIndex(estateId, 2, 2)
     })
 
-    it('five in, empty, refill', async () => {
-      estate = await createUserEstateWithNumberedTokens()
-      await transferOut(2)
-      await transferOut(1)
-      await transferOut(3)
-      await transferOut(4)
-      await transferOut(5)
+    it('five in, empty, refill', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      await transferOut(estateId, 2)
+      await transferOut(estateId, 1)
+      await transferOut(estateId, 3)
+      await transferOut(estateId, 4)
+      await transferOut(estateId, 5)
       await assertNFTBalance(estate.address, 0)
-      await transferIn(2)
-      await transferIn(1)
-      await transferIn(3)
-      await transferIn(4)
-      await transferIn(5)
+      await transferIn(estateId, 2)
+      await transferIn(estateId, 1)
+      await transferIn(estateId, 3)
+      await transferIn(estateId, 4)
+      await transferIn(estateId, 5)
       await assertNFTBalance(estate.address, 5)
-      await assertTokenIdAtIndex(0, 2)
-      await assertTokenIdAtIndex(1, 1)
-      await assertTokenIdAtIndex(2, 3)
-      await assertTokenIdAtIndex(3, 4)
-      await assertTokenIdAtIndex(4, 5)
+      await assertTokenIdAtIndex(estateId, 0, 2)
+      await assertTokenIdAtIndex(estateId, 1, 1)
+      await assertTokenIdAtIndex(estateId, 2, 3)
+      await assertTokenIdAtIndex(estateId, 3, 4)
+      await assertTokenIdAtIndex(estateId, 4, 5)
     })
   })
 
-  describe('tokens are correctly accounted through detection', async () => {
-    beforeEach(setupRegistry)
-
-    it('out, unsafe in, check last', async () => {
-      estate = await createUserEstateWithNumberedTokens()
-      await transferOut(2)
+  xdescribe('tokens are correctly accounted through detection', async function() {
+    it('out, unsafe in, check last', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      await transferOut(estateId, 2)
       await unsafeTransferIn(2)
       await assertNFTBalance(estate.address, 5)
       await assertNFTOwner(2, estate.address)
-      await assertEstateSize(4)
+      await assertEstateSize(estateId, 4)
       await estate.ammendReceived(estate.address, 2, sentByUser)
-      await assertEstateSize(5)
-      await assertTokenIdAtIndex(4, 2)
+      await assertEstateSize(estateId, 5)
+      await assertTokenIdAtIndex(estateId, 4, 2)
     })
 
-    it('can be called by anyone', async () => {
-      estate = await createUserEstateWithNumberedTokens()
-      await transferOut(2)
+    it('can be called by anyone', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      await transferOut(estateId, 2)
       await unsafeTransferIn(2)
       await estate.ammendReceived(estate.address, 2, sentByAnotherUser)
-      await assertTokenIdAtIndex(4, 2)
+      await assertTokenIdAtIndex(estateId, 4, 2)
     })
   })
 })

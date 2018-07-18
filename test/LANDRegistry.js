@@ -29,8 +29,8 @@ function checkUpdateOperatorLog(log, assetId, operator) {
 
 contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
-  let registry = null,
-    proxy = null
+  let registry = null
+  let proxy = null
   let land = null
   const _name = 'Decentraland LAND'
   const _symbol = 'LAND'

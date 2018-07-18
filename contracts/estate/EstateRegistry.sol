@@ -15,8 +15,7 @@ contract PingableDAR {
 
 
 // @nico TODO: Standalone Storage.
-// @nico TODO: Document functions
-// @nico TODO: transferOwnership cleans _operators?
+// @nico TODO: Document functions.
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   using SafeMath for uint256;
 
@@ -66,14 +65,9 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   }
 
   function mintNext(address to) public returns (uint256) {
-    uint256 tokenId = getNewTokenId();
+    uint256 tokenId = _getNewTokenId();
     _mint(to, tokenId);
     return tokenId;
-  }
-
-  function getNewTokenId() internal view returns (uint256) {
-    // This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
-    return uint256(keccak256(msg.sender, block.timestamp));
   }
 
   // onERC721Received: Count
@@ -86,7 +80,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     onlyDAR
     returns (bytes4)
   {
-    uint256 estateId = bytesToBytes32(estateTokenIdBytes);
+    uint256 estateId = uint256(_bytesToBytes32(estateTokenIdBytes));
     _pushTokenId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
@@ -95,32 +89,83 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     _pushTokenId(estateId, tokenId);
   }
 
+  function transferToken(
+    uint256 estateId,
+    uint256 tokenId,
+    address destinatary
+  )
+    onlyAuthorized(estateId)
+    external
+  {
+    return _transferToken(estateId, tokenId, destinatary);
+  }
+
+  function transferManyTokens(uint256 estateId, uint256[] tokens, address destinatary) onlyAuthorized(estateId) external {
+    uint length = tokens.length;
+    for (uint i = 0; i < length; i++) {
+      _transferToken(estateId, tokens[i], destinatary);
+    }
+  }
+
+  function getTokenEstateId(uint256 tokenId) external view returns(uint256) {
+    return tokenIdEstate[tokenId];
+  }
+
+  function ping() onlyOwner external {
+    dar.ping();
+  }
+
+  function getSize(uint256 estateId) external view returns (uint256) {
+    return estateTokenIds[estateId].length;
+  }
+
+  function updateMetadata(uint256 estateId, string metadata) external onlyUpdateAuthorized(estateId) {
+    estateData[estateId] = metadata;
+  }
+
+  function getMetadata(uint256 estateId)
+    view
+    external
+    returns (string)
+  {
+    return estateData[estateId];
+  }
+
+  function setUpdateOperator(uint256 estateId, address operator) external onlyAuthorized(estateId) {
+    updateOperator[estateId] = operator;
+  }
+
+  // I don't like inverting the params here in terms of `setUpdateOperator`,
+  // but LANDRegistry does this, so might be best to be consistent
+  function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
+    return _isUpdateAuthorized(operator, estateId);
+  }
+
+  function isAuthorized(address operator, uint256 estateId) external view returns (bool) {
+    return _isAuthorized(operator, estateId);
+  }
+
+  function _getNewTokenId() internal view returns (uint256) {
+    // This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
+    // solium-disable-next-line security/no-block-members
+    return uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
+  }
+
   function _pushTokenId(uint256 estateId, uint256 tokenId) internal {
-    require(estateTokenIds[estateId][tokenId] == 0);
-    require(dar.ownerOf(tokenId) == estateId);
+    require(estateTokenIndex[estateId][tokenId] == 0);
+    require(dar.ownerOf(tokenId) == address(this));
 
     estateTokenIds[estateId].push(tokenId);
 
     tokenIdEstate[tokenId] = estateId;
 
-    estateTokenIds[estateId][tokenId] = estateTokenIds[estateId].length;
-  }
-
-  function transferToken(
-    uint256 estateId,
-    uint256 tokenId,
-    address destinatory
-  )
-    onlyAuthorized(estateId)
-    external
-  {
-    return _transferToken(estateId, tokenId, destinatory);
+    estateTokenIndex[estateId][tokenId] = estateTokenIds[estateId].length;
   }
 
   function _transferToken(
     uint256 estateId,
     uint256 tokenId,
-    address destinatory
+    address destinatary
   )
     internal
   {
@@ -166,70 +211,23 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
      */
     tokenIdEstate[tokenId] = 0;
 
-    dar.safeTransferFrom(estateId, destinatory, tokenId);
-  }
-
-  function getTokenEstateId(uint256 tokenId) external view returns(uint256) {
-    return tokenIdEstate[tokenId];
-  }
-
-  function transferManyTokens(uint256 estateId, uint256[] tokens, address destinatory) onlyAuthorized(estateId) external {
-    uint length = tokens.length;
-    for (uint i = 0; i < length; i++) {
-      _transferToken(estateId, tokens[i], destinatory);
-    }
-  }
-
-  // @nico TODO: Revise this
-  function ping() onlyOwner external {
-    dar.ping();
-  }
-
-  function getSize(uint256 estateId) external view returns (uint256) {
-    return estateTokenIds[estateId].length;
-  }
-
-  function updateMetadata(uint256 estateId, string metadata) external onlyUpdateAuthorized(estateId) {
-    estateData[estateId] = metadata;
-  }
-
-  function getMetadata(uint256 estateId)
-    view
-    external
-    returns (string)
-  {
-    return estateData[estateId];
-  }
-
-  // @nico TODO: holderOf ?
-  function setUpdateOperator(uint256 estateId, address operator) external onlyOwner {
-    updateOperator[estateId] = operator;
-  }
-
-  // @nico TODO: I don't like inverting the params here in terms of `setUpdateOperator`,
-  // but LANDRegistry does this, so might be best to be consistent
-  function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
-    return _isUpdateAuthorized(operator, estateId);
+    dar.safeTransferFrom(this, destinatary, tokenId);
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     return owner == operator || operator == ownerOf(estateId) || updateOperator[estateId] == operator;
   }
 
-  function isAuthorized(address operator, uint256 estateId) external view returns (bool) {
-    return _isAuthorized(operator, estateId);
-  }
-
   function _isAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     require(operator != address(0));
-    return owner == operator || operator == ownerOf(estateId) || isApprovedForAll(owner, operator);
+    return owner == operator || operator == ownerOf(estateId) || isApprovedForAll(ownerOf(estateId), operator);
   }
 
-  function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+  function _bytesToBytes32(bytes b) private pure returns (bytes32) {
     bytes32 out;
 
     for (uint i = 0; i < 32; i++) {
-      out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+      out |= bytes32(b[i] & 0xFF) >> (i * 8);
     }
     return out;
   }

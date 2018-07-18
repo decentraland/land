@@ -15,6 +15,7 @@ import "../metadata/IMetadataHolder.sol";
 import "../estate/IEstateRegistry.sol";
 
 
+/* solium-disable function-order */
 contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
 
@@ -230,7 +231,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function setEstateRegistry(address registry) onlyProxyOwner external {
     estateRegistry = IEstateRegistry(registry);
-    emit EstateFactorySet(registry);
+    emit EstateRegistrySet(registry);
   }
 
   function createEstate(
@@ -239,12 +240,12 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     address beneficiary
   )
     external
-    returns (address)
+    returns (uint256)
   {
     require(x.length == y.length);
     require(address(estateRegistry) != 0);
 
-    uint256 estateTokenId = estateRegistry.mintNext(beneficiary, tokenId);
+    uint256 estateTokenId = estateRegistry.mintNext(beneficiary);
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
@@ -263,6 +264,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function toBytes(uint256 x) internal pure returns (bytes b) {
     b = new bytes(32);
+    // solium-disable-next-line security/no-inline-assembly
     assembly { mstore(add(b, 32), x) }
   }
 
@@ -279,7 +281,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     address owner = _holderOf[assetId];
 
     if (owner == address(estateRegistry)) {
-      uint256 estateId = estateRegistry.getTokenEstateId(tokenId);
+      uint256 estateId = estateRegistry.getTokenEstateId(assetId);
       estateRegistry.updateMetadata(estateId, data);
     } else {
       _update(assetId, data);
