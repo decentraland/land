@@ -80,8 +80,10 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     onlyDAR
     returns (bytes4)
   {
-    uint256 estateId = uint256(_bytesToBytes32(estateTokenIdBytes));
-    _pushTokenId(estateId, tokenId);
+    if(estateTokenIdBytes.length > 0) {
+      uint256 estateId = uint256(_bytesToBytes32(estateTokenIdBytes));
+      _pushTokenId(estateId, tokenId);
+    }
     return bytes4(0xf0b9e5ba);
   }
 

@@ -126,9 +126,9 @@ contract('EstateRegistry', accounts => {
     )
   }
 
-  function unsafeTransferIn(index) {
+  function unsafeTransferIn(index, userAddress = anotherUser) {
     return land.transferFrom(
-      anotherUser,
+      userAddress,
       estate.address,
       index,
       sentByAnotherUser
@@ -306,7 +306,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  xdescribe('tokens are correctly accounted through detection', async function() {
+  describe('tokens are correctly accounted through detection', async function() {
     it('out, unsafe in, check last', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
       await transferOut(estateId, 2)
@@ -314,7 +314,7 @@ contract('EstateRegistry', accounts => {
       await assertNFTBalance(estate.address, 5)
       await assertNFTOwner(2, estate.address)
       await assertEstateSize(estateId, 4)
-      await estate.ammendReceived(estate.address, 2, sentByUser)
+      await estate.ammendReceived(estateId, 2, sentByUser)
       await assertEstateSize(estateId, 5)
       await assertTokenIdAtIndex(estateId, 4, 2)
     })
@@ -323,7 +323,7 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithNumberedTokens()
       await transferOut(estateId, 2)
       await unsafeTransferIn(2)
-      await estate.ammendReceived(estate.address, 2, sentByAnotherUser)
+      await estate.ammendReceived(estateId, 2, sentByAnotherUser)
       await assertTokenIdAtIndex(estateId, 4, 2)
     })
   })
