@@ -28,15 +28,15 @@ interface ILANDRegistry {
 
   // Events
 
-  event Update(  
-    uint256 indexed assetId, 
-    address indexed holder,  
-    address indexed operator,  
-    string data  
+  event Update(
+    uint256 indexed assetId,
+    address indexed holder,
+    address indexed operator,
+    string data
   );
 
   event UpdateOperator(
-    uint256 indexed assetId, 
+    uint256 indexed assetId,
     address indexed operator
   );
 }

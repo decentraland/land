@@ -34,7 +34,24 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   mapping(uint256 => string) internal estateData;
 
   // Operators of the Estate
-  mapping (uint256 => address) public updateOperator;
+  mapping (uint256 => address) internal updateOperator;
+
+  event Update(
+    uint256 indexed assetId,
+    address indexed holder,
+    address indexed operator,
+    string data
+  );
+
+  event UpdateOperator(
+    uint256 indexed estateId,
+    address indexed operator
+  );
+
+  event AmmendReceived(
+    uint256 indexed estateId,
+    uint256 indexed tokenId
+  );
 
   constructor(
     string _name,
@@ -89,6 +106,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
 
   function ammendReceived(uint256 estateId, uint256 tokenId) external {
     _pushTokenId(estateId, tokenId);
+    emit AmmendReceived(estateId, tokenId);
   }
 
   function transferToken(
@@ -123,6 +141,13 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
 
   function updateMetadata(uint256 estateId, string metadata) external onlyUpdateAuthorized(estateId) {
     estateData[estateId] = metadata;
+
+    emit Update(
+      estateId,
+      ownerOf(estateId),
+      msg.sender,
+      metadata
+    );
   }
 
   function getMetadata(uint256 estateId)
@@ -135,6 +160,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
 
   function setUpdateOperator(uint256 estateId, address operator) external onlyAuthorized(estateId) {
     updateOperator[estateId] = operator;
+    emit UpdateOperator(estateId, operator);
   }
 
   // I don't like inverting the params here in terms of `setUpdateOperator`,
