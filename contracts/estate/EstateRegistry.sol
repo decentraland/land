@@ -4,6 +4,7 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
+import "./IEstateRegistry.sol";
 import "../metadata/MetadataHolderBase.sol";
 
 
@@ -16,7 +17,7 @@ contract PingableDAR {
 
 // @nico TODO: Standalone Storage.
 // @nico TODO: Document functions.
-contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
+contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry {
   using SafeMath for uint256;
 
   PingableDAR public dar;
@@ -33,25 +34,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
   // Metadata of the Estate
   mapping(uint256 => string) internal estateData;
 
-  // Operators of the Estate
+  // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
-
-  event Update(
-    uint256 indexed assetId,
-    address indexed holder,
-    address indexed operator,
-    string data
-  );
-
-  event UpdateOperator(
-    uint256 indexed estateId,
-    address indexed operator
-  );
-
-  event AmmendReceived(
-    uint256 indexed estateId,
-    uint256 indexed tokenId
-  );
 
   constructor(
     string _name,
@@ -127,8 +111,14 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase {
     }
   }
 
-  function getTokenEstateId(uint256 tokenId) external view returns(uint256) {
+  function getTokenEstateId(uint256 tokenId) external view returns (uint256) {
     return tokenIdEstate[tokenId];
+  }
+
+  function setPingableDAR(address _dar) onlyOwner external {
+    require(_dar != 0);
+    dar = PingableDAR(_dar);
+    emit SetPingableDAR(dar);
   }
 
   function ping() onlyOwner external {

@@ -81,6 +81,11 @@ contract('EstateRegistry', accounts => {
     return createEstate(sixX, sixY, user, sentByUser)
   }
 
+  async function assertDar(requiredDar) {
+    const dar = await estate.dar.call()
+    dar.should.be.equal(requiredDar)
+  }
+
   async function assertMetadata(estateId, requiredMetadata) {
     const metadata = await estate.getMetadata(estateId)
     metadata.should.be.equal(requiredMetadata)
@@ -153,6 +158,21 @@ contract('EstateRegistry', accounts => {
     it('has a symbol', async function() {
       const symbol = await estate.symbol()
       symbol.should.be.equal(_symbol)
+    })
+  })
+
+  describe('set Pingable DAR', async function() {
+    it('set works correctly', async function() {
+      const dar = await LANDProxy.new(creationParams)
+      await estate.setPingableDAR(dar.address, creationParams)
+      await assertDar(dar.address)
+    })
+
+    it('unauthorized user can not set dar', async function() {
+      const dar = await LANDProxy.new(creationParams)
+      await assertRevert(
+        estate.setPingableDAR(dar.address, sentByAnotherUser)
+      )
     })
   })
 
