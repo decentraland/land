@@ -233,6 +233,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
+    require(operator != address(0));
     return owner == operator || operator == ownerOf(estateId) || updateOperator[estateId] == operator;
   }
 

@@ -243,6 +243,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     returns (uint256)
   {
     require(x.length == y.length);
+    require(x.length > 0);
     require(address(estateRegistry) != 0);
 
     uint256 estateTokenId = estateRegistry.mint(beneficiary);
@@ -289,7 +290,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
     emit Update(
       assetId,
-      _holderOf[assetId],
+      owner,
       msg.sender,
       data
     );

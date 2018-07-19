@@ -13,6 +13,12 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should()
 
+/**
+ * Important:
+ *   The LAND registry uses an encoded version of the coordinates as the tokenId which you can find on LANDRegistry#encodeTokenId but
+ *   you'll see that this file uses tokenIds like `1`, `2`, etc.
+ *   This is because encoding a pair like `(0, 1)` returns `1`, `(0, 2)` returns `2`, and so on.
+ */
 contract('EstateRegistry', accounts => {
   const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
 
@@ -74,11 +80,6 @@ contract('EstateRegistry', accounts => {
   async function createUserEstateWithNumberedTokens() {
     await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
     return createEstate(fiveX, fiveY, user, sentByUser)
-  }
-
-  async function createSixParcels() {
-    await land.assignMultipleParcels(sixX, sixY, user, sentByCreator)
-    return createEstate(sixX, sixY, user, sentByUser)
   }
 
   async function assertDar(requiredDar) {
@@ -239,6 +240,7 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithToken1()
       await estate.transferToken(estateId, 1, anotherUser, sentByUser)
       await assertEstateSize(estateId, 0)
+      await assertNFTOwner(1, anotherUser)
     })
 
     it('owner can transfer many tokens out', async function() {
