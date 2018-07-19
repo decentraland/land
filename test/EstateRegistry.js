@@ -98,7 +98,7 @@ contract('EstateRegistry', accounts => {
   }
 
   async function assertEstateSize(estateId, expected) {
-    const balance = await estate.getSize(estateId)
+    const balance = await estate.getEstateSize(estateId)
     balance.toString().should.be.equal(expected.toString())
   }
 

@@ -2,7 +2,7 @@ pragma solidity ^0.4.22;
 
 
 contract IEstateRegistry {
-  function mint(address to) public returns (uint256);
+  function mint(address to) external returns (uint256);
 
   function getTokenEstateId(uint256 tokenId) external view returns(uint256);
 

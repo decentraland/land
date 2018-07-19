@@ -14,9 +14,12 @@ contract PingableDAR {
   function safeTransferFrom(address, address, uint256) public;
 }
 
-
 // @nico TODO: Standalone Storage.
-// @nico TODO: Document functions.
+
+
+/**
+ * @title ERC721 registry of every minted estate and their owned LANDs
+ */
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry {
   using SafeMath for uint256;
 
@@ -65,13 +68,27 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     _;
   }
 
-  function mint(address to) public returns (uint256) {
+  /**
+   * @dev Mint a new estate
+   * @param to The address that will own the minted token
+   * @return An uint256 representing the new token id
+   */
+  function mint(address to) external returns (uint256) {
     uint256 tokenId = _getNewTokenId();
     _mint(to, tokenId);
     return tokenId;
   }
 
-  // onERC721Received: Count
+  /**
+   * @notice Handle the receipt of an NFT
+   * @dev The ERC721 smart contract calls this function on the recipient
+   *  after a `safetransfer`. This function MAY throw to revert and reject the
+   *  transfer. The EstateRegistry uses this function to register new tokens for a particular estate
+   *  which will be present on the extra bytes.
+   * @param tokenId The NFT identifier which is being transfered
+   * @param estateTokenIdBytes Additional data, should represent a uint256 estate id
+   * @return `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
+   */
   function onERC721Received(
     address /* oldOwner */,
     uint256 tokenId,
@@ -86,11 +103,23 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return bytes4(0xf0b9e5ba);
   }
 
+  /**
+   * @notice Unlock any token sent to the contract without using safeTransferFrom
+   * @dev It uses the same logic as onERC721Received
+   * @param estateId The new owner of the locked token
+   * @param tokenId Locked token id
+   */
   function ammendReceived(uint256 estateId, uint256 tokenId) external {
     _pushTokenId(estateId, tokenId);
     emit AmmendReceived(estateId, tokenId);
   }
 
+  /**
+   * @notice Transfer a token owned by a estate to a new owner
+   * @param estateId Current owner of the token
+   * @param tokenId Token to be transfered
+   * @param destinatary New owner
+   */
   function transferToken(
     uint256 estateId,
     uint256 tokenId,
@@ -102,6 +131,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return _transferToken(estateId, tokenId, destinatary);
   }
 
+  /**
+   * @notice Transfer many tokens owned by a estate to a new owner
+   * @param estateId Current owner of the token
+   * @param tokens Tokens to be transfered
+   * @param destinatary New owner
+   */
   function transferManyTokens(uint256 estateId, uint256[] tokens, address destinatary) onlyAuthorized(estateId) external {
     uint length = tokens.length;
     for (uint i = 0; i < length; i++) {
@@ -109,6 +144,13 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     }
   }
 
+  /**
+   * @notice Get the estate id for a given token id
+   * @dev This information also lives on estateTokenIds,
+   *   but it being a mapping you need to know the estate id beforehand.
+   * @param tokenId Token to search
+   * @return The corresponding estate id
+   */
   function getTokenEstateId(uint256 tokenId) external view returns (uint256) {
     return tokenIdEstate[tokenId];
   }
@@ -123,7 +165,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     dar.ping();
   }
 
-  function getSize(uint256 estateId) external view returns (uint256) {
+  /**
+   * @notice Return the amount of tokens for a given estate
+   * @param estateId Estate id to search
+   * @return Tokens length
+   */
+  function getEstateSize(uint256 estateId) external view returns (uint256) {
     return estateTokenIds[estateId].length;
   }
 
@@ -151,8 +198,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     emit UpdateOperator(estateId, operator);
   }
 
-  // I don't like inverting the params here in terms of `setUpdateOperator`,
-  // but LANDRegistry does this, so might be best to be consistent
   function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
     return _isUpdateAuthorized(operator, estateId);
   }
@@ -161,12 +206,21 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return _isAuthorized(operator, estateId);
   }
 
+  /**
+   * @notice Return a new unique id
+   * @dev This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
+   * @return uint256 Representing the new token id
+   */
   function _getNewTokenId() internal view returns (uint256) {
-    // This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
     // solium-disable-next-line security/no-block-members
     return uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
   }
 
+  /**
+   * @dev Appends a new token id to a esatate updating all related storage
+   * @param estateId Estate where the token should go
+   * @param tokenId Transfered token
+   */
   function _pushTokenId(uint256 estateId, uint256 tokenId) internal {
     require(estateTokenIndex[estateId][tokenId] == 0);
     require(dar.ownerOf(tokenId) == address(this));
@@ -178,6 +232,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     estateTokenIndex[estateId][tokenId] = estateTokenIds[estateId].length;
   }
 
+  /**
+   * @dev Removes a token from an estate and transfers it to a new owner
+   * @param estateId Current owner of the token
+   * @param tokenId Token to be transfered
+   * @param destinatary New owner
+   */
   function _transferToken(
     uint256 estateId,
     uint256 tokenId,
