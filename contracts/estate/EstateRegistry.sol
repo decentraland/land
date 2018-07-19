@@ -15,6 +15,7 @@ contract PingableDAR {
 }
 
 // @nico TODO: Standalone Storage.
+// @nico TODO: Clean update operator on transfer.
 
 
 /**

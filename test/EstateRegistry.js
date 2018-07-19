@@ -162,7 +162,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('set Pingable DAR', async function() {
+  describe('set Pingable DAR', function() {
     it('set works correctly', async function() {
       const dar = await LANDProxy.new(creationParams)
       await estate.setPingableDAR(dar.address, creationParams)
@@ -171,13 +171,11 @@ contract('EstateRegistry', accounts => {
 
     it('unauthorized user can not set dar', async function() {
       const dar = await LANDProxy.new(creationParams)
-      await assertRevert(
-        estate.setPingableDAR(dar.address, sentByAnotherUser)
-      )
+      await assertRevert(estate.setPingableDAR(dar.address, sentByAnotherUser))
     })
   })
 
-  describe('update metadata', async function() {
+  describe('update metadata', function() {
     it('update works correctly', async function() {
       const estateId = await createUserEstateWithToken1()
       await estate.updateMetadata(estateId, newMsg, sentByUser)
@@ -207,7 +205,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('transfer tokens', async function() {
+  describe('transfer tokens', function() {
     it('owner can transfer tokens in', async function() {
       const estateId = await createUserEstateWithToken1()
       await land.assignMultipleParcels([0], [2], user, sentByCreator)
@@ -255,7 +253,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('operator transfering tokens', async function() {
+  describe('operator transfering tokens', function() {
     it('operator can transfer tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
@@ -294,7 +292,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('order of tokens is correctly accounted', async function() {
+  describe('order of tokens is correctly accounted', function() {
     it('five in, middle out, one in, middle out', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
       await assertNFTBalance(estate.address, 5)
@@ -328,7 +326,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('tokens are correctly accounted through detection', async function() {
+  describe('tokens are correctly accounted through detection', function() {
     it('out, unsafe in, check last', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
       await transferOut(estateId, 2)
