@@ -216,7 +216,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @return uint256 Representing the new token id
    */
   function _getNewTokenId() internal returns (uint256) {
-    currentTokenId = currentTokenId + 1;
+    currentTokenId = currentTokenId.add(1);
     return currentTokenId;
   }
 
