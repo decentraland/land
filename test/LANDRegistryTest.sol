@@ -3,8 +3,8 @@ pragma solidity ^0.4.18;
 import '../contracts/land/LANDRegistry.sol';
 
 contract LANDRegistryTest is LANDRegistry {
-  function safeTransferFromFull(address from, address to, uint256 assetId, bytes userData) external {
-    _doTransferFrom(from, to, assetId, userData, msg.sender, true);
+  function safeTransferFromToEstate(address from, address to, uint256 assetId, uint256 estateId) external {
+    _doTransferFrom(from, to, assetId, toBytes(estateId), msg.sender, true);
   }
 
   function existsProxy(int x, int y) view public returns (bool) {

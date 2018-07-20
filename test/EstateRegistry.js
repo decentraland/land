@@ -123,7 +123,7 @@ contract('EstateRegistry', accounts => {
       params = sentByCreator
     }
 
-    return land.safeTransferFromFull(
+    return land.safeTransferFromToEstate(
       userAddress,
       estate.address,
       index,

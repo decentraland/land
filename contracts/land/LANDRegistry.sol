@@ -247,6 +247,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(address(estateRegistry) != 0);
 
     uint256 estateTokenId = estateRegistry.mint(beneficiary);
+    bytes memory estateTokenIdBytes = toBytes(estateTokenId);
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
@@ -254,7 +255,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
         _ownerOf(tokenId),
         address(estateRegistry),
         tokenId,
-        toBytes(estateTokenId),
+        estateTokenIdBytes,
         this,
         true
       );

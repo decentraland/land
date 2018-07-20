@@ -41,6 +41,9 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
 
+  // Secuential token id
+  uint256 internal currentTokenId;
+
   constructor(
     string _name,
     string _symbol,
@@ -99,7 +102,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     onlyDAR
     returns (bytes4)
   {
-    uint256 estateId = uint256(_bytesToBytes32(estateTokenIdBytes));
+    uint256 estateId = _bytesToUint(estateTokenIdBytes);
     _pushTokenId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
@@ -209,12 +212,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
 
   /**
    * @notice Return a new unique id
-   * @dev This is not bullet-proof, but it'll be reinforced by the ERC721 uniqueness of the tokenId
+   * @dev Secuential starting from 1
    * @return uint256 Representing the new token id
    */
-  function _getNewTokenId() internal view returns (uint256) {
-    // solium-disable-next-line security/no-block-members
-    return uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
+  function _getNewTokenId() internal returns (uint256) {
+    currentTokenId = currentTokenId + 1;
+    return currentTokenId;
   }
 
   /**
@@ -301,12 +304,13 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return owner == operator || operator == ownerOf(estateId) || isApprovedForAll(ownerOf(estateId), operator);
   }
 
-  function _bytesToBytes32(bytes b) private pure returns (bytes32) {
+  function _bytesToUint(bytes b) internal pure returns (uint256) {
     bytes32 out;
 
-    for (uint i = 0; i < 32; i++) {
+    for (uint i = 0; i < b.length; i++) {
       out |= bytes32(b[i] & 0xFF) >> (i * 8);
     }
-    return out;
+
+    return uint256(out);
   }
 }
