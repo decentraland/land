@@ -79,33 +79,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   /**
-   * @dev Safely transfers the ownership of multiple estate IDs to another address
-   * @dev Delegates to safeTransferFrom for each transfer
-   * @dev Requires the msg sender to be the owner, approved, or operator
-   * @param from current owner of the token
-   * @param to address to receive the ownership of the given token ID
-   * @param estateIds uint256 array of IDs to be transferred
-  */
-  function safeTransferManyFrom(address from, address to, uint256[] estateIds) public {
-    safeTransferManyFrom(from, to, estateIds, '');
-  }
-
-  /**
-   * @dev Safely transfers the ownership of multiple estate IDs to another address
-   * @dev Delegates to safeTransferFrom for each transfer
-   * @dev Requires the msg sender to be the owner, approved, or operator
-   * @param from current owner of the token
-   * @param to address to receive the ownership of the given token ID
-   * @param estateIds uint256 array of IDs to be transferred
-   * @param data bytes data to send along with a safe transfer check
-  */
-  function safeTransferManyFrom(address from, address to, uint256[] estateIds, bytes data) public {
-    for (uint i = 0; i < estateIds.length; i++) {
-      safeTransferFrom(from, to, estateIds[i], data);
-    }
-  }
-
-  /**
    * @notice Handle the receipt of an NFT
    * @dev The ERC721 smart contract calls this function on the recipient
    *  after a `safetransfer`. This function MAY throw to revert and reject the
@@ -235,6 +208,50 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
 
   function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
     return _isUpdateAuthorized(operator, estateId);
+  }
+
+  /**
+   * @dev Safely transfers the ownership of multiple estate IDs to another address
+   * @dev Delegates to safeTransferFrom for each transfer
+   * @dev Requires the msg sender to be the owner, approved, or operator
+   * @param from current owner of the token
+   * @param to address to receive the ownership of the given token ID
+   * @param estateIds uint256 array of IDs to be transferred
+  */
+  function safeTransferManyFrom(address from, address to, uint256[] estateIds) public {
+    safeTransferManyFrom(
+      from,
+      to,
+      estateIds,
+      ""
+    );
+  }
+
+  /**
+   * @dev Safely transfers the ownership of multiple estate IDs to another address
+   * @dev Delegates to safeTransferFrom for each transfer
+   * @dev Requires the msg sender to be the owner, approved, or operator
+   * @param from current owner of the token
+   * @param to address to receive the ownership of the given token ID
+   * @param estateIds uint256 array of IDs to be transferred
+   * @param data bytes data to send along with a safe transfer check
+  */
+  function safeTransferManyFrom(
+    address from,
+    address to,
+    uint256[] estateIds,
+    bytes data
+  )
+    public
+  {
+    for (uint i = 0; i < estateIds.length; i++) {
+      safeTransferFrom(
+        from,
+        to,
+        estateIds[i],
+        data
+      );
+    }
   }
 
   /**
