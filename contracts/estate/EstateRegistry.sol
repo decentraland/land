@@ -57,7 +57,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     registry = LandRegistry(_registry);
   }
 
-  modifier onlyDAR() {
+  modifier onlyRegistry() {
     require(msg.sender == address(registry), "Only the registry can make this operation");
     _;
   }
@@ -72,7 +72,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @param to The address that will own the minted token
    * @return An uint256 representing the new token id
    */
-  function mint(address to) external returns (uint256) {
+  function mint(address to) external onlyRegistry returns (uint256) {
     uint256 estateId = _getNewEstateId();
     _mint(to, estateId);
     return estateId;
@@ -94,7 +94,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     bytes estateTokenIdBytes
   )
     external
-    onlyDAR
+    onlyRegistry
     returns (bytes4)
   {
     uint256 estateId = _bytesToUint(estateTokenIdBytes);

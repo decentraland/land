@@ -67,7 +67,7 @@ contract('EstateRegistry', accounts => {
     await land.createEstate(xs, ys, owner, sendParams)
 
     const tokenCount = await estate.balanceOf.call(owner)
-    const token = await estate.tokenOfOwnerByIndex(owner, tokenCount - 1)
+    const token = await estate.tokenOfOwnerByIndex(owner, tokenCount.toNumber() - 1)
 
     return token.toString()
   }
@@ -80,6 +80,11 @@ contract('EstateRegistry', accounts => {
   async function createUserEstateWithNumberedTokens() {
     await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
     return createEstate(fiveX, fiveY, user, sentByUser)
+  }
+
+  async function assertEstateCount(owner, expectedCount) {
+    const tokenCount = await estate.balanceOf.call(owner)
+    tokenCount.toNumber().should.be.equal(expectedCount)
   }
 
   async function assertRegistry(requiredRegistry) {
@@ -171,7 +176,22 @@ contract('EstateRegistry', accounts => {
 
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
-      await assertRevert(estate.setLandRegistry(registry.address, sentByAnotherUser))
+      await assertRevert(
+        estate.setLandRegistry(registry.address, sentByAnotherUser)
+      )
+    })
+  })
+
+  describe('create Estate', function() {
+    it('the registry can create estates', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      await land.createEstate([0], [1], user, sentByUser)
+      await land.createEstate([0], [2], user, sentByUser)
+      await assertEstateCount(user, 2)
+    })
+
+    it('only the registry can create estates', async function() {
+      await assertRevert(estate.mint(user))
     })
   })
 
