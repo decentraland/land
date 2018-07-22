@@ -23,7 +23,6 @@
     "zeppelin-solidity": "^1.10.0"
   },
   "devDependencies": {
-    "solium": "^1.1.7",
     "abi-decoder": "^1.0.9",
     "babel-eslint": "^8.2.1",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
@@ -43,6 +42,7 @@
     "npx": "^9.7.1",
     "prettier": "^1.11.1",
     "solidity-sha3": "^0.4.1",
+    "solium": "^1.1.8",
     "truffle": "^4.1.7",
     "truffle-flattener": "^1.2.4",
     "truffle-hdwallet-provider": "0.0.3",

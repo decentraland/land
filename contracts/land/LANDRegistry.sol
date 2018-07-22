@@ -86,7 +86,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user));
+    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
     // solium-disable-next-line security/no-block-members
     latestPing[user] = block.timestamp;
   }
@@ -95,59 +95,65 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   // LAND Getters
   //
 
-  function encodeTokenId(int x, int y) pure external returns (uint) {
+  function encodeTokenId(int x, int y) external pure returns (uint) {
     return _encodeTokenId(x, y);
   }
 
-  function _encodeTokenId(int x, int y) pure internal returns (uint result) {
-    require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
+  function _encodeTokenId(int x, int y) internal pure returns (uint result) {
+    require(
+      -1000000 < x && x < 1000000 && -1000000 < y && y < 1000000,
+      "The coordinates should be inside bounds"
+    );
     return _unsafeEncodeTokenId(x, y);
   }
 
-  function _unsafeEncodeTokenId(int x, int y) pure internal returns (uint) {
+  function _unsafeEncodeTokenId(int x, int y) internal pure returns (uint) {
     return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
 
-  function decodeTokenId(uint value) pure external returns (int, int) {
+  function decodeTokenId(uint value) external pure returns (int, int) {
     return _decodeTokenId(value);
   }
 
-  function _unsafeDecodeTokenId(uint value) pure internal returns (int x, int y) {
+  function _unsafeDecodeTokenId(uint value) internal pure returns (int x, int y) {
     x = expandNegative128BitCast((value & clearLow) >> 128);
     y = expandNegative128BitCast(value & clearHigh);
   }
 
-  function _decodeTokenId(uint value) pure internal returns (int x, int y) {
+  function _decodeTokenId(uint value) internal pure returns (int x, int y) {
     (x, y) = _unsafeDecodeTokenId(value);
-    require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
+    require(
+      -1000000 < x && x < 1000000 && -1000000 < y && y < 1000000,
+      "The coordinates should be inside bounds"
+    );
   }
 
-  function expandNegative128BitCast(uint value) pure internal returns (int) {
+  function expandNegative128BitCast(uint value) internal pure returns (int) {
     if (value & (1<<127) != 0) {
       return int(value | clearLow);
     }
     return int(value);
   }
 
-  function exists(int x, int y) view external returns (bool) {
+  function exists(int x, int y) external view returns (bool) {
     return _exists(x, y);
   }
 
-  function _exists(int x, int y) view internal returns (bool) {
+  function _exists(int x, int y) internal view returns (bool) {
     return _exists(_encodeTokenId(x, y));
   }
 
-  function ownerOfLand(int x, int y) view external returns (address) {
+  function ownerOfLand(int x, int y) external view returns (address) {
     return _ownerOfLand(x, y);
   }
 
-  function _ownerOfLand(int x, int y) view internal returns (address) {
+  function _ownerOfLand(int x, int y) internal view returns (address) {
     return _ownerOf(_encodeTokenId(x, y));
   }
 
-  function ownerOfLandMany(int[] x, int[] y) view external returns (address[]) {
-    require(x.length > 0);
-    require(x.length == y.length);
+  function ownerOfLandMany(int[] x, int[] y) external view returns (address[]) {
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
 
     address[] memory addrs = new address[](x.length);
     for (uint i = 0; i < x.length; i++) {
@@ -208,8 +214,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function transferManyLand(int[] x, int[] y, address to) external {
-    require(x.length > 0);
-    require(x.length == y.length);
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
@@ -235,7 +241,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   event EstateRegistrySet(address indexed registry);
 
-  function setEstateRegistry(address registry) onlyProxyOwner external {
+  function setEstateRegistry(address registry) external onlyProxyOwner {
     estateRegistry = IEstateRegistry(registry);
     emit EstateRegistrySet(registry);
   }
@@ -248,9 +254,9 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     external
     returns (uint256)
   {
-    require(x.length == y.length);
-    require(x.length > 0);
-    require(address(estateRegistry) != 0);
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
+    require(address(estateRegistry) != 0, "The estate registry should be set");
 
     uint256 estateTokenId = estateRegistry.mint(beneficiary);
     bytes memory estateTokenIdBytes = toBytes(estateTokenId);
@@ -318,8 +324,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function updateManyLandData(int[] x, int[] y, string data) external {
-    require(x.length > 0);
-    require(x.length == y.length);
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
     for (uint i = 0; i < x.length; i++) {
       _updateLandData(x[i], y[i], data);
     }

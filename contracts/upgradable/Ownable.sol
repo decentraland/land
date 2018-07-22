@@ -13,7 +13,7 @@ contract Ownable is Storage {
   }
 
   function transferOwnership(address _newOwner) public onlyOwner {
-    require(_newOwner != owner);
+    require(_newOwner != owner, "Cannot transfer to yourself");
     owner = _newOwner;
   }
 }

@@ -8,7 +8,7 @@ import "./IEstateRegistry.sol";
 import "../metadata/MetadataHolderBase.sol";
 
 
-contract PingableDAR {
+contract LandRegistry {
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
   function safeTransferFrom(address, address, uint256) public;
@@ -24,7 +24,7 @@ contract PingableDAR {
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry {
   using SafeMath for uint256;
 
-  PingableDAR public dar;
+  LandRegistry public registry;
 
   // From Estate to list of owned land ids (LANDs)
   mapping(uint256 => uint256[]) public estateLandIds;
@@ -47,23 +47,18 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   constructor(
     string _name,
     string _symbol,
-    address _dar
+    address _registry
   )
     ERC721Token(_name, _symbol)
     Ownable()
     public
   {
-    require(_dar != 0);
-    dar = PingableDAR(_dar);
+    require(_registry != 0, "The registry should be a valid address");
+    registry = LandRegistry(_registry);
   }
 
   modifier onlyDAR() {
-    require(msg.sender == address(dar));
-    _;
-  }
-
-  modifier onlyAuthorized(uint256 estateId) {
-    require(_isAuthorized(msg.sender, estateId), "Unauthorized user");
+    require(msg.sender == address(registry), "Only the registry can make this operation");
     _;
   }
 
@@ -129,8 +124,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     uint256 landId,
     address destinatary
   )
-    onlyAuthorized(estateId)
     external
+    canTransfer(estateId)
   {
     return _transferLand(estateId, landId, destinatary);
   }
@@ -146,8 +141,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     uint256[] landIds,
     address destinatary
   )
-    onlyAuthorized(estateId)
     external
+    canTransfer(estateId)
   {
     uint length = landIds.length;
     for (uint i = 0; i < length; i++) {
@@ -166,14 +161,14 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return landIdEstate[landId];
   }
 
-  function setPingableDAR(address _dar) onlyOwner external {
-    require(_dar != 0);
-    dar = PingableDAR(_dar);
-    emit SetPingableDAR(dar);
+  function setLandRegistry(address _registry) external onlyOwner {
+    require(_registry != 0, "The land registry address should be valid");
+    registry = LandRegistry(_registry);
+    emit SetPingableDAR(registry);
   }
 
-  function ping() onlyOwner external {
-    dar.ping();
+  function ping() external onlyOwner {
+    registry.ping();
   }
 
   /**
@@ -202,25 +197,17 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     );
   }
 
-  function getMetadata(uint256 estateId)
-    view
-    external
-    returns (string)
-  {
+  function getMetadata(uint256 estateId) external view returns (string) {
     return estateData[estateId];
   }
 
-  function setUpdateOperator(uint256 estateId, address operator) external onlyAuthorized(estateId) {
+  function setUpdateOperator(uint256 estateId, address operator) external canTransfer(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
   }
 
   function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
     return _isUpdateAuthorized(operator, estateId);
-  }
-
-  function isAuthorized(address operator, uint256 estateId) external view returns (bool) {
-    return _isAuthorized(operator, estateId);
   }
 
   /**
@@ -239,8 +226,9 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @param landId Transfered Land
    */
   function _pushLandId(uint256 estateId, uint256 landId) internal {
-    require(estateLandIndex[estateId][landId] == 0);
-    require(dar.ownerOf(landId) == address(this));
+    require(exists(estateId), "The estate id should exist");
+    require(estateLandIndex[estateId][landId] == 0, "The land is already owned by the estate");
+    require(registry.ownerOf(landId) == address(this), "The Estate Registry cant manage this land");
 
     estateLandIds[estateId].push(landId);
 
@@ -268,7 +256,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     /**
      * Using 1-based indexing to be able to make this check
      */
-    require(landIndex[landId] != 0);
+    require(landIndex[landId] != 0, "The land is already owned by the estate");
 
     uint lastIndexInArray = landIds.length - 1;
 
@@ -304,17 +292,11 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
      */
     landIdEstate[landId] = 0;
 
-    dar.safeTransferFrom(this, destinatary, landId);
+    registry.safeTransferFrom(this, destinatary, landId);
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
-    require(operator != address(0));
     return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator;
-  }
-
-  function _isAuthorized(address operator, uint256 estateId) internal view returns (bool) {
-    require(operator != address(0));
-    return isApprovedOrOwner(operator, estateId) || isApprovedForAll(ownerOf(estateId), operator);
   }
 
   function _bytesToUint(bytes b) internal pure returns (uint256) {

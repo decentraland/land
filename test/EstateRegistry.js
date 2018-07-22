@@ -82,9 +82,9 @@ contract('EstateRegistry', accounts => {
     return createEstate(fiveX, fiveY, user, sentByUser)
   }
 
-  async function assertDar(requiredDar) {
-    const dar = await estate.dar.call()
-    dar.should.be.equal(requiredDar)
+  async function assertRegistry(requiredRegistry) {
+    const registry = await estate.registry.call()
+    registry.should.be.equal(requiredRegistry)
   }
 
   async function assertMetadata(estateId, requiredMetadata) {
@@ -162,16 +162,16 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('set Pingable DAR', function() {
+  describe('set Land Registry', function() {
     it('set works correctly', async function() {
-      const dar = await LANDProxy.new(creationParams)
-      await estate.setPingableDAR(dar.address, creationParams)
-      await assertDar(dar.address)
+      const registry = await LANDProxy.new(creationParams)
+      await estate.setLandRegistry(registry.address, creationParams)
+      await assertRegistry(registry.address)
     })
 
-    it('unauthorized user can not set dar', async function() {
-      const dar = await LANDProxy.new(creationParams)
-      await assertRevert(estate.setPingableDAR(dar.address, sentByAnotherUser))
+    it('unauthorized user can not set registry', async function() {
+      const registry = await LANDProxy.new(creationParams)
+      await assertRevert(estate.setLandRegistry(registry.address, sentByAnotherUser))
     })
   })
 
@@ -211,6 +211,12 @@ contract('EstateRegistry', accounts => {
       await land.assignMultipleParcels([0], [2], user, sentByCreator)
       await transferIn(estateId, 2, user)
       await assertEstateSize(estateId, 2)
+    })
+
+    it('user cannot transfer tokens to an undefined estate', async function() {
+      const estateId = '1'
+      await land.assignMultipleParcels([0], [2], user, sentByCreator)
+      await assertRevert(transferIn(estateId, 2, user))
     })
 
     it('random user can transfer tokens in', async function() {

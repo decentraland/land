@@ -28,6 +28,6 @@ contract IEstateRegistry {
   );
 
   event SetPingableDAR(
-    address indexed dar
+    address indexed registry
   );
 }

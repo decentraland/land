@@ -8,7 +8,8 @@ contract DelegateProxy {
    * @param _calldata Calldata for the delegatecall
    */
   function delegatedFwd(address _dst, bytes _calldata) internal {
-    require(isContract(_dst));
+    require(isContract(_dst), "The destination address is not a contract");
+
     // solium-disable-next-line security/no-inline-assembly
     assembly {
       let result := delegatecall(sub(gas, 10000), _dst, add(_calldata, 0x20), mload(_calldata), 0, 0)
@@ -24,7 +25,7 @@ contract DelegateProxy {
     }
   }
 
-  function isContract(address _target) view internal returns (bool) {
+  function isContract(address _target) internal view returns (bool) {
     uint256 size;
     // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(_target) }
