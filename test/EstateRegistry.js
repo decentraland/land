@@ -67,9 +67,25 @@ contract('EstateRegistry', accounts => {
     await land.createEstate(xs, ys, owner, sendParams)
 
     const tokenCount = await estate.balanceOf.call(owner)
-    const token = await estate.tokenOfOwnerByIndex(owner, tokenCount.toNumber() - 1)
+    const token = await estate.tokenOfOwnerByIndex(
+      owner,
+      tokenCount.toNumber() - 1
+    )
 
     return token.toString()
+  }
+
+  async function createTwoEstates(owner, sendParams) {
+    await land.assignMultipleParcels([0, 0], [1, 2], owner, sentByCreator)
+    await land.createEstate([0], [1], owner, sendParams)
+    await land.createEstate([0], [2], owner, sendParams)
+
+    let estateIds = await Promise.all([
+      estate.tokenOfOwnerByIndex(owner, 0),
+      estate.tokenOfOwnerByIndex(owner, 1)
+    ])
+
+    return estateIds.map(id => id.toNumber())
   }
 
   async function createUserEstateWithToken1() {
@@ -184,14 +200,42 @@ contract('EstateRegistry', accounts => {
 
   describe('create Estate', function() {
     it('the registry can create estates', async function() {
-      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
-      await land.createEstate([0], [1], user, sentByUser)
-      await land.createEstate([0], [2], user, sentByUser)
+      await createTwoEstates(user, sentByUser)
       await assertEstateCount(user, 2)
     })
 
     it('only the registry can create estates', async function() {
       await assertRevert(estate.mint(user))
+    })
+  })
+
+  describe('transfer many Estates', function() {
+    it('the owner can transfer many estates', async function() {
+      const estateIds = await createTwoEstates(user, sentByUser)
+
+      await estate.safeTransferManyFrom(
+        user,
+        anotherUser,
+        estateIds,
+        '',
+        sentByUser
+      )
+
+      await assertEstateCount(user, 0)
+      await assertEstateCount(anotherUser, 2)
+    })
+
+    it('only the owner can transfer many estates', async function() {
+      const estateIds = await createTwoEstates(user, sentByUser)
+      await assertRevert(
+        estate.safeTransferManyFrom(
+          user,
+          anotherUser,
+          estateIds,
+          '',
+          sentByAnotherUser
+        )
+      )
     })
   })
 
