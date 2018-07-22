@@ -26,14 +26,14 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
 
   PingableDAR public dar;
 
-  // From Estate to list of owned tokenIds (LANDs)
-  mapping(uint256 => uint256[]) public estateTokenIds;
+  // From Estate to list of owned land ids (LANDs)
+  mapping(uint256 => uint256[]) public estateLandIds;
 
-  // From tokenId (LAND) to its owner estateId of owned tokenIds
-  mapping(uint256 => uint256) public tokenIdEstate;
+  // From Land id (LAND) to its owner Estate id
+  mapping(uint256 => uint256) public landIdEstate;
 
-  // From Estate to mapping of tokenId to index on the array above
-  mapping(uint256 => mapping(uint256 => uint256)) public estateTokenIndex;
+  // From Estate id to mapping of land id to index on the array above (estateLandIds)
+  mapping(uint256 => mapping(uint256 => uint256)) public estateLandIndex;
 
   // Metadata of the Estate
   mapping(uint256 => string) internal estateData;
@@ -41,8 +41,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
 
-  // Secuential token id
-  uint256 internal currentTokenId;
+  // Secuential Estate id
+  uint256 internal currentEstateId;
 
   constructor(
     string _name,
@@ -73,14 +73,14 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   /**
-   * @dev Mint a new estate
+   * @dev Mint a new Estate
    * @param to The address that will own the minted token
    * @return An uint256 representing the new token id
    */
   function mint(address to) external returns (uint256) {
-    uint256 tokenId = _getNewTokenId();
-    _mint(to, tokenId);
-    return tokenId;
+    uint256 estateId = _getNewEstateId();
+    _mint(to, estateId);
+    return estateId;
   }
 
   /**
@@ -103,7 +103,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     returns (bytes4)
   {
     uint256 estateId = _bytesToUint(estateTokenIdBytes);
-    _pushTokenId(estateId, tokenId);
+    _pushLandId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
 
@@ -111,52 +111,59 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @notice Unlock any token sent to the contract without using safeTransferFrom
    * @dev It uses the same logic as onERC721Received
    * @param estateId The new owner of the locked token
-   * @param tokenId Locked token id
+   * @param landId Locked Land id
    */
-  function ammendReceived(uint256 estateId, uint256 tokenId) external {
-    _pushTokenId(estateId, tokenId);
-    emit AmmendReceived(estateId, tokenId);
+  function ammendReceived(uint256 estateId, uint256 landId) external {
+    _pushLandId(estateId, landId);
+    emit AmmendReceived(estateId, landId);
   }
 
   /**
-   * @notice Transfer a token owned by a estate to a new owner
+   * @notice Transfer a land owned by a estate to a new owner
    * @param estateId Current owner of the token
-   * @param tokenId Token to be transfered
+   * @param landId Land to be transfered
    * @param destinatary New owner
    */
-  function transferToken(
+  function transferLand(
     uint256 estateId,
-    uint256 tokenId,
+    uint256 landId,
     address destinatary
   )
     onlyAuthorized(estateId)
     external
   {
-    return _transferToken(estateId, tokenId, destinatary);
+    return _transferLand(estateId, landId, destinatary);
   }
 
   /**
    * @notice Transfer many tokens owned by a estate to a new owner
    * @param estateId Current owner of the token
-   * @param tokens Tokens to be transfered
+   * @param landIds Lands to be transfered
    * @param destinatary New owner
    */
-  function transferManyTokens(uint256 estateId, uint256[] tokens, address destinatary) onlyAuthorized(estateId) external {
-    uint length = tokens.length;
+  function transferManyLands(
+    uint256 estateId,
+    uint256[] landIds,
+    address destinatary
+  )
+    onlyAuthorized(estateId)
+    external
+  {
+    uint length = landIds.length;
     for (uint i = 0; i < length; i++) {
-      _transferToken(estateId, tokens[i], destinatary);
+      _transferLand(estateId, landIds[i], destinatary);
     }
   }
 
   /**
-   * @notice Get the estate id for a given token id
-   * @dev This information also lives on estateTokenIds,
+   * @notice Get the estate id for a given land id
+   * @dev This information also lives on estateLandIds,
    *   but it being a mapping you need to know the estate id beforehand.
-   * @param tokenId Token to search
+   * @param landId Land to search
    * @return The corresponding estate id
    */
-  function getTokenEstateId(uint256 tokenId) external view returns (uint256) {
-    return tokenIdEstate[tokenId];
+  function getLandEstateId(uint256 landId) external view returns (uint256) {
+    return landIdEstate[landId];
   }
 
   function setPingableDAR(address _dar) onlyOwner external {
@@ -175,10 +182,16 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @return Tokens length
    */
   function getEstateSize(uint256 estateId) external view returns (uint256) {
-    return estateTokenIds[estateId].length;
+    return estateLandIds[estateId].length;
   }
 
-  function updateMetadata(uint256 estateId, string metadata) external onlyUpdateAuthorized(estateId) {
+  function updateMetadata(
+    uint256 estateId,
+    string metadata
+  )
+    external
+    onlyUpdateAuthorized(estateId)
+  {
     estateData[estateId] = metadata;
 
     emit Update(
@@ -213,95 +226,95 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   /**
    * @notice Return a new unique id
    * @dev Secuential starting from 1
-   * @return uint256 Representing the new token id
+   * @return uint256 Representing the new Estate id
    */
-  function _getNewTokenId() internal returns (uint256) {
-    currentTokenId = currentTokenId.add(1);
-    return currentTokenId;
+  function _getNewEstateId() internal returns (uint256) {
+    currentEstateId = currentEstateId.add(1);
+    return currentEstateId;
   }
 
   /**
-   * @dev Appends a new token id to a esatate updating all related storage
-   * @param estateId Estate where the token should go
-   * @param tokenId Transfered token
+   * @dev Appends a new Land id to a esatate updating all related storage
+   * @param estateId Estate where the Land should go
+   * @param landId Transfered Land
    */
-  function _pushTokenId(uint256 estateId, uint256 tokenId) internal {
-    require(estateTokenIndex[estateId][tokenId] == 0);
-    require(dar.ownerOf(tokenId) == address(this));
+  function _pushLandId(uint256 estateId, uint256 landId) internal {
+    require(estateLandIndex[estateId][landId] == 0);
+    require(dar.ownerOf(landId) == address(this));
 
-    estateTokenIds[estateId].push(tokenId);
+    estateLandIds[estateId].push(landId);
 
-    tokenIdEstate[tokenId] = estateId;
+    landIdEstate[landId] = estateId;
 
-    estateTokenIndex[estateId][tokenId] = estateTokenIds[estateId].length;
+    estateLandIndex[estateId][landId] = estateLandIds[estateId].length;
   }
 
   /**
-   * @dev Removes a token from an estate and transfers it to a new owner
-   * @param estateId Current owner of the token
-   * @param tokenId Token to be transfered
+   * @dev Removes a Land from an estate and transfers it to a new owner
+   * @param estateId Current owner of the Land
+   * @param landId Land to be transfered
    * @param destinatary New owner
    */
-  function _transferToken(
+  function _transferLand(
     uint256 estateId,
-    uint256 tokenId,
+    uint256 landId,
     address destinatary
   )
     internal
   {
-    uint256[] storage tokenIds = estateTokenIds[estateId];
-    mapping(uint256 => uint256) tokenIndex = estateTokenIndex[estateId];
+    uint256[] storage landIds = estateLandIds[estateId];
+    mapping(uint256 => uint256) landIndex = estateLandIndex[estateId];
 
     /**
      * Using 1-based indexing to be able to make this check
      */
-    require(tokenIndex[tokenId] != 0);
+    require(landIndex[landId] != 0);
 
-    uint lastIndexInArray = tokenIds.length - 1;
-
-    /**
-     * Get the tokenIndex of this token in the tokenIds list
-     */
-    uint indexInArray = tokenIndex[tokenId] - 1;
+    uint lastIndexInArray = landIds.length - 1;
 
     /**
-     * Get the tokenId at the end of the tokenIds list
+     * Get the landIndex of this token in the landIds list
      */
-    uint tempTokenId = tokenIds[lastIndexInArray];
+    uint indexInArray = landIndex[landId] - 1;
 
     /**
-     * Store the last token in the position previously occupied by tokenId
+     * Get the landId at the end of the landIds list
      */
-    tokenIndex[tempTokenId] = indexInArray + 1;
-    tokenIds[indexInArray] = tempTokenId;
+    uint tempTokenId = landIds[lastIndexInArray];
 
     /**
-     * Delete the tokenIds[last element]
+     * Store the last token in the position previously occupied by landId
      */
-    delete tokenIds[lastIndexInArray];
-    tokenIds.length = lastIndexInArray;
+    landIndex[tempTokenId] = indexInArray + 1;
+    landIds[indexInArray] = tempTokenId;
 
     /**
-     * Drop this tokenId from both the tokenIndex and tokenId list
+     * Delete the landIds[last element]
      */
-    tokenIndex[tokenId] = 0;
+    delete landIds[lastIndexInArray];
+    landIds.length = lastIndexInArray;
 
     /**
-     * Drop this tokenId estate
+     * Drop this landId from both the landIndex and landId list
      */
-    tokenIdEstate[tokenId] = 0;
+    landIndex[landId] = 0;
 
-    dar.safeTransferFrom(this, destinatary, tokenId);
+    /**
+     * Drop this landId estate
+     */
+    landIdEstate[landId] = 0;
+
+    dar.safeTransferFrom(this, destinatary, landId);
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     require(operator != address(0));
-    return owner == operator || operator == ownerOf(estateId) || updateOperator[estateId] == operator;
+    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator;
   }
 
   function _isAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     require(operator != address(0));
-    return owner == operator || operator == ownerOf(estateId) || isApprovedForAll(ownerOf(estateId), operator);
+    return isApprovedOrOwner(operator, estateId) || isApprovedForAll(ownerOf(estateId), operator);
   }
 
   function _bytesToUint(bytes b) internal pure returns (uint256) {

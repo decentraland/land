@@ -4,7 +4,7 @@ pragma solidity ^0.4.22;
 contract IEstateRegistry {
   function mint(address to) external returns (uint256);
 
-  function getTokenEstateId(uint256 tokenId) external view returns(uint256);
+  function getLandEstateId(uint256 landId) external view returns(uint256);
 
   function updateMetadata(uint256 estateId, string metadata) external;
 
@@ -24,7 +24,7 @@ contract IEstateRegistry {
 
   event AmmendReceived(
     uint256 indexed estateId,
-    uint256 indexed tokenId
+    uint256 indexed landId
   );
 
   event SetPingableDAR(

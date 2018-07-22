@@ -26,7 +26,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner, "this function can only be called by the proxy owner");
+    require(msg.sender == proxyOwner, "This function can only be called by the proxy owner");
     _;
   }
 
@@ -35,12 +35,18 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   //
 
   modifier onlyOwnerOf(uint256 assetId) {
-    require(msg.sender == _ownerOf(assetId), "this function can only be called by the owner of the asset");
+    require(
+      msg.sender == _ownerOf(assetId),
+      "This function can only be called by the owner of the asset"
+    );
     _;
   }
 
   modifier onlyUpdateAuthorized(uint256 tokenId) {
-    require(msg.sender == _ownerOf(tokenId) || _isUpdateAuthorized(msg.sender, tokenId), "msg.sender is not authorized to update");
+    require(
+      msg.sender == _ownerOf(tokenId) || _isUpdateAuthorized(msg.sender, tokenId),
+      "msg.sender is not authorized to update"
+    );
     _;
   }
 
@@ -274,16 +280,30 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   // LAND Update
   //
 
-  function updateLandData(int x, int y, string data) external onlyUpdateAuthorized (_encodeTokenId(x, y)) {
+  function updateLandData(
+    int x,
+    int y,
+    string data
+  )
+    external
+    onlyUpdateAuthorized(_encodeTokenId(x, y))
+  {
     return _updateLandData(x, y, data);
   }
 
-  function _updateLandData(int x, int y, string data) internal onlyUpdateAuthorized (_encodeTokenId(x, y)) {
+  function _updateLandData(
+    int x,
+    int y,
+    string data
+  )
+    internal
+    onlyUpdateAuthorized(_encodeTokenId(x, y))
+  {
     uint256 assetId = _encodeTokenId(x, y);
     address owner = _holderOf[assetId];
 
     if (owner == address(estateRegistry)) {
-      uint256 estateId = estateRegistry.getTokenEstateId(assetId);
+      uint256 estateId = estateRegistry.getLandEstateId(assetId);
       estateRegistry.updateMetadata(estateId, data);
     } else {
       _update(assetId, data);

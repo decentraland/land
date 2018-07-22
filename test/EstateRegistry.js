@@ -111,7 +111,7 @@ contract('EstateRegistry', accounts => {
     if (!who) {
       who = sentByUser
     }
-    return estate.transferToken(estateId, index, anotherUser, who)
+    return estate.transferLand(estateId, index, anotherUser, who)
   }
 
   function transferIn(estateId, index, userAddress = anotherUser) {
@@ -141,9 +141,9 @@ contract('EstateRegistry', accounts => {
     )
   }
 
-  async function assertTokenIdAtIndex(estateId, index, value) {
-    const tokenId = await estate.estateTokenIds.call(estateId, index)
-    tokenId.toString().should.be.equal(value.toString())
+  async function assertLandIdAtIndex(estateId, index, value) {
+    const landId = await estate.estateLandIds.call(estateId, index)
+    landId.toString().should.be.equal(value.toString())
   }
 
   beforeEach(setupRegistry)
@@ -200,7 +200,7 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithToken1()
       await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
       await assertRevert(
-        estate.transferToken(estateId, 1, yetAnotherUser, sentByAnotherUser)
+        estate.transferLand(estateId, 1, yetAnotherUser, sentByAnotherUser)
       )
     })
   })
@@ -223,27 +223,27 @@ contract('EstateRegistry', accounts => {
     it('random user can not transfer tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
       await assertRevert(
-        estate.transferToken(estateId, 1, hacker, sentByAnotherUser)
+        estate.transferLand(estateId, 1, hacker, sentByAnotherUser)
       )
     })
 
     it('random user can not transfer many tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
       await assertRevert(
-        estate.transferManyTokens(estateId, [1], hacker, sentByAnotherUser)
+        estate.transferManyLands(estateId, [1], hacker, sentByAnotherUser)
       )
     })
 
     it('owner can transfer tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
-      await estate.transferToken(estateId, 1, anotherUser, sentByUser)
+      await estate.transferLand(estateId, 1, anotherUser, sentByUser)
       await assertEstateSize(estateId, 0)
       await assertNFTOwner(1, anotherUser)
     })
 
     it('owner can transfer many tokens out', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      await estate.transferManyTokens(
+      await estate.transferManyLands(
         estateId,
         [1, 2, 3],
         anotherUser,
@@ -263,7 +263,7 @@ contract('EstateRegistry', accounts => {
     it('operator can transfer many tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
-      await estate.transferManyTokens(
+      await estate.transferManyLands(
         estateId,
         [1],
         anotherUser,
@@ -287,7 +287,7 @@ contract('EstateRegistry', accounts => {
       await transferIn(estateId, 1)
       await estate.setApprovalForAll(anotherUser, false, sentByUser)
       await assertRevert(
-        estate.transferManyTokens(estateId, [1], anotherUser, sentByAnotherUser)
+        estate.transferManyLands(estateId, [1], anotherUser, sentByAnotherUser)
       )
     })
   })
@@ -297,11 +297,11 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithNumberedTokens()
       await assertNFTBalance(estate.address, 5)
       await transferOut(estateId, 2)
-      await assertTokenIdAtIndex(estateId, 1, 5)
+      await assertLandIdAtIndex(estateId, 1, 5)
       await transferIn(estateId, 2)
-      await assertTokenIdAtIndex(estateId, 4, 2)
+      await assertLandIdAtIndex(estateId, 4, 2)
       await transferOut(estateId, 3)
-      await assertTokenIdAtIndex(estateId, 2, 2)
+      await assertLandIdAtIndex(estateId, 2, 2)
     })
 
     it('five in, empty, refill', async function() {
@@ -318,11 +318,11 @@ contract('EstateRegistry', accounts => {
       await transferIn(estateId, 4)
       await transferIn(estateId, 5)
       await assertNFTBalance(estate.address, 5)
-      await assertTokenIdAtIndex(estateId, 0, 2)
-      await assertTokenIdAtIndex(estateId, 1, 1)
-      await assertTokenIdAtIndex(estateId, 2, 3)
-      await assertTokenIdAtIndex(estateId, 3, 4)
-      await assertTokenIdAtIndex(estateId, 4, 5)
+      await assertLandIdAtIndex(estateId, 0, 2)
+      await assertLandIdAtIndex(estateId, 1, 1)
+      await assertLandIdAtIndex(estateId, 2, 3)
+      await assertLandIdAtIndex(estateId, 3, 4)
+      await assertLandIdAtIndex(estateId, 4, 5)
     })
   })
 
@@ -336,7 +336,7 @@ contract('EstateRegistry', accounts => {
       await assertEstateSize(estateId, 4)
       await estate.ammendReceived(estateId, 2, sentByUser)
       await assertEstateSize(estateId, 5)
-      await assertTokenIdAtIndex(estateId, 4, 2)
+      await assertLandIdAtIndex(estateId, 4, 2)
     })
 
     it('can be called by anyone', async function() {
@@ -344,7 +344,7 @@ contract('EstateRegistry', accounts => {
       await transferOut(estateId, 2)
       await unsafeTransferIn(2)
       await estate.ammendReceived(estateId, 2, sentByAnotherUser)
-      await assertTokenIdAtIndex(estateId, 4, 2)
+      await assertLandIdAtIndex(estateId, 4, 2)
     })
   })
 })
