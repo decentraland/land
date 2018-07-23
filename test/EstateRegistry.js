@@ -217,7 +217,6 @@ contract('EstateRegistry', accounts => {
         user,
         anotherUser,
         estateIds,
-        '',
         sentByUser
       )
 
@@ -232,7 +231,6 @@ contract('EstateRegistry', accounts => {
           user,
           anotherUser,
           estateIds,
-          '',
           sentByAnotherUser
         )
       )
