@@ -147,7 +147,26 @@ contract('EstateRegistry', accounts => {
     return estate.transferLand(estateId, index, anotherUser, who)
   }
 
-  function transferIn(estateId, index, userAddress = anotherUser) {
+  function transferIn(estateId, landId, userAddress = anotherUser) {
+    return land.safeTransferFromToEstate(
+      userAddress,
+      estate.address,
+      landId,
+      estateId,
+      getParams(userAddress)
+    )
+  }
+
+  function unsafeTransferIn(landId, userAddress = anotherUser) {
+    return land.transferFrom(
+      userAddress,
+      estate.address,
+      landId,
+      getParams(userAddress)
+    )
+  }
+
+  function getParams(userAddress) {
     let params = sentByAnotherUser
 
     if (userAddress === user) {
@@ -156,22 +175,7 @@ contract('EstateRegistry', accounts => {
       params = sentByCreator
     }
 
-    return land.safeTransferFromToEstate(
-      userAddress,
-      estate.address,
-      index,
-      estateId,
-      params
-    )
-  }
-
-  function unsafeTransferIn(index, userAddress = anotherUser) {
-    return land.transferFrom(
-      userAddress,
-      estate.address,
-      index,
-      sentByAnotherUser
-    )
+    return params
   }
 
   async function assertLandIdAtIndex(estateId, index, value) {
@@ -189,7 +193,7 @@ contract('EstateRegistry', accounts => {
         value = value.toString()
       }
 
-      value.should.be.equal(expectedArgs[key])
+      value.should.be.equal(expectedArgs[key], `[assertEvent] ${key}`)
     }
   }
 
@@ -338,6 +342,22 @@ contract('EstateRegistry', accounts => {
       await assertEstateSize(estateId, 2)
     })
 
+    it('transfering tokens in fires the AddLand event', async function() {
+      const landId = '2'
+      const estateId = await createUserEstateWithToken1()
+      await land.assignMultipleParcels([0], [2], user, sentByCreator)
+
+      await unsafeTransferIn(landId, user)
+      const { logs } = await estate.pushLandId(estateId, landId, sentByUser)
+
+      logs.length.should.be.equal(1)
+
+      assertEvent(logs[0], 'AddLand', {
+        estateId,
+        landId
+      })
+    })
+
     it('user cannot transfer tokens to an undefined estate', async function() {
       const estateId = '1'
       await land.assignMultipleParcels([0], [2], user, sentByCreator)
@@ -370,6 +390,25 @@ contract('EstateRegistry', accounts => {
       await estate.transferLand(estateId, 1, anotherUser, sentByUser)
       await assertEstateSize(estateId, 0)
       await assertNFTOwner(1, anotherUser)
+    })
+
+    it('transfering tokens out should emit the RemoveLand event', async function() {
+      const landId = '1'
+      const estateId = await createUserEstateWithToken1()
+      const { logs } = await estate.transferLand(
+        estateId,
+        landId,
+        anotherUser,
+        sentByUser
+      )
+
+      logs.length.should.be.equal(1)
+
+      assertEvent(logs[0], 'RemoveLand', {
+        estateId,
+        landId,
+        destinatary: anotherUser
+      })
     })
 
     it('owner can transfer many tokens out', async function() {
@@ -478,11 +517,16 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(estateId, 4, 2)
     })
 
-     it('can not be duplicated in multiple estates', async function() {
+    it('can not be duplicated in multiple estates', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
 
       await land.assignMultipleParcels([0], [100], anotherUser, sentByCreator)
-      const anotherEstate = await createEstate([0], [100], anotherUser, sentByAnotherUser)
+      const anotherEstate = await createEstate(
+        [0],
+        [100],
+        anotherUser,
+        sentByAnotherUser
+      )
 
       // Transfer out of Estate the land (0, 2)
       await transferOut(estateId, 2)
@@ -494,9 +538,7 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(anotherEstate, 1, 2)
 
       // Ammend Received the land (0,2) to Estate
-      await assertRevert(
-        estate.ammendReceivedLand(estateId, 2, sentByUser)
-      )
+      await assertRevert(estate.ammendReceivedLand(estateId, 2, sentByUser))
     })
   })
 })

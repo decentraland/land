@@ -314,6 +314,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     landIdEstate[landId] = estateId;
 
     estateLandIndex[estateId][landId] = estateLandIds[estateId].length;
+
+    emit AddLand(estateId, landId);
   }
 
   /**
@@ -372,6 +374,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     landIdEstate[landId] = 0;
 
     registry.safeTransferFrom(this, destinatary, landId);
+
+    emit RemoveLand(estateId, landId, destinatary);
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {

@@ -5,8 +5,8 @@
   "scripts": {
     "test": "scripts/test.sh",
     "test:watch": "nodemon test/** contracts/** --exec 'npm test'",
-    "lint": "npx eslint test",
-    "lint:fix": "npx eslint --fix test"
+    "lint": "npx eslint test && npx solium -d contracts",
+    "lint:fix": "npx eslint --fix test && npx solium -d contracts --fix"
   },
   "repository": {
     "type": "git",

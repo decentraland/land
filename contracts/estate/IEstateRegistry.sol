@@ -16,6 +16,17 @@ contract IEstateRegistry {
     string metadata
   );
 
+  event AddLand(
+    uint256 indexed estateId,
+    uint256 indexed landId
+  );
+
+  event RemoveLand(
+    uint256 indexed estateId,
+    uint256 indexed landId,
+    address indexed destinatary
+  );
+
   event Update(
     uint256 indexed assetId,
     address indexed holder,
