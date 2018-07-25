@@ -6,7 +6,7 @@ const LANDRegistry = artifacts.require('LANDRegistryTest')
 const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
-const NONE = '0x0000000000000000000000000000000000000000'
+const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -37,9 +37,6 @@ contract('EstateRegistry', accounts => {
   const sentByUser = { ...creationParams, from: user }
   const sentByAnotherUser = { ...creationParams, from: anotherUser }
   const sentByCreator = { ...creationParams, from: creator }
-
-  const sixX = [0, 0, 1, 1, -3, -4]
-  const sixY = [2, -1, 1, -2, 2, 2]
 
   const fiveX = [0, 0, 0, 0, 0]
   const fiveY = [1, 2, 3, 4, 5]
@@ -262,7 +259,7 @@ contract('EstateRegistry', accounts => {
 
       // ERC721
       assertEvent(logs[0], 'Transfer', {
-        _from: '0x0000000000000000000000000000000000000000',
+        _from: EMPTY_ADDRESS,
         _to: user,
         _tokenId: '1'
       })

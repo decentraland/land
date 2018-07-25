@@ -1,12 +1,9 @@
 import assertRevert from './helpers/assertRevert'
-import { increaseTimeTo, duration, latestTime } from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
 const LANDRegistry = artifacts.require('LANDRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
-
-const NONE = '0x0000000000000000000000000000000000000000'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -14,12 +11,11 @@ require('chai')
   .should()
 
 contract('LANDRegistry', accounts => {
-  const [creator, user, anotherUser, operator, hacker] = accounts
-  let registry = null,
-    proxy = null
+  const [creator, user, anotherUser] = accounts
+  let registry = null
+  let proxy = null
   let land = null
-  const _name = 'Decentraland LAND'
-  const _symbol = 'LAND'
+
   const sentByUser = { from: user }
   const sentByCreator = { from: creator }
   const creationParams = {

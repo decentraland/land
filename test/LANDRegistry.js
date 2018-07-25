@@ -1,5 +1,4 @@
 import assertRevert from './helpers/assertRevert'
-import { increaseTimeTo, duration, latestTime } from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
