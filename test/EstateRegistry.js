@@ -44,7 +44,7 @@ contract('EstateRegistry', accounts => {
   const fiveX = [0, 0, 0, 0, 0]
   const fiveY = [1, 2, 3, 4, 5]
 
-  const newMsg = 'new land content'
+  const newMetadata = 'new land content'
 
   async function setupRegistry() {
     proxy = await LANDProxy.new(creationParams)
@@ -63,8 +63,16 @@ contract('EstateRegistry', accounts => {
     await land.setEstateRegistry(estate.address)
   }
 
+  async function createEstateMetadata(xs, ys, owner, metadata, sendParams) {
+    return _createEstate(xs, ys, owner, metadata, sendParams)
+  }
+
   async function createEstate(xs, ys, owner, sendParams) {
-    await land.createEstate(xs, ys, owner, sendParams)
+    return _createEstate(xs, ys, owner, '', sendParams)
+  }
+
+  async function _createEstate(xs, ys, owner, metadata, sendParams) {
+    await land.createEstate(xs, ys, owner, metadata, sendParams)
 
     const tokenCount = await estate.balanceOf.call(owner)
     const token = await estate.tokenOfOwnerByIndex(
@@ -77,8 +85,8 @@ contract('EstateRegistry', accounts => {
 
   async function createTwoEstates(owner, sendParams) {
     await land.assignMultipleParcels([0, 0], [1, 2], owner, sentByCreator)
-    await land.createEstate([0], [1], owner, sendParams)
-    await land.createEstate([0], [2], owner, sendParams)
+    await createEstate([0], [1], owner, sendParams)
+    await createEstate([0], [2], owner, sendParams)
 
     let estateIds = await Promise.all([
       estate.tokenOfOwnerByIndex(owner, 0),
@@ -109,7 +117,7 @@ contract('EstateRegistry', accounts => {
   }
 
   async function assertMetadata(estateId, requiredMetadata) {
-    const metadata = await estate.getMetadata(estateId)
+    const metadata = await estate.getMetadata.call(estateId)
     metadata.should.be.equal(requiredMetadata)
   }
 
@@ -207,6 +215,14 @@ contract('EstateRegistry', accounts => {
     it('only the registry can create estates', async function() {
       await assertRevert(estate.mint(user))
     })
+
+    it('supports setting the metadata on create', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+
+      const metadata = 'name,description'
+      const estateId = await createEstateMetadata([0], [1], user, metadata, sentByUser)
+      await assertMetadata(estateId, metadata)
+    })
   })
 
   describe('transfer many Estates', function() {
@@ -237,17 +253,17 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('update metadata', function() {
+  describe('update metadata and update operator', function() {
     it('update works correctly', async function() {
       const estateId = await createUserEstateWithToken1()
-      await estate.updateMetadata(estateId, newMsg, sentByUser)
-      await assertMetadata(estateId, newMsg)
+      await estate.updateMetadata(estateId, newMetadata, sentByUser)
+      await assertMetadata(estateId, newMetadata)
     })
 
     it('unauthorized user can not update', async function() {
       const estateId = await createUserEstateWithToken1()
       await assertRevert(
-        estate.updateMetadata(estateId, newMsg, sentByAnotherUser)
+        estate.updateMetadata(estateId, newMetadata, sentByAnotherUser)
       )
     })
 

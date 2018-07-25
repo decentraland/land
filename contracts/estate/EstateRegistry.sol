@@ -41,9 +41,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
 
-  // Secuential Estate id
-  uint256 internal currentEstateId;
-
   constructor(
     string _name,
     string _symbol,
@@ -73,9 +70,17 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @return An uint256 representing the new token id
    */
   function mint(address to) external onlyRegistry returns (uint256) {
-    uint256 estateId = _getNewEstateId();
-    _mint(to, estateId);
-    return estateId;
+    return _mintEstate(to, "");
+  }
+
+  /**
+   * @dev Mint a new Estate with some metadata
+   * @param to The address that will own the minted token
+   * @param metadata Set an initial metadata
+   * @return An uint256 representing the new token id
+   */
+  function mint(address to, string metadata) external onlyRegistry returns (uint256) {
+    return _mintEstate(to, metadata);
   }
 
   /**
@@ -180,6 +185,12 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return estateLandIds[estateId].length;
   }
 
+  /**
+   * @notice Update the metadata of a Estate
+   * @dev Reverts if the Estate does not exist or the user is not authorized
+   * @param estateId Estate id to update
+   * @param metadata string metadata
+   */
   function updateMetadata(
     uint256 estateId,
     string metadata
@@ -187,7 +198,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     external
     onlyUpdateAuthorized(estateId)
   {
-    estateData[estateId] = metadata;
+    _updateMetadata(estateId, metadata);
 
     emit Update(
       estateId,
@@ -255,13 +266,35 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   /**
+   * @dev Interal function to mint a new Estate with some metadata
+   * @param to The address that will own the minted token
+   * @param metadata Set an initial metadata
+   * @return An uint256 representing the new token id
+   */
+  function _mintEstate(address to, string metadata) internal returns (uint256) {
+    uint256 estateId = _getNewEstateId();
+    _mint(to, estateId);
+    _updateMetadata(estateId, metadata);
+    return estateId;
+  }
+
+  /**
+   * @dev Internal function to update a Estates metadata
+   * @dev Does not require the Estate to exist, for a public interface use `updateMetadata`
+   * @param estateId Estate id to update
+   * @param metadata string metadata
+   */
+  function _updateMetadata(uint256 estateId, string metadata) internal {
+    estateData[estateId] = metadata;
+  }
+
+  /**
    * @notice Return a new unique id
-   * @dev Secuential starting from 1
+   * @dev It uses totalSupply to determine the next id
    * @return uint256 Representing the new Estate id
    */
-  function _getNewEstateId() internal returns (uint256) {
-    currentEstateId = currentEstateId.add(1);
-    return currentEstateId;
+  function _getNewEstateId() internal view returns (uint256) {
+    return totalSupply().add(1);
   }
 
   /**
