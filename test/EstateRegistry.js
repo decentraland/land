@@ -477,5 +477,26 @@ contract('EstateRegistry', accounts => {
       await estate.ammendReceivedLand(estateId, 2, sentByAnotherUser)
       await assertLandIdAtIndex(estateId, 4, 2)
     })
+
+     it('can not be duplicated in multiple estates', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+
+      await land.assignMultipleParcels([0], [100], anotherUser, sentByCreator)
+      const anotherEstate = await createEstate([0], [100], anotherUser, sentByAnotherUser)
+
+      // Transfer out of Estate the land (0, 2)
+      await transferOut(estateId, 2)
+      // Transfer from user to EstateRegistry the land (0, 2)
+      await unsafeTransferIn(2)
+      // Ammend Received the land (0,2) to another Estate
+      await estate.ammendReceivedLand(anotherEstate, 2, sentByAnotherUser)
+      // Another Estate has the land (0,2)
+      await assertLandIdAtIndex(anotherEstate, 1, 2)
+
+      // Ammend Received the land (0,2) to Estate
+      await assertRevert(
+        estate.ammendReceivedLand(estateId, 2, sentByUser)
+      )
+    })
   })
 })

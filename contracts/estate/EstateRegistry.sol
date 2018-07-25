@@ -103,6 +103,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     returns (bytes4)
   {
     uint256 estateId = _bytesToUint(estateTokenIdBytes);
+    require(exists(estateId), "The estate id should exist");
     _pushLandId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
@@ -305,7 +306,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    */
   function _pushLandId(uint256 estateId, uint256 landId) internal {
     require(exists(estateId), "The estate id should exist");
-    require(estateLandIndex[estateId][landId] == 0, "The land is already owned by the estate");
+    require(landIdEstate[landId] == 0, "The land is already owned a estate");
     require(registry.ownerOf(landId) == address(this), "The Estate Registry cant manage this land");
 
     estateLandIds[estateId].push(landId);
