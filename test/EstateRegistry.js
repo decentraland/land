@@ -72,7 +72,11 @@ contract('EstateRegistry', accounts => {
   }
 
   async function _createEstate(xs, ys, owner, metadata, sendParams) {
-    await land.createEstate(xs, ys, owner, metadata, sendParams)
+    if (metadata) {
+      await land.createEstateWithMetadata(xs, ys, owner, metadata, sendParams)
+    } else {
+      await land.createEstate(xs, ys, owner, sendParams)
+    }
 
     const tokenCount = await estate.balanceOf.call(owner)
     const token = await estate.tokenOfOwnerByIndex(

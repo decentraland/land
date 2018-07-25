@@ -246,13 +246,31 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     emit EstateRegistrySet(registry);
   }
 
-  function createEstate(
+  function createEstate(int[] x, int[] y, address beneficiary) external returns (uint256) {
+    // solium-disable-next-line arg-overflow
+    return _createEstate(x, y, beneficiary, "");
+  }
+
+  function createEstateWithMetadata(
     int[] x,
     int[] y,
     address beneficiary,
     string metadata
   )
     external
+    returns (uint256)
+  {
+    // solium-disable-next-line arg-overflow
+    return _createEstate(x, y, beneficiary, metadata);
+  }
+
+  function _createEstate(
+    int[] x,
+    int[] y,
+    address beneficiary,
+    string metadata
+  )
+    internal
     returns (uint256)
   {
     require(x.length > 0, "You should supply at least one coordinate");
