@@ -1,4 +1,4 @@
-pragma solidity ^0.4.22;
+pragma solidity ^0.4.23;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
@@ -113,9 +113,9 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @param estateId The new owner of the locked token
    * @param landId Locked Land id
    */
-  function ammendReceived(uint256 estateId, uint256 landId) external {
+  function ammendReceivedLand(uint256 estateId, uint256 landId) external {
     _pushLandId(estateId, landId);
-    emit AmmendReceived(estateId, landId);
+    emit AmmendReceivedLand(estateId, landId);
   }
 
   /**
@@ -275,6 +275,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     uint256 estateId = _getNewEstateId();
     _mint(to, estateId);
     _updateMetadata(estateId, metadata);
+    emit CreateEstate(to, estateId, metadata);
     return estateId;
   }
 

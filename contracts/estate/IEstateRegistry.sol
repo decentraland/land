@@ -10,6 +10,12 @@ contract IEstateRegistry {
 
   // Events
 
+  event CreateEstate(
+    address indexed owner,
+    uint256 indexed estateId,
+    string metadata
+  );
+
   event Update(
     uint256 indexed assetId,
     address indexed holder,
@@ -22,7 +28,7 @@ contract IEstateRegistry {
     address indexed operator
   );
 
-  event AmmendReceived(
+  event AmmendReceivedLand(
     uint256 indexed estateId,
     uint256 indexed landId
   );

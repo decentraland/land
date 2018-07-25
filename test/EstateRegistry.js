@@ -3,7 +3,7 @@ import assertRevert from './helpers/assertRevert'
 const BigNumber = web3.BigNumber
 
 const LANDRegistry = artifacts.require('LANDRegistryTest')
-const EstateRegistry = artifacts.require('EstateRegistry')
+const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const NONE = '0x0000000000000000000000000000000000000000'
@@ -179,6 +179,20 @@ contract('EstateRegistry', accounts => {
     landId.toString().should.be.equal(value.toString())
   }
 
+  function assertEvent(log, expectedEventName, expectedArgs) {
+    const { event, args } = log
+    event.should.be.eq(expectedEventName)
+
+    for (let key in expectedArgs) {
+      let value = args[key]
+      if (value instanceof BigNumber) {
+        value = value.toString()
+      }
+
+      value.should.be.equal(expectedArgs[key])
+    }
+  }
+
   beforeEach(setupRegistry)
 
   describe('name', function() {
@@ -224,8 +238,37 @@ contract('EstateRegistry', accounts => {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
 
       const metadata = 'name,description'
-      const estateId = await createEstateMetadata([0], [1], user, metadata, sentByUser)
+      const estateId = await createEstateMetadata(
+        [0],
+        [1],
+        user,
+        metadata,
+        sentByUser
+      )
       await assertMetadata(estateId, metadata)
+    })
+
+    it('should emit the CreateEstate event on mint', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+
+      const metadata = 'name,description'
+      const { logs } = await estate.mintEstate(user, metadata)
+
+      logs.length.should.be.equal(2)
+
+      // ERC721
+      assertEvent(logs[0], 'Transfer', {
+        _from: '0x0000000000000000000000000000000000000000',
+        _to: user,
+        _tokenId: '1'
+      })
+
+      // Estate
+      assertEvent(logs[1], 'CreateEstate', {
+        owner: user,
+        estateId: '1',
+        metadata
+      })
     })
   })
 
@@ -422,7 +465,7 @@ contract('EstateRegistry', accounts => {
       await assertNFTBalance(estate.address, 5)
       await assertNFTOwner(2, estate.address)
       await assertEstateSize(estateId, 4)
-      await estate.ammendReceived(estateId, 2, sentByUser)
+      await estate.ammendReceivedLand(estateId, 2, sentByUser)
       await assertEstateSize(estateId, 5)
       await assertLandIdAtIndex(estateId, 4, 2)
     })
@@ -431,7 +474,7 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithNumberedTokens()
       await transferOut(estateId, 2)
       await unsafeTransferIn(2)
-      await estate.ammendReceived(estateId, 2, sentByAnotherUser)
+      await estate.ammendReceivedLand(estateId, 2, sentByAnotherUser)
       await assertLandIdAtIndex(estateId, 4, 2)
     })
   })
