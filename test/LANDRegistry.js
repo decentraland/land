@@ -3,6 +3,7 @@ import setupContracts, {
   LAND_NAME,
   LAND_SYMBOL
 } from './helpers/setupContracts'
+import createEstateFull from './helpers/createEstateFull'
 
 const BigNumber = web3.BigNumber
 
@@ -29,6 +30,19 @@ contract('LANDRegistry', accounts => {
   }
   const sentByUser = { from: user }
   const sentByCreator = { from: creator }
+
+  async function createEstate(xs, ys, owner, sendParams) {
+    return createEstateFull(contracts, xs, ys, owner, '', sendParams)
+  }
+
+  async function getLandOfUser() {
+    const [xUser, yUser] = await land.landOf(user)
+    xUser[0].should.be.bignumber.equal(0)
+    xUser[1].should.be.bignumber.equal(0)
+    yUser[0].should.be.bignumber.equal(1)
+    yUser[1].should.be.bignumber.equal(2)
+    return [xUser, yUser]
+  }
 
   beforeEach(async function() {
     contracts = await setupContracts(creator, creationParams)
@@ -417,11 +431,7 @@ contract('LANDRegistry', accounts => {
   describe('Transfers', function() {
     describe('transferLand', function() {
       it('transfers land if it is called by owner', async function() {
-        const [xUser, yUser] = await land.landOf(user)
-        xUser[0].should.be.bignumber.equal(0)
-        xUser[1].should.be.bignumber.equal(0)
-        yUser[0].should.be.bignumber.equal(1)
-        yUser[1].should.be.bignumber.equal(2)
+        const [xUser, yUser] = await getLandOfUser()
 
         await land.transferLand(0, 1, creator, sentByUser)
         const [xCreator, yCreator] = await land.landOf(creator)
@@ -439,11 +449,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('transfers land if it is called by operator', async function() {
-        const [xUser, yUser] = await land.landOf(user)
-        xUser[0].should.be.bignumber.equal(0)
-        xUser[1].should.be.bignumber.equal(0)
-        yUser[0].should.be.bignumber.equal(1)
-        yUser[1].should.be.bignumber.equal(2)
+        const [xUser, yUser] = await getLandOfUser()
 
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, { from: operator })
@@ -472,11 +478,7 @@ contract('LANDRegistry', accounts => {
 
     describe('transferManyLand', function() {
       it('transfers lands if it is called by owner', async function() {
-        const [xUser, yUser] = await land.landOf(user)
-        xUser[0].should.be.bignumber.equal(0)
-        xUser[1].should.be.bignumber.equal(0)
-        yUser[0].should.be.bignumber.equal(1)
-        yUser[1].should.be.bignumber.equal(2)
+        const [xUser, yUser] = await getLandOfUser()
 
         await land.transferManyLand(xUser, yUser, creator, sentByUser)
         const [xCreator, yCreator] = await land.landOf(creator)
@@ -494,11 +496,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('transfers lands if it is called by operator', async function() {
-        const [xUser, yUser] = await land.landOf(user)
-        xUser[0].should.be.bignumber.equal(0)
-        xUser[1].should.be.bignumber.equal(0)
-        yUser[0].should.be.bignumber.equal(1)
-        yUser[1].should.be.bignumber.equal(2)
+        const [xUser, yUser] = await getLandOfUser()
 
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferManyLand(xUser, yUser, creator, { from: operator })
@@ -537,31 +535,92 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  // describe('transfer land to estate', function() {
-  //   describe('transferLandToEstate', function() {
-  //     it('transfers land if it is called by owner', async function() {
-  //       const [xUser, yUser] = await land.landOf(user)
-  //       xUser[0].should.be.bignumber.equal(0)
-  //       xUser[1].should.be.bignumber.equal(0)
-  //       yUser[0].should.be.bignumber.equal(1)
-  //       yUser[1].should.be.bignumber.equal(2)
+  describe('transfer land to estate', function() {
+    let estateId
 
-  //       await land.transferLandToEstate(0, 1, sentByUser)
-  //       const [xEstate, yEstate] = await land.landOf(estate.address)
-  //       const [xNewUser, yNewUser] = await land.landOf(user)
+    beforeEach(async function() {
+      await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+      estateId = await createEstate([3], [3], creator, sentByCreator)
+    })
 
-  //       xEstate[0].should.be.bignumber.equal(0)
-  //       yEstate[0].should.be.bignumber.equal(1)
-  //       xEstate.length.should.be.equal(1)
-  //       yEstate.length.should.be.equal(1)
+    describe('transferLandToEstate', function() {
+      it('transfers land to a Estate if it is called by owner', async function() {
+        const [xUser, yUser] = await getLandOfUser()
 
-  //       xNewUser[0].should.be.bignumber.equal(0)
-  //       yNewUser[0].should.be.bignumber.equal(2)
-  //       xNewUser.length.should.be.equal(1)
-  //       yNewUser.length.should.be.equal(1)
-  //     })
-  //   })
-  // })
+        await land.transferLandToEstate(0, 1, estateId, sentByUser)
+        const [xEstate, yEstate] = await land.landOf(estate.address)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xEstate[0].should.be.bignumber.equal(3)
+        xEstate[1].should.be.bignumber.equal(0)
+        yEstate[0].should.be.bignumber.equal(3)
+        yEstate[1].should.be.bignumber.equal(1)
+        xEstate.length.should.be.equal(2)
+        yEstate.length.should.be.equal(2)
+
+        xNewUser[0].should.be.bignumber.equal(0)
+        yNewUser[0].should.be.bignumber.equal(2)
+        xNewUser.length.should.be.equal(1)
+        yNewUser.length.should.be.equal(1)
+      })
+
+      it('does not transfer land if it is called by not authorized operator', async function() {
+        await assertRevert(
+          land.transferLandToEstate(0, 1, estateId, { from: operator })
+        )
+      })
+
+      it('does not transfer land if land does not exist', async function() {
+        await assertRevert(
+          land.transferLandToEstate(1, 1, estateId, sentByUser)
+        )
+      })
+    })
+
+    describe('transferManyLandToEstate', function() {
+      it('transfers lands if it is called by owner', async function() {
+        const [xUser, yUser] = await getLandOfUser()
+
+        await land.transferManyLandToEstate(xUser, yUser, estateId, sentByUser)
+
+        const [xEstate, yEstate] = await land.landOf(estate.address)
+        const [xNewUser, yNewUser] = await land.landOf(user)
+
+        xEstate[0].should.be.bignumber.equal(3)
+        xEstate[1].should.be.bignumber.equal(0)
+        xEstate[2].should.be.bignumber.equal(0)
+        yEstate[0].should.be.bignumber.equal(3)
+        yEstate[1].should.be.bignumber.equal(1)
+        yEstate[2].should.be.bignumber.equal(2)
+        xEstate.length.should.be.equal(3)
+        yEstate.length.should.be.equal(3)
+
+        xNewUser.length.should.be.equal(0)
+        yNewUser.length.should.be.equal(0)
+      })
+
+      it('does not transfer lands if it is called by not authorized operator', async function() {
+        const [xUser, yUser] = await land.landOf(user)
+        await assertRevert(
+          land.transferManyLandToEstate(xUser, yUser, creator, {
+            from: operator
+          })
+        )
+      })
+
+      it('does not transfer lands if land does not exist', async function() {
+        await assertRevert(
+          land.transferManyLandToEstate([12, 4], [1, 2], creator, sentByUser)
+        )
+      })
+
+      it('does not transfer lands if x length is not equal to y length', async function() {
+        await assertRevert(
+          land.transferManyLandToEstate([0, 0], [0, 1, 3], creator, sentByUser)
+        )
+      })
+    })
+  })
 
   describe('update authorized', function() {
     it('update not allowed before setUpdateOperator', async function() {

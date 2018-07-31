@@ -230,6 +230,35 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
+  function transferLandToEstate(int x, int y, uint256 estateId) external {
+    uint256 tokenId = _encodeTokenId(x, y);
+    _doTransferFrom(
+      _ownerOf(tokenId),
+      address(estateRegistry),
+      tokenId,
+      toBytes(estateId),
+      msg.sender,
+      true
+    );
+  }
+
+  function transferManyLandToEstate(int[] x, int[] y, uint256 estateId) external {
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
+
+    for (uint i = 0; i < x.length; i++) {
+      uint256 tokenId = _encodeTokenId(x[i], y[i]);
+      _doTransferFrom(
+        _ownerOf(tokenId),
+        address(estateRegistry),
+        tokenId,
+        toBytes(estateId),
+        msg.sender,
+        true
+      );
+    }
+  }
+
   function setUpdateOperator(uint256 assetId, address operator) external onlyOwnerOf(assetId) {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);

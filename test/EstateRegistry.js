@@ -3,7 +3,7 @@ import setupContracts, {
   ESTATE_NAME,
   ESTATE_SYMBOL
 } from './helpers/setupContracts'
-import { default as createEstateFull } from './helpers/createEstate'
+import createEstateFull from './helpers/createEstateFull'
 
 const BigNumber = web3.BigNumber
 

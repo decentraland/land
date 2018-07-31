@@ -300,7 +300,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   /**
-   * @dev Appends a new Land id to a esatate updating all related storage
+   * @dev Appends a new Land id to a estate updating all related storage
    * @param estateId Estate where the Land should go
    * @param landId Transfered Land
    */
