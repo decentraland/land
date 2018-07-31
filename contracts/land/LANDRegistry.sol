@@ -327,12 +327,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     uint256 assetId = _encodeTokenId(x, y);
     address owner = _holderOf[assetId];
 
-    if (owner == address(estateRegistry)) {
-      uint256 estateId = estateRegistry.getLandEstateId(assetId);
-      estateRegistry.updateMetadata(estateId, data);
-    } else {
-      _update(assetId, data);
-    }
+    _update(assetId, data);
 
     emit Update(
       assetId,
