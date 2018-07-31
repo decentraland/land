@@ -1,9 +1,10 @@
 import assertRevert from './helpers/assertRevert'
+import setupContracts, {
+  LAND_NAME,
+  LAND_SYMBOL
+} from './helpers/setupContracts'
 
 const BigNumber = web3.BigNumber
-
-const LANDRegistry = artifacts.require('LANDRegistryTest')
-const LANDProxy = artifacts.require('LANDProxy')
 
 const NONE = '0x0000000000000000000000000000000000000000'
 
@@ -12,42 +13,30 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should()
 
-function checkUpdateLog(log, assetId, holder, operator, data) {
-  log.event.should.be.eq('Update')
-  log.args.assetId.should.be.bignumber.equal(assetId)
-  log.args.holder.should.be.equal(holder)
-  log.args.operator.should.be.equal(operator)
-  log.args.data.should.be.equal(data)
-}
-
-function checkUpdateOperatorLog(log, assetId, operator) {
-  log.event.should.be.eq('UpdateOperator')
-  log.args.assetId.should.be.bignumber.equal(assetId)
-  log.args.operator.should.be.equal(operator)
-}
-
 contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
+
+  let contracts = null
   let registry = null
   let proxy = null
+  let estate = null
   let land = null
-  const _name = 'Decentraland LAND'
-  const _symbol = 'LAND'
-  const sentByUser = { from: user }
-  const sentByCreator = { from: creator }
+
   const creationParams = {
-    gas: 6e6,
-    gasPrice: 21e9,
+    gas: 7e6,
+    gasPrice: 1e9,
     from: creator
   }
+  const sentByUser = { from: user }
+  const sentByCreator = { from: creator }
 
   beforeEach(async function() {
-    proxy = await LANDProxy.new(creationParams)
-    registry = await LANDRegistry.new(creationParams)
+    contracts = await setupContracts(creator, creationParams)
+    proxy = contracts.proxy
+    registry = contracts.registry
+    estate = contracts.estate
+    land = contracts.land
 
-    await proxy.upgrade(registry.address, creator, sentByCreator)
-    land = await LANDRegistry.at(proxy.address)
-    await land.initialize(creator, sentByCreator)
     await land.authorizeDeploy(creator, sentByCreator)
     await land.assignNewParcel(0, 1, user, sentByCreator)
     await land.assignNewParcel(0, 2, user, sentByCreator)
@@ -57,14 +46,14 @@ contract('LANDRegistry', accounts => {
   describe('name', function() {
     it('has a name', async function() {
       const name = await land.name()
-      name.should.be.equal(_name)
+      name.should.be.equal(LAND_NAME)
     })
   })
 
   describe('symbol', function() {
     it('has a symbol', async function() {
       const symbol = await land.symbol()
-      symbol.should.be.equal(_symbol)
+      symbol.should.be.equal(LAND_SYMBOL)
     })
   })
 
@@ -86,11 +75,10 @@ contract('LANDRegistry', accounts => {
     describe('one at a time:', function() {
       it('only allows the creator to assign parcels', async function() {
         await assertRevert(
-          land.assignNewParcel(1, 2, user, {
-            from: anotherUser
-          })
+          land.assignNewParcel(1, 2, user, { from: anotherUser })
         )
       })
+
       it('allows the creator to assign parcels', async function() {
         await land.assignNewParcel(1, 1, user, sentByCreator)
         const owner = await land.ownerOfLand(1, 1)
@@ -182,26 +170,28 @@ contract('LANDRegistry', accounts => {
     ]
 
     describe('encodeTokenId', function() {
-      const encodeFn = value => async function() {
-        const encoded = new BigNumber(value.encoded)
-        const result = await land.encodeTokenId(value.x, value.y)
-        result.should.bignumber.equal(encoded)
-      }
+      const encodeFn = value =>
+        async function() {
+          const encoded = new BigNumber(value.encoded)
+          const result = await land.encodeTokenId(value.x, value.y)
+          result.should.bignumber.equal(encoded)
+        }
       for (let value of values) {
         it(`correctly encodes ${value.x},${value.y}`, encodeFn(value))
       }
     })
 
     describe('decodeTokenId', function() {
-      const decodeFn = value => async function() {
-        const encoded = new BigNumber(value.encoded)
-        const result = await land.decodeTokenId(encoded)
+      const decodeFn = value =>
+        async function() {
+          const encoded = new BigNumber(value.encoded)
+          const result = await land.decodeTokenId(encoded)
 
-        const [x, y] = result
+          const [x, y] = result
 
-        x.should.bignumber.equal(value.x)
-        y.should.bignumber.equal(value.y)
-      }
+          x.should.bignumber.equal(value.x)
+          y.should.bignumber.equal(value.y)
+        }
       for (let value of values) {
         it(`correctly decodes ${value.encoded}`, decodeFn(value))
       }
@@ -340,7 +330,13 @@ contract('LANDRegistry', accounts => {
         // Event emitted
         const assetId = await land.encodeTokenId(0, 1)
         logs.length.should.be.equal(1)
-        checkUpdateLog(logs[0], assetId, user, user, data)
+
+        const log = logs[0]
+        log.event.should.be.eq('Update')
+        log.args.assetId.should.be.bignumber.equal(assetId)
+        log.args.holder.should.be.equal(user)
+        log.args.operator.should.be.equal(user)
+        log.args.data.should.be.equal(data)
       })
     })
 
@@ -541,6 +537,32 @@ contract('LANDRegistry', accounts => {
     })
   })
 
+  // describe('transfer land to estate', function() {
+  //   describe('transferLandToEstate', function() {
+  //     it('transfers land if it is called by owner', async function() {
+  //       const [xUser, yUser] = await land.landOf(user)
+  //       xUser[0].should.be.bignumber.equal(0)
+  //       xUser[1].should.be.bignumber.equal(0)
+  //       yUser[0].should.be.bignumber.equal(1)
+  //       yUser[1].should.be.bignumber.equal(2)
+
+  //       await land.transferLandToEstate(0, 1, sentByUser)
+  //       const [xEstate, yEstate] = await land.landOf(estate.address)
+  //       const [xNewUser, yNewUser] = await land.landOf(user)
+
+  //       xEstate[0].should.be.bignumber.equal(0)
+  //       yEstate[0].should.be.bignumber.equal(1)
+  //       xEstate.length.should.be.equal(1)
+  //       yEstate.length.should.be.equal(1)
+
+  //       xNewUser[0].should.be.bignumber.equal(0)
+  //       yNewUser[0].should.be.bignumber.equal(2)
+  //       xNewUser.length.should.be.equal(1)
+  //       yNewUser.length.should.be.equal(1)
+  //     })
+  //   })
+  // })
+
   describe('update authorized', function() {
     it('update not allowed before setUpdateOperator', async function() {
       await assertRevert(land.updateLandData(0, 1, '', { from: operator }))
@@ -582,7 +604,11 @@ contract('LANDRegistry', accounts => {
 
       // Event emitted
       logs.length.should.be.equal(1)
-      checkUpdateOperatorLog(logs[0], assetId, operator)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateOperator')
+      log.args.assetId.should.be.bignumber.equal(assetId)
+      log.args.operator.should.be.equal(operator)
     })
   })
 })

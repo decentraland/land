@@ -1,9 +1,12 @@
 import assertRevert from './helpers/assertRevert'
+import setupContracts, {
+  ESTATE_NAME,
+  ESTATE_SYMBOL
+} from './helpers/setupContracts'
+import { default as createEstateFull } from './helpers/createEstate'
 
 const BigNumber = web3.BigNumber
 
-const LANDRegistry = artifacts.require('LANDRegistryTest')
-const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -22,12 +25,11 @@ require('chai')
 contract('EstateRegistry', accounts => {
   const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
 
+  let contracts = null
   let registry = null
   let proxy = null
   let land = null
   let estate = null
-  const _name = 'Estate'
-  const _symbol = 'EST'
 
   const creationParams = {
     gas: 7e6,
@@ -43,45 +45,12 @@ contract('EstateRegistry', accounts => {
 
   const newMetadata = 'new land content'
 
-  async function setupRegistry() {
-    proxy = await LANDProxy.new(creationParams)
-    registry = await LANDRegistry.new(creationParams)
-    await proxy.upgrade(registry.address, creator, sentByCreator)
-
-    land = await LANDRegistry.at(proxy.address)
-    estate = await EstateRegistry.new(
-      _name,
-      _symbol,
-      proxy.address,
-      creationParams
-    )
-
-    await land.initialize(creator, sentByCreator)
-    await land.setEstateRegistry(estate.address)
-  }
-
   async function createEstateMetadata(xs, ys, owner, metadata, sendParams) {
-    return _createEstate(xs, ys, owner, metadata, sendParams)
+    return createEstateFull(contracts, xs, ys, owner, metadata, sendParams)
   }
 
   async function createEstate(xs, ys, owner, sendParams) {
-    return _createEstate(xs, ys, owner, '', sendParams)
-  }
-
-  async function _createEstate(xs, ys, owner, metadata, sendParams) {
-    if (metadata) {
-      await land.createEstateWithMetadata(xs, ys, owner, metadata, sendParams)
-    } else {
-      await land.createEstate(xs, ys, owner, sendParams)
-    }
-
-    const tokenCount = await estate.balanceOf.call(owner)
-    const token = await estate.tokenOfOwnerByIndex(
-      owner,
-      tokenCount.toNumber() - 1
-    )
-
-    return token.toString()
+    return createEstateFull(contracts, xs, ys, owner, '', sendParams)
   }
 
   async function createTwoEstates(owner, sendParams) {
@@ -194,19 +163,25 @@ contract('EstateRegistry', accounts => {
     }
   }
 
-  beforeEach(setupRegistry)
+  beforeEach(async function() {
+    contracts = await setupContracts(creator, creationParams)
+    proxy = contracts.proxy
+    registry = contracts.registry
+    estate = contracts.estate
+    land = contracts.land
+  })
 
   describe('name', function() {
     it('has a name', async function() {
       const name = await estate.name()
-      name.should.be.equal(_name)
+      name.should.be.equal(ESTATE_NAME)
     })
   })
 
   describe('symbol', function() {
     it('has a symbol', async function() {
       const symbol = await estate.symbol()
-      symbol.should.be.equal(_symbol)
+      symbol.should.be.equal(ESTATE_SYMBOL)
     })
   })
 
