@@ -16,7 +16,7 @@ require('chai')
   .should()
 
 contract('LANDProxy', accounts => {
-  const [creator, owner, hacker, otherOwner] = accounts
+  const [creator, hacker, otherOwner] = accounts
   let registry = null
   let proxy = null
   let land = null

@@ -10,13 +10,13 @@ interface ILANDRegistry {
   function ping() external;
 
   // LAND-centric getters
-  function encodeTokenId(int x, int y) pure external returns (uint256);
-  function decodeTokenId(uint value) pure external returns (int, int);
-  function exists(int x, int y) view external returns (bool);
-  function ownerOfLand(int x, int y) view external returns (address);
-  function ownerOfLandMany(int[] x, int[] y) view external returns (address[]);
-  function landOf(address owner) view external returns (int[], int[]);
-  function landData(int x, int y) view external returns (string);
+  function encodeTokenId(int x, int y) external pure returns (uint256);
+  function decodeTokenId(uint value) external pure returns (int, int);
+  function exists(int x, int y) external view returns (bool);
+  function ownerOfLand(int x, int y) external view returns (address);
+  function ownerOfLandMany(int[] x, int[] y) external view returns (address[]);
+  function landOf(address owner) external view returns (int[], int[]);
+  function landData(int x, int y) external view returns (string);
 
   // Transfer LAND
   function transferLand(int x, int y, address to) external;
@@ -28,15 +28,15 @@ interface ILANDRegistry {
 
   // Events
 
-  event Update(  
-    uint256 indexed assetId, 
-    address indexed holder,  
-    address indexed operator,  
-    string data  
+  event Update(
+    uint256 indexed assetId,
+    address indexed holder,
+    address indexed operator,
+    string data
   );
 
   event UpdateOperator(
-    uint256 indexed assetId, 
+    uint256 indexed assetId,
     address indexed operator
   );
 }

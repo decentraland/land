@@ -5,14 +5,24 @@ import "./Ownable.sol";
 import "./DelegateProxy.sol";
 import "./IApplication.sol";
 
+
 contract Proxy is Storage, DelegateProxy, Ownable {
 
   event Upgrade(address indexed newContract, bytes initializedWith);
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function Proxy() public {
+  constructor() public {
     proxyOwner = msg.sender;
     owner = msg.sender;
+  }
+
+  //
+  // Dispatch fallback
+  //
+
+  function () public payable {
+    require(currentContract != 0, "If app code has not been set yet, do not call");
+    delegatedFwd(currentContract, msg.data);
   }
 
   //
@@ -20,13 +30,13 @@ contract Proxy is Storage, DelegateProxy, Ownable {
   //
 
   modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner);
+    require(msg.sender == proxyOwner, "Unauthorized user");
     _;
   }
 
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != address(0));
-    require(_newOwner != proxyOwner);
+    require(_newOwner != address(0), "Empty address");
+    require(_newOwner != proxyOwner, "Already authorized");
     proxyOwner = _newOwner;
   }
 
@@ -38,15 +48,6 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     currentContract = newContract;
     IApplication(this).initialize(data);
 
-    Upgrade(newContract, data);
-  }
-
-  //
-  // Dispatch fallback
-  //
-
-  function () payable public {
-    require(currentContract != 0); // if app code hasn't been set yet, don't call
-    delegatedFwd(currentContract, msg.data);
+    emit Upgrade(newContract, data);
   }
 }

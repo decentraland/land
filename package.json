@@ -5,8 +5,8 @@
   "scripts": {
     "test": "scripts/test.sh",
     "test:watch": "nodemon test/** contracts/** --exec 'npm test'",
-    "lint": "npx eslint test",
-    "lint:fix": "npx eslint --fix test"
+    "lint": "npx eslint test && npx solium -d contracts",
+    "lint:fix": "npx eslint --fix test && npx solium -d contracts --fix"
   },
   "repository": {
     "type": "git",
@@ -20,16 +20,16 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "erc821": "^4.0.0",
-    "zeppelin-solidity": "^1.8.0"
+    "zeppelin-solidity": "^1.10.0"
   },
   "devDependencies": {
     "abi-decoder": "^1.0.9",
     "babel-eslint": "^8.2.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-polyfill": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-stage-2": "^6.24.1",
-    "babel-preset-stage-3": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
+    "buidler": "^0.1.4",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.1",
@@ -42,6 +42,7 @@
     "npx": "^9.7.1",
     "prettier": "^1.11.1",
     "solidity-sha3": "^0.4.1",
+    "solium": "^1.1.8",
     "truffle": "^4.1.7",
     "truffle-flattener": "^1.2.4",
     "truffle-hdwallet-provider": "0.0.3",

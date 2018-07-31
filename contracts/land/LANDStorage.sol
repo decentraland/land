@@ -1,7 +1,9 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
+
+import "../estate/IEstateRegistry.sol";
+
 
 contract LANDStorage {
-
   mapping (address => uint) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
@@ -11,4 +13,6 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping (uint256 => address) public updateOperator;
+
+  IEstateRegistry public estateRegistry;
 }
