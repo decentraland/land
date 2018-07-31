@@ -4,10 +4,6 @@ pragma solidity ^0.4.22;
 contract IEstateRegistry {
   function mint(address to, string metadata) external returns (uint256);
 
-  function getLandEstateId(uint256 landId) external view returns(uint256);
-
-  function updateMetadata(uint256 estateId, string metadata) external;
-
   // Events
 
   event CreateEstate(
