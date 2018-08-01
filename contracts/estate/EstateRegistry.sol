@@ -1,6 +1,5 @@
 pragma solidity ^0.4.23;
 
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
@@ -22,7 +21,9 @@ contract LandRegistry {
  * @title ERC721 registry of every minted estate and their owned LANDs
  */
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry {
-  using SafeMath for uint256;
+  // Usings from ERC721Basic
+    // using SafeMath for uint256;
+    // using AddressUtils for address;
 
   LandRegistry public registry;
 
@@ -168,6 +169,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   function setLandRegistry(address _registry) external onlyOwner {
+    require(_registry.isContract(), 'The land registry address should be a contract');
     require(_registry != 0, "The land registry address should be valid");
     registry = LandRegistry(_registry);
     emit SetPingableDAR(registry);
@@ -273,6 +275,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    * @return An uint256 representing the new token id
    */
   function _mintEstate(address to, string metadata) internal returns (uint256) {
+    require(to != address(0), 'You can not mint to an empty address');
     uint256 estateId = _getNewEstateId();
     _mint(to, estateId);
     _updateMetadata(estateId, metadata);
@@ -331,6 +334,8 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   )
     internal
   {
+    require(destinatary != address(0), 'You can not transfer land to an empty address');
+
     uint256[] storage landIds = estateLandIds[estateId];
     mapping(uint256 => uint256) landIndex = estateLandIndex[estateId];
 
