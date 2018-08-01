@@ -14,10 +14,6 @@ contract LandRegistry {
   function safeTransferFrom(address, address, uint256) public;
 }
 
-// @nico TODO: Standalone Storage.
-// @nico TODO: Clean update operator on transfer.
-
-
 /**
  * @title ERC721 registry of every minted estate and their owned LANDs
  */
@@ -306,7 +302,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
    */
   function _pushLandId(uint256 estateId, uint256 landId) internal {
     require(exists(estateId), "The estate id should exist");
-    require(landIdEstate[landId] == 0, "The land is already owned a estate");
+    require(landIdEstate[landId] == 0, "The land is already owned by a estate");
     require(registry.ownerOf(landId) == address(this), "The Estate Registry cant manage this land");
 
     estateLandIds[estateId].push(landId);
