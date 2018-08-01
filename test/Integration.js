@@ -19,7 +19,7 @@ contract('LANDRegistry', accounts => {
   const sentByUser = { from: user }
   const sentByCreator = { from: creator }
   const creationParams = {
-    gas: 6e6,
+    gas: 7e6,
     gasPrice: 21e9,
     from: creator
   }
