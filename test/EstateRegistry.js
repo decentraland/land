@@ -217,6 +217,10 @@ contract('EstateRegistry', accounts => {
       await assertRegistry(registry.address)
     })
 
+    it('should throw if setting a non-contract', async function() {
+      await assertRevert(estate.setLandRegistry(hacker, creationParams))
+    })
+
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
       await assertRevert(
@@ -268,7 +272,7 @@ contract('EstateRegistry', accounts => {
       assertEvent(logs[1], 'CreateEstate', {
         owner: user,
         estateId: '1',
-        metadata
+        data: metadata
       })
     })
   })
@@ -368,6 +372,13 @@ contract('EstateRegistry', accounts => {
       await assertEstateSize(estateId, 2)
     })
 
+    it('owner can transfer tokens out', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.transferLand(estateId, 1, anotherUser, sentByUser)
+      await assertEstateSize(estateId, 0)
+      await assertNFTOwner(1, anotherUser)
+    })
+
     it('random user can not transfer tokens out', async function() {
       const estateId = await createUserEstateWithToken1()
       await assertRevert(
@@ -382,11 +393,11 @@ contract('EstateRegistry', accounts => {
       )
     })
 
-    it('owner can transfer tokens out', async function() {
+    it('owner can not transfer tokens out to the empty address', async function() {
       const estateId = await createUserEstateWithToken1()
-      await estate.transferLand(estateId, 1, anotherUser, sentByUser)
-      await assertEstateSize(estateId, 0)
-      await assertNFTOwner(1, anotherUser)
+      await assertRevert(
+        estate.transferLand(estateId, 1, EMPTY_ADDRESS, sentByUser)
+      )
     })
 
     it('transfering tokens out should emit the RemoveLand event', async function() {

@@ -9,7 +9,7 @@ contract IEstateRegistry {
   event CreateEstate(
     address indexed owner,
     uint256 indexed estateId,
-    string metadata
+    string data
   );
 
   event AddLand(
