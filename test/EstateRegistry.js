@@ -217,6 +217,10 @@ contract('EstateRegistry', accounts => {
       await assertRegistry(registry.address)
     })
 
+    it('should throw if setting a non-contract', async function() {
+      await assertRevert(estate.setLandRegistry(hacker, creationParams))
+    })
+
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
       await assertRevert(
