@@ -3,3 +3,6 @@ build
 node_modules
 package-lock.json
 .idea
+
+.zos.session
+zos.local.json

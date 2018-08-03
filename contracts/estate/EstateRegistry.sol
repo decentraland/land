@@ -1,7 +1,8 @@
 pragma solidity ^0.4.23;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-zos/contracts/token/ERC721/ERC721Token.sol";
+import "openzeppelin-zos/contracts/ownership/Ownable.sol";
+import "zos-lib/contracts/migrations/Migratable.sol";
 
 import "./IEstateRegistry.sol";
 import "./EstateStorage.sol";
@@ -10,25 +11,16 @@ import "../metadata/MetadataHolderBase.sol";
 
 /**
  * @title ERC721 registry of every minted estate and their owned LANDs
+ * @dev Usings we are inheriting and depending on:
+ * From ERC721Token:
+ *   - using SafeMath for uint256;
+ *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
 contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry, EstateStorage {
   // Usings from ERC721Basic
     // using SafeMath for uint256;
     // using AddressUtils for address;
-
-  constructor(
-    string _name,
-    string _symbol,
-    address _registry
-  )
-    ERC721Token(_name, _symbol)
-    Ownable()
-    public
-  {
-    require(_registry != 0, "The registry should be a valid address");
-    registry = LANDRegistry(_registry);
-  }
 
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
@@ -84,7 +76,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     returns (bytes4)
   {
     uint256 estateId = _bytesToUint(estateTokenIdBytes);
-    require(exists(estateId), "The estate id should exist");
     _pushLandId(estateId, tokenId);
     return bytes4(0xf0b9e5ba);
   }
@@ -191,6 +182,20 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
 
   function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
     return _isUpdateAuthorized(operator, estateId);
+  }
+
+  function initialize(
+    string _name,
+    string _symbol,
+    address _registry
+  )
+    public
+    isInitializer("EstateRegistry", "0.0.1")
+  {
+    require(_registry != 0, "The registry should be a valid address");
+    ERC721Token.initialize(_name, _symbol);
+    Ownable.initialize(msg.sender);
+    registry = LandRegistry(_registry);
   }
 
   /**

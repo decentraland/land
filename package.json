@@ -20,7 +20,10 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "erc821": "^4.1.0",
-    "openzeppelin-solidity": "^1.12.0"
+    "openzeppelin-solidity": "^1.12.0",
+    "openzeppelin-zos": "^1.9.1",
+    "zos": "^1.1.0",
+    "zos-lib": "^1.3.0"
   },
   "devDependencies": {
     "abi-decoder": "^1.0.9",
