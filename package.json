@@ -46,7 +46,7 @@
     "prettier": "^1.11.1",
     "solidity-sha3": "^0.4.1",
     "solium": "^1.1.8",
-    "truffle": "^4.1.7",
+    "truffle": "^4.1.13",
     "truffle-flattener": "^1.2.4",
     "truffle-hdwallet-provider": "0.0.3",
     "web3": "^0.20.4"

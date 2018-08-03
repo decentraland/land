@@ -8,9 +8,10 @@ contract EstateRegistryTest is EstateRegistry {
     string _symbol,
     address _registry
   )
-    EstateRegistry(_name, _symbol, _registry)
     public
-  {}
+  {
+    EstateRegistry.initialize(_name, _symbol, _registry);
+  }
 
   function mintEstate(address to, string metadata) public returns (uint256) {
     return _mintEstate(to, metadata);
