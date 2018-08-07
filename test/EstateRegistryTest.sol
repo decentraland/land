@@ -15,8 +15,4 @@ contract EstateRegistryTest is EstateRegistry {
   function mintEstate(address to, string metadata) public returns (uint256) {
     return _mintEstate(to, metadata);
   }
-
-  function pushLandId(uint256 estateId, uint256 landId) external {
-    _pushLandId(estateId, landId);
-  }
 }

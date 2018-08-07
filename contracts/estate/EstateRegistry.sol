@@ -106,17 +106,6 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   }
 
   /**
-   * @notice Unlock any token sent to the contract without using safeTransferFrom
-   * @dev It uses the same logic as onERC721Received
-   * @param estateId The new owner of the locked token
-   * @param landId Locked Land id
-   */
-  function ammendReceivedLand(uint256 estateId, uint256 landId) external {
-    _pushLandId(estateId, landId);
-    emit AmmendReceivedLand(estateId, landId);
-  }
-
-  /**
    * @notice Transfer a land owned by a estate to a new owner
    * @param estateId Current owner of the token
    * @param landId Land to be transfered

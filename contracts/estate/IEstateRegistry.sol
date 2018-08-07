@@ -35,11 +35,6 @@ contract IEstateRegistry {
     address indexed operator
   );
 
-  event AmmendReceivedLand(
-    uint256 indexed estateId,
-    uint256 indexed landId
-  );
-
   event SetPingableDAR(
     address indexed registry
   );

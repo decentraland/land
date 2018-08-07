@@ -123,15 +123,6 @@ contract('EstateRegistry', accounts => {
     )
   }
 
-  function unsafeTransferIn(landId, userAddress = anotherUser) {
-    return land.transferFrom(
-      userAddress,
-      estate.address,
-      landId,
-      getParams(userAddress)
-    )
-  }
-
   function getParams(userAddress) {
     let params = sentByAnotherUser
 
@@ -161,6 +152,15 @@ contract('EstateRegistry', accounts => {
 
       value.should.be.equal(expectedArgs[key], `[assertEvent] ${key}`)
     }
+  }
+
+  async function getEstateEvents(eventName) {
+    return new Promise((resolve, reject) => {
+      estate[eventName]().get(function(err, logs) {
+        if (err) reject(new Error(`Error fetching the ${eventName} events`))
+        resolve(logs)
+      })
+    })
   }
 
   beforeEach(async function() {
@@ -323,15 +323,14 @@ contract('EstateRegistry', accounts => {
       const estateId = await createUserEstateWithToken1()
       await land.assignMultipleParcels([0], [2], user, sentByCreator)
 
-      await unsafeTransferIn(landId, user)
-      const { logs } = await estate.pushLandId(estateId, landId, sentByUser)
+      let logs = await getEstateEvents('AddLand')
+      logs.length.should.be.equal(0)
+
+      await transferIn(estateId, 2, user)
+      logs = await getEstateEvents('AddLand')
 
       logs.length.should.be.equal(1)
-
-      assertEvent(logs[0], 'AddLand', {
-        estateId,
-        landId
-      })
+      assertEvent(logs[0], 'AddLand', { estateId, landId })
     })
 
     it('user cannot transfer tokens to an undefined estate', async function() {
@@ -476,52 +475,6 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(estateId, 2, 3)
       await assertLandIdAtIndex(estateId, 3, 4)
       await assertLandIdAtIndex(estateId, 4, 5)
-    })
-  })
-
-  describe('tokens are correctly accounted through detection', function() {
-    it('out, unsafe in, check last', async function() {
-      const estateId = await createUserEstateWithNumberedTokens()
-      await transferOut(estateId, 2)
-      await unsafeTransferIn(2)
-      await assertNFTBalance(estate.address, 5)
-      await assertNFTOwner(2, estate.address)
-      await assertEstateSize(estateId, 4)
-      await estate.ammendReceivedLand(estateId, 2, sentByUser)
-      await assertEstateSize(estateId, 5)
-      await assertLandIdAtIndex(estateId, 4, 2)
-    })
-
-    it('can be called by anyone', async function() {
-      const estateId = await createUserEstateWithNumberedTokens()
-      await transferOut(estateId, 2)
-      await unsafeTransferIn(2)
-      await estate.ammendReceivedLand(estateId, 2, sentByAnotherUser)
-      await assertLandIdAtIndex(estateId, 4, 2)
-    })
-
-    it('can not be duplicated in multiple estates', async function() {
-      const estateId = await createUserEstateWithNumberedTokens()
-
-      await land.assignMultipleParcels([0], [100], anotherUser, sentByCreator)
-      const anotherEstate = await createEstate(
-        [0],
-        [100],
-        anotherUser,
-        sentByAnotherUser
-      )
-
-      // Transfer out of Estate the land (0, 2)
-      await transferOut(estateId, 2)
-      // Transfer from user to EstateRegistry the land (0, 2)
-      await unsafeTransferIn(2)
-      // Ammend Received the land (0,2) to another Estate
-      await estate.ammendReceivedLand(anotherEstate, 2, sentByAnotherUser)
-      // Another Estate has the land (0,2)
-      await assertLandIdAtIndex(anotherEstate, 1, 2)
-
-      // Ammend Received the land (0,2) to Estate
-      await assertRevert(estate.ammendReceivedLand(estateId, 2, sentByUser))
     })
   })
 })
