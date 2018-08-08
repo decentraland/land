@@ -201,6 +201,12 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   // LAND Transfer
   //
 
+  function transferFrom(address from, address to, uint256 assetId) external {
+    require(to != address(estateRegistry), 'Unsafe transfers to the EstateRegistry are not allowed');
+    return _doTransferFrom(from, to, assetId, '', msg.sender, false);
+  }
+
+
   function transferLand(int x, int y, address to) external {
     uint256 tokenId = _encodeTokenId(x, y);
     _doTransferFrom(

@@ -28,8 +28,8 @@ contract('LANDRegistry', accounts => {
     gasPrice: 1e9,
     from: creator
   }
-  const sentByUser = { from: user }
-  const sentByCreator = { from: creator }
+  const sentByUser = { ...creationParams, from: user }
+  const sentByCreator = { ...creationParams, from: creator }
 
   async function createEstate(xs, ys, owner, sendParams) {
     return createEstateFull(contracts, xs, ys, owner, '', sendParams)
@@ -421,14 +421,21 @@ contract('LANDRegistry', accounts => {
       })
 
       it('throws if provided with an invalid address', async function() {
-        return Promise.all([
-          assertRevert(land.forbidDeploy(NONE)).should.be.rejected
-        ])
+        await assertRevert(land.forbidDeploy(NONE)).should.be.rejected
       })
     })
   })
 
   describe('Transfers', function() {
+    describe('transfer from', function() {
+      it('does not transfer land if the destinatary is the EstateRegistry', async function() {
+        const landId = await land.encodeTokenId(0, 1)
+        await assertRevert(
+          land.transferFrom(user, estate.address, landId, sentByUser)
+        )
+      })
+    })
+
     describe('transferLand', function() {
       it('transfers land if it is called by owner', async function() {
         const [xUser, yUser] = await getLandOfUser()
