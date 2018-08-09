@@ -1,5 +1,6 @@
 pragma solidity ^0.4.23;
 
+
 contract LANDRegistry {
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
