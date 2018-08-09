@@ -35,7 +35,7 @@ contract IEstateRegistry {
     address indexed operator
   );
 
-  event SetPingableDAR(
+  event SetLANDRegistry(
     address indexed registry
   );
 }

@@ -188,18 +188,18 @@ contract('EstateRegistry', accounts => {
   describe('set Land Registry', function() {
     it('set works correctly', async function() {
       const registry = await LANDProxy.new(creationParams)
-      await estate.setLandRegistry(registry.address, creationParams)
+      await estate.setLANDRegistry(registry.address, creationParams)
       await assertRegistry(registry.address)
     })
 
     it('should throw if setting a non-contract', async function() {
-      await assertRevert(estate.setLandRegistry(hacker, creationParams))
+      await assertRevert(estate.setLANDRegistry(hacker, creationParams))
     })
 
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
       await assertRevert(
-        estate.setLandRegistry(registry.address, sentByAnotherUser)
+        estate.setLANDRegistry(registry.address, sentByAnotherUser)
       )
     })
   })
