@@ -4,39 +4,17 @@ import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./IEstateRegistry.sol";
+import "./EstateStorage.sol";
 import "../metadata/MetadataHolderBase.sol";
 
-
-contract LandRegistry {
-  function ping() public;
-  function ownerOf(uint256 tokenId) public returns (address);
-  function safeTransferFrom(address, address, uint256) public;
-}
 
 /**
  * @title ERC721 registry of every minted estate and their owned LANDs
  */
-contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry {
+contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry, EstateStorage {
   // Usings from ERC721Basic
     // using SafeMath for uint256;
     // using AddressUtils for address;
-
-  LandRegistry public registry;
-
-  // From Estate to list of owned land ids (LANDs)
-  mapping(uint256 => uint256[]) public estateLandIds;
-
-  // From Land id (LAND) to its owner Estate id
-  mapping(uint256 => uint256) public landIdEstate;
-
-  // From Estate id to mapping of land id to index on the array above (estateLandIds)
-  mapping(uint256 => mapping(uint256 => uint256)) public estateLandIndex;
-
-  // Metadata of the Estate
-  mapping(uint256 => string) internal estateData;
-
-  // Operator of the Estate
-  mapping (uint256 => address) internal updateOperator;
 
   constructor(
     string _name,
@@ -48,7 +26,7 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     public
   {
     require(_registry != 0, "The registry should be a valid address");
-    registry = LandRegistry(_registry);
+    registry = LANDRegistry(_registry);
   }
 
   modifier onlyRegistry() {
@@ -153,11 +131,11 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
     return landIdEstate[landId];
   }
 
-  function setLandRegistry(address _registry) external onlyOwner {
+  function setLANDRegistry(address _registry) external onlyOwner {
     require(_registry.isContract(), 'The land registry address should be a contract');
     require(_registry != 0, "The land registry address should be valid");
-    registry = LandRegistry(_registry);
-    emit SetPingableDAR(registry);
+    registry = LANDRegistry(_registry);
+    emit SetLANDRegistry(registry);
   }
 
   function ping() external onlyOwner {
