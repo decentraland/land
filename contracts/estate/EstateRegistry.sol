@@ -17,11 +17,7 @@ import "../metadata/MetadataHolderBase.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry, EstateStorage {
-  // Usings from ERC721Basic
-    // using SafeMath for uint256;
-    // using AddressUtils for address;
-
+contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase, IEstateRegistry, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
