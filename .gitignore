@@ -4,3 +4,4 @@ node_modules
 .idea
 
 .zos.session
+zos.local.json
