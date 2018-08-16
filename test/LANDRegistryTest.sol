@@ -4,7 +4,7 @@ import '../contracts/land/LANDRegistry.sol';
 
 contract LANDRegistryTest is LANDRegistry {
   function safeTransferFromToEstate(address from, address to, uint256 assetId, uint256 estateId) external {
-    _doTransferFrom(from, to, assetId, toBytes(estateId), msg.sender, true);
+    _doTransferFrom(from, to, assetId, toBytes(estateId), true);
   }
 
   function existsProxy(int x, int y) view public returns (bool) {

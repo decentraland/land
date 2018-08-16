@@ -208,7 +208,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       to,
       assetId,
       "",
-      msg.sender,
       false
     );
   }
@@ -221,7 +220,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       to,
       tokenId,
       "",
-      msg.sender,
       true
     );
   }
@@ -237,7 +235,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
         to,
         tokenId,
         "",
-        msg.sender,
         true
       );
     }
@@ -250,7 +247,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       address(estateRegistry),
       tokenId,
       toBytes(estateId),
-      msg.sender,
       true
     );
   }
@@ -266,7 +262,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
         address(estateRegistry),
         tokenId,
         toBytes(estateId),
-        msg.sender,
         true
       );
     }
@@ -329,7 +324,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
         address(estateRegistry),
         tokenId,
         estateTokenIdBytes,
-        this,
         true
       );
     }
@@ -392,7 +386,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     address to,
     uint256 assetId,
     bytes userData,
-    address operator,
     bool doCheck
   )
     internal
@@ -404,7 +397,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       to,
       assetId,
       userData,
-      operator,
       doCheck
     );
   }
