@@ -20,7 +20,10 @@
   "homepage": "https://github.com/decentraland/land#readme",
   "dependencies": {
     "erc821": "^4.1.0",
-    "openzeppelin-solidity": "^1.12.0"
+    "openzeppelin-solidity": "^1.12.0",
+    "openzeppelin-zos": "^1.9.1",
+    "zos": "^1.4.0",
+    "zos-lib": "^1.4.0"
   },
   "devDependencies": {
     "abi-decoder": "^1.0.9",
@@ -43,7 +46,7 @@
     "prettier": "^1.11.1",
     "solidity-sha3": "^0.4.1",
     "solium": "^1.1.8",
-    "truffle": "^4.1.7",
+    "truffle": "^4.1.13",
     "truffle-flattener": "^1.2.4",
     "truffle-hdwallet-provider": "0.0.3",
     "web3": "^0.20.4"
