@@ -1,7 +1,7 @@
 pragma solidity ^0.4.23;
 
-import "zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./IEstateRegistry.sol";
 import "./EstateStorage.sol";
@@ -28,6 +28,11 @@ contract EstateRegistry is ERC721Token, Ownable, MetadataHolderBase, IEstateRegi
   {
     require(_registry != 0, "The registry should be a valid address");
     registry = LANDRegistry(_registry);
+  }
+
+  modifier canTransfer(uint256 estateId) {
+    require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
+    _;
   }
 
   modifier onlyRegistry() {
