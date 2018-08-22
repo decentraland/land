@@ -7,35 +7,35 @@ contract IEstateRegistry {
   // Events
 
   event CreateEstate(
-    address indexed owner,
-    uint256 indexed estateId,
-    string data
+    address indexed _owner,
+    uint256 indexed _estateId,
+    string _data
   );
 
   event AddLand(
-    uint256 indexed estateId,
-    uint256 indexed landId
+    uint256 indexed _estateId,
+    uint256 indexed _landId
   );
 
   event RemoveLand(
-    uint256 indexed estateId,
-    uint256 indexed landId,
-    address indexed destinatary
+    uint256 indexed _estateId,
+    uint256 indexed _landId,
+    address indexed _destinatary
   );
 
   event Update(
-    uint256 indexed assetId,
-    address indexed holder,
-    address indexed operator,
-    string data
+    uint256 indexed _assetId,
+    address indexed _holder,
+    address indexed _operator,
+    string _data
   );
 
   event UpdateOperator(
-    uint256 indexed estateId,
-    address indexed operator
+    uint256 indexed _estateId,
+    address indexed _operator
   );
 
   event SetLANDRegistry(
-    address indexed registry
+    address indexed _registry
   );
 }

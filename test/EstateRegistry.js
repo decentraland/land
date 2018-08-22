@@ -245,9 +245,9 @@ contract('EstateRegistry', accounts => {
 
       // Estate
       assertEvent(logs[1], 'CreateEstate', {
-        owner: user,
-        estateId: '1',
-        data: metadata
+        _owner: user,
+        _estateId: '1',
+        _data: metadata
       })
     })
   })
@@ -330,7 +330,7 @@ contract('EstateRegistry', accounts => {
       logs = await getEstateEvents('AddLand')
 
       logs.length.should.be.equal(1)
-      assertEvent(logs[0], 'AddLand', { estateId, landId })
+      assertEvent(logs[0], 'AddLand', { _estateId: estateId, _landId: landId })
     })
 
     it('user cannot transfer tokens to an undefined estate', async function() {
@@ -387,9 +387,9 @@ contract('EstateRegistry', accounts => {
       logs.length.should.be.equal(1)
 
       assertEvent(logs[0], 'RemoveLand', {
-        estateId,
-        landId,
-        destinatary: anotherUser
+        _estateId: estateId,
+        _landId: landId,
+        _destinatary: anotherUser
       })
     })
 
