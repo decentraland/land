@@ -377,19 +377,18 @@ contract('EstateRegistry', accounts => {
     it('transfering tokens out should emit the RemoveLand event', async function() {
       const landId = '1'
       const estateId = await createUserEstateWithToken1()
-      const { logs } = await estate.transferLand(
-        estateId,
-        landId,
-        anotherUser,
-        sentByUser
-      )
+
+      let logs = await getEstateEvents('RemoveLand')
+      logs.length.should.be.equal(0)
+
+      await estate.transferLand(estateId, landId, anotherUser, sentByUser)
+
+      logs = await getEstateEvents('RemoveLand')
 
       logs.length.should.be.equal(1)
-
       assertEvent(logs[0], 'RemoveLand', {
         _estateId: estateId,
-        _landId: landId,
-        _destinatary: anotherUser
+        _landId: landId
       })
     })
 
