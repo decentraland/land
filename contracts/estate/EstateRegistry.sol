@@ -191,7 +191,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
     require(_registry != 0, "The registry should be a valid address");
     ERC721Token.initialize(_name, _symbol);
     Ownable.initialize(msg.sender);
-    registry = LandRegistry(_registry);
+    registry = LANDRegistry(_registry);
   }
 
   /**
