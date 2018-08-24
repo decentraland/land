@@ -609,7 +609,7 @@ contract('LANDRegistry', accounts => {
       it('does not transfer lands if it is called by not authorized operator', async function() {
         const [xUser, yUser] = await land.landOf(user)
         await assertRevert(
-          land.transferManyLandToEstate(xUser, yUser, creator, {
+          land.transferManyLandToEstate(xUser, yUser, estateId, {
             from: operator
           })
         )
@@ -617,13 +617,13 @@ contract('LANDRegistry', accounts => {
 
       it('does not transfer lands if land does not exist', async function() {
         await assertRevert(
-          land.transferManyLandToEstate([12, 4], [1, 2], creator, sentByUser)
+          land.transferManyLandToEstate([12, 4], [1, 2], estateId, sentByUser)
         )
       })
 
       it('does not transfer lands if x length is not equal to y length', async function() {
         await assertRevert(
-          land.transferManyLandToEstate([0, 0], [0, 1, 3], creator, sentByUser)
+          land.transferManyLandToEstate([0, 0], [0, 1, 3], estateId, sentByUser)
         )
       })
     })
