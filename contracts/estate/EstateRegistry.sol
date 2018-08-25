@@ -34,15 +34,6 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Mint a new Estate
-   * @param to The address that will own the minted token
-   * @return An uint256 representing the new token id
-   */
-  function mint(address to) external onlyRegistry returns (uint256) {
-    return _mintEstate(to, "");
-  }
-
-  /**
    * @dev Mint a new Estate with some metadata
    * @param to The address that will own the minted token
    * @param metadata Set an initial metadata
