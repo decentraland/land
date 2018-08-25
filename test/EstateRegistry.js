@@ -211,7 +211,7 @@ contract('EstateRegistry', accounts => {
     })
 
     it('only the registry can create estates', async function() {
-      await assertRevert(estate.mint(user))
+      await assertRevert(estate.mint(user, ''))
     })
 
     it('supports setting the metadata on create', async function() {
