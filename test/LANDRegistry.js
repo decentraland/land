@@ -551,7 +551,7 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('transferLandToEstate', function() {
-      it('transfers land to a Estate if it is called by owner', async function() {
+      it('transfers land to an Estate if it is called by owner', async function() {
         const [xUser, yUser] = await getLandOfUser()
 
         await land.transferLandToEstate(0, 1, estateId, sentByUser)
