@@ -131,7 +131,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
     emit SetLANDRegistry(registry);
   }
 
-  function ping() external onlyOwner {
+  function ping() external {
     registry.ping();
   }
 
