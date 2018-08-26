@@ -11,13 +11,13 @@ contract LANDRegistry {
 contract EstateStorage {
   LANDRegistry public registry;
 
-  // From Estate to list of owned Land ids (LANDs)
+  // From Estate to list of owned LAND ids (LANDs)
   mapping(uint256 => uint256[]) public estateLandIds;
 
-  // From Land id (LAND) to its owner Estate id
+  // From LAND id (LAND) to its owner Estate id
   mapping(uint256 => uint256) public landIdEstate;
 
-  // From Estate id to mapping of Land id to index on the array above (estateLandIds)
+  // From Estate id to mapping of LAND id to index on the array above (estateLandIds)
   mapping(uint256 => mapping(uint256 => uint256)) public estateLandIndex;
 
   // Metadata of the Estate
