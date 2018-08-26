@@ -314,12 +314,12 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
      */
     require(landIndex[landId] != 0, "The land is already owned by the estate");
 
-    uint lastIndexInArray = landIds.length - 1;
+    uint lastIndexInArray = landIds.length.sub(1);
 
     /**
      * Get the landIndex of this token in the landIds list
      */
-    uint indexInArray = landIndex[landId] - 1;
+    uint indexInArray = landIndex[landId].sub(1);
 
     /**
      * Get the landId at the end of the landIds list
@@ -329,7 +329,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
     /**
      * Store the last token in the position previously occupied by landId
      */
-    landIndex[tempTokenId] = indexInArray + 1;
+    landIndex[tempTokenId] = indexInArray.add(1);
     landIds[indexInArray] = tempTokenId;
 
     /**
