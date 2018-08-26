@@ -6,7 +6,7 @@ interface ILANDRegistry {
   function assignNewParcel(int x, int y, address beneficiary) external;
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external;
 
-  // After one year, land can be claimed from an inactive public key
+  // After one year, LAND can be claimed from an inactive public key
   function ping() external;
 
   // LAND-centric getters

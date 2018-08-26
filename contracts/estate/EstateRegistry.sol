@@ -68,7 +68,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Transfer a land owned by a estate to a new owner
+   * @notice Transfer a land owned by an Estate to a new owner
    * @param estateId Current owner of the token
    * @param landId Land to be transfered
    * @param destinatary New owner
@@ -85,7 +85,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Transfer many tokens owned by a estate to a new owner
+   * @notice Transfer many tokens owned by an Estate to a new owner
    * @param estateId Current owner of the token
    * @param landIds Lands to be transfered
    * @param destinatary New owner
@@ -136,7 +136,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Update the metadata of a Estate
+   * @notice Update the metadata of an Estate
    * @dev Reverts if the Estate does not exist or the user is not authorized
    * @param estateId Estate id to update
    * @param metadata string metadata
@@ -230,7 +230,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Interal function to mint a new Estate with some metadata
+   * @dev Internal function to mint a new Estate with some metadata
    * @param to The address that will own the minted token
    * @param metadata Set an initial metadata
    * @return An uint256 representing the new token id
@@ -245,7 +245,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Internal function to update a Estates metadata
+   * @dev Internal function to update an Estate metadata
    * @dev Does not require the Estate to exist, for a public interface use `updateMetadata`
    * @param estateId Estate id to update
    * @param metadata string metadata
@@ -264,14 +264,14 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Appends a new Land id to a estate updating all related storage
+   * @dev Appends a new Land id to an Estate updating all related storage
    * @param estateId Estate where the Land should go
    * @param landId Transfered Land
    */
   function _pushLandId(uint256 estateId, uint256 landId) internal {
     require(exists(estateId), "The estate id should exist");
-    require(landIdEstate[landId] == 0, "The land is already owned by a estate");
-    require(registry.ownerOf(landId) == address(this), "The Estate Registry cant manage this land");
+    require(landIdEstate[landId] == 0, "The land is already owned by an Estate");
+    require(registry.ownerOf(landId) == address(this), "The Estate Registry cannot manage this Land");
 
     estateLandIds[estateId].push(landId);
 
@@ -283,7 +283,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Removes a Land from an estate and transfers it to a new owner
+   * @dev Removes a Land from an Estate and transfers it to a new owner
    * @param estateId Current owner of the Land
    * @param landId Land to be transfered
    * @param destinatary New owner
