@@ -355,7 +355,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, SupportsInterfaceWi
     bytes32 out;
 
     for (uint i = 0; i < b.length; i++) {
-      out |= bytes32(b[i] & 0xFF) >> (i * 8);
+      out |= bytes32(b[i] & 0xFF) >> i.mul(8);
     }
 
     return uint256(out);
