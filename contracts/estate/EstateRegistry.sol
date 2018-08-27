@@ -7,7 +7,6 @@ import "zos-lib/contracts/migrations/Migratable.sol";
 
 import "./IEstateRegistry.sol";
 import "./EstateStorage.sol";
-import "../metadata/MetadataHolderBase.sol";
 
 /**
  * @title ERC721 registry of every minted estate and their owned LANDs
@@ -17,7 +16,7 @@ import "../metadata/MetadataHolderBase.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, ERC721Token, Ownable, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;

@@ -9,6 +9,8 @@ contract LANDRegistry {
 
 
 contract EstateStorage {
+  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
+
   LANDRegistry public registry;
 
   // From Estate to list of owned land ids (LANDs)
