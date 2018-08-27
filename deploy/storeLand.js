@@ -218,7 +218,7 @@ async function optimizeOrder(input) {
 async function run() {
   const input = readJSON(filename)
 
-  assert(input.landRegistry, 'Missing landRegistry address')
+  assert(input.landRegistry, 'Missing LANDRegistry address')
   assert(input.concurrency, 'Missing concurrency')
   assert(input.parcels, 'Missing parcels structure')
 

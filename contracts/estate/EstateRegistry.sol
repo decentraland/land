@@ -10,7 +10,7 @@ import "../metadata/MetadataHolderBase.sol";
 
 
 /**
- * @title ERC721 registry of every minted estate and their owned LANDs
+ * @title ERC721 registry of every minted Estate and their owned LANDs
  * @dev Usings we are inheriting and depending on:
  * From ERC721Token:
  *   - using SafeMath for uint256;
@@ -47,10 +47,10 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
    * @notice Handle the receipt of an NFT
    * @dev The ERC721 smart contract calls this function on the recipient
    *  after a `safetransfer`. This function MAY throw to revert and reject the
-   *  transfer. The EstateRegistry uses this function to register new tokens for a particular estate
+   *  transfer. The EstateRegistry uses this function to register new tokens for a particular Estate
    *  which will be present on the extra bytes.
    * @param tokenId The NFT identifier which is being transfered
-   * @param estateTokenIdBytes Additional data, should represent a uint256 estate id
+   * @param estateTokenIdBytes Additional data, should represent a uint256 Estate id
    * @return `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
    */
   function onERC721Received(
@@ -68,9 +68,9 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Transfer a land owned by an Estate to a new owner
+   * @notice Transfer a LAND owned by an Estate to a new owner
    * @param estateId Current owner of the token
-   * @param landId Land to be transfered
+   * @param landId LAND to be transfered
    * @param destinatary New owner
    */
   function transferLand(
@@ -105,19 +105,19 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Get the estate id for a given land id
+   * @notice Get the Estate id for a given LAND id
    * @dev This information also lives on estateLandIds,
-   *   but it being a mapping you need to know the estate id beforehand.
-   * @param landId Land to search
-   * @return The corresponding estate id
+   *   but it being a mapping you need to know the Estate id beforehand.
+   * @param landId LAND to search
+   * @return The corresponding Estate id
    */
   function getLandEstateId(uint256 landId) external view returns (uint256) {
     return landIdEstate[landId];
   }
 
   function setLANDRegistry(address _registry) external onlyOwner {
-    require(_registry.isContract(), "The land registry address should be a contract");
-    require(_registry != 0, "The land registry address should be valid");
+    require(_registry.isContract(), "The LAND registry address should be a contract");
+    require(_registry != 0, "The LAND registry address should be valid");
     registry = LANDRegistry(_registry);
     emit SetLANDRegistry(registry);
   }
@@ -127,7 +127,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @notice Return the amount of tokens for a given estate
+   * @notice Return the amount of tokens for a given Estate
    * @param estateId Estate id to search
    * @return Tokens length
    */
@@ -186,7 +186,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Safely transfers the ownership of multiple estate IDs to another address
+   * @dev Safely transfers the ownership of multiple Estate IDs to another address
    * @dev Delegates to safeTransferFrom for each transfer
    * @dev Requires the msg sender to be the owner, approved, or operator
    * @param from current owner of the token
@@ -203,7 +203,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Safely transfers the ownership of multiple estate IDs to another address
+   * @dev Safely transfers the ownership of multiple Estate IDs to another address
    * @dev Delegates to safeTransferFrom for each transfer
    * @dev Requires the msg sender to be the owner, approved, or operator
    * @param from current owner of the token
@@ -264,14 +264,14 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Appends a new Land id to an Estate updating all related storage
-   * @param estateId Estate where the Land should go
-   * @param landId Transfered Land
+   * @dev Appends a new LAND id to an Estate updating all related storage
+   * @param estateId Estate where the LAND should go
+   * @param landId Transfered LAND
    */
   function _pushLandId(uint256 estateId, uint256 landId) internal {
-    require(exists(estateId), "The estate id should exist");
-    require(landIdEstate[landId] == 0, "The land is already owned by an Estate");
-    require(registry.ownerOf(landId) == address(this), "The Estate Registry cannot manage this Land");
+    require(exists(estateId), "The Estate id should exist");
+    require(landIdEstate[landId] == 0, "The LAND is already owned by an Estate");
+    require(registry.ownerOf(landId) == address(this), "The Estate Registry cannot manage this LAND");
 
     estateLandIds[estateId].push(landId);
 
@@ -283,9 +283,9 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   }
 
   /**
-   * @dev Removes a Land from an Estate and transfers it to a new owner
-   * @param estateId Current owner of the Land
-   * @param landId Land to be transfered
+   * @dev Removes a LAND from an Estate and transfers it to a new owner
+   * @param estateId Current owner of the LAND
+   * @param landId LAND to be transfered
    * @param destinatary New owner
    */
   function _transferLand(
@@ -295,7 +295,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
   )
     internal
   {
-    require(destinatary != address(0), "You can not transfer land to an empty address");
+    require(destinatary != address(0), "You can not transfer LAND to an empty address");
 
     uint256[] storage landIds = estateLandIds[estateId];
     mapping(uint256 => uint256) landIndex = estateLandIndex[estateId];
@@ -303,7 +303,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
     /**
      * Using 1-based indexing to be able to make this check
      */
-    require(landIndex[landId] != 0, "The land is already owned by the estate");
+    require(landIndex[landId] != 0, "The LAND is already owned by the Estate");
 
     uint lastIndexInArray = landIds.length.sub(1);
 
@@ -335,7 +335,7 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, MetadataHolderBase,
     landIndex[landId] = 0;
 
     /**
-     * Drop this landId estate
+     * Drop this landId Estate
      */
     landIdEstate[landId] = 0;
 
