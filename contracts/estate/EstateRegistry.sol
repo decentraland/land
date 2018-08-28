@@ -1,7 +1,8 @@
 pragma solidity ^0.4.23;
 
-import "openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol";
+
 import "openzeppelin-zos/contracts/token/ERC721/ERC721Token.sol";
+import "openzeppelin-zos/contracts/token/ERC721/ERC721Receiver.sol";
 import "openzeppelin-zos/contracts/ownership/Ownable.sol";
 import "zos-lib/contracts/migrations/Migratable.sol";
 
@@ -16,7 +17,7 @@ import "./EstateStorage.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, Ownable, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEstateRegistry, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
@@ -45,25 +46,29 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, SupportsInterfaceWi
   /**
    * @notice Handle the receipt of an NFT
    * @dev The ERC721 smart contract calls this function on the recipient
-   *  after a `safetransfer`. This function MAY throw to revert and reject the
-   *  transfer. The EstateRegistry uses this function to register new tokens for a particular Estate
-   *  which will be present on the extra bytes.
-   * @param tokenId The NFT identifier which is being transfered
-   * @param estateTokenIdBytes Additional data, should represent a uint256 Estate id
-   * @return `bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
+   * after a `safetransfer`. This function MAY throw to revert and reject the
+   * transfer. Return of other than the magic value MUST result in the
+   * transaction being reverted.
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transferred
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
    */
   function onERC721Received(
-    address /* oldOwner */,
-    uint256 tokenId,
-    bytes estateTokenIdBytes
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes _data
   )
-    external
+    public
     onlyRegistry
     returns (bytes4)
   {
-    uint256 estateId = _bytesToUint(estateTokenIdBytes);
-    _pushLandId(estateId, tokenId);
-    return bytes4(0xf0b9e5ba);
+    uint256 estateId = _bytesToUint(_data);
+    _pushLandId(estateId, _tokenId);
+    return ERC721_RECEIVED;
   }
 
   /**
@@ -183,9 +188,16 @@ contract EstateRegistry is Migratable, ERC721Token, Ownable, SupportsInterfaceWi
     ERC721Token.initialize(_name, _symbol);
     Ownable.initialize(msg.sender);
     registry = LANDRegistry(_registry);
+  }
 
-    // register the supported interfaces via ERC165
-    _registerInterface(InterfaceId_GetMetadata);
+  // check the supported interfaces via ERC165
+  function _supportsInterface(bytes4 _interfaceId)
+    internal
+    view
+    returns (bool)
+  {
+    return super._supportsInterface(_interfaceId) || 
+      _interfaceId == InterfaceId_GetMetadata;
   }
 
   /**
