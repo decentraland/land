@@ -2,7 +2,7 @@ pragma solidity ^0.4.23;
 
 import "openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol";
 import "openzeppelin-zos/contracts/token/ERC721/ERC721Token.sol";
-import "openzeppelin-zos/contracts/token/ERC721/ERC721Holder.sol";
+import "openzeppelin-zos/contracts/token/ERC721/ERC721Receiver.sol";
 import "openzeppelin-zos/contracts/ownership/Ownable.sol";
 import "zos-lib/contracts/migrations/Migratable.sol";
 
@@ -17,7 +17,7 @@ import "./EstateStorage.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, ERC721Holder, Ownable, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
@@ -57,17 +57,17 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Holder, Ownable, Suppo
    * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
    */
   function onERC721Received(
-    address /* _operator */,
-    address /* _from */,
-    uint256 tokenId,
-    bytes estateTokenIdBytes
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes _data
   )
-    external
+    public
     onlyRegistry
     returns (bytes4)
   {
-    uint256 estateId = _bytesToUint(estateTokenIdBytes);
-    _pushLandId(estateId, tokenId);
+    uint256 estateId = _bytesToUint(_data);
+    _pushLandId(estateId, _tokenId);
     return ERC721_RECEIVED;
   }
 
