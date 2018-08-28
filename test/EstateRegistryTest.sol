@@ -17,7 +17,7 @@ contract EstateRegistryTest is EstateRegistry {
     return _mintEstate(to, metadata);
   }
 
-  function getMetadataInterfaceId() pure returns (bytes4) {
+  function getMetadataInterfaceId() public pure returns (bytes4) {
     return InterfaceId_GetMetadata;
   }
 }

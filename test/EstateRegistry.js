@@ -493,7 +493,43 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('land update', function() {
+  describe.only('land update', function() {
+    it.only('should allow owner of Estate to update land data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateId = await createEstate([0], [1], user, sentByUser)
+      await estate.updateLandData(
+        estateId,
+        0,
+        1,
+        'newValue2',
+        sentByUser
+      )
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue2')
+    })
+    it('should allow operator of Estate to update land data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await createEstate([0], [1], user, sentByUser)
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.updateLandData(1, 0, 1, 'newValue', sentByAnotherUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+    it('should allow update operator of Estate to update land data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await createEstate([0], [1], user, sentByUser)
+      await estate.setUpdateOperator(1, anotherUser, sentByUser)
+      await estate.updateLandData(1, 0, 1, 'newValue', sentByAnotherUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+    it('should not allow not operator, not owner or not updateOperator of Estate to update land data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await createEstate([0], [1], user, sentByUser)
+      await assertRevert(
+        estate.updateLandData(1, 0, 1, 'newValue', sentByAnotherUser)
+      )
+    })
     it('should not allow old owner to update land after creating an Estate', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       await createEstate([0], [1], user, sentByUser)
@@ -508,7 +544,7 @@ contract('EstateRegistry', accounts => {
       )
     })
   })
- 
+
   describe('support interfaces', function() {
     it('should support InterfaceId_GetMetadata interface', async function() {
       const interfaceId = await estate.getMetadataInterfaceId()

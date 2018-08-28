@@ -372,4 +372,26 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
 
     return uint256(out);
   }
+
+  /**
+   * @dev update LAND data owned by an Estate
+   * @param estateId Estate
+   * @param x coordinate of the LAND
+   * @param y coordinate of the LAND
+   * @param data string metadata
+   */
+  function updateLandData(uint256 estateId, int x, int y, string data) public onlyUpdateAuthorized(estateId) {
+    registry.updateLandData(x, y, data);
+  }
+
+  /**
+   * @dev update LANDs data owned by an Estate
+   * @param estateId Estate id
+   * @param x coordinates of the LAND
+   * @param y coordinates of the LAND
+   * @param data string metadata
+   */
+  function updateManyLandData(uint256 estateId, int[] x, int[] y, string data) public onlyUpdateAuthorized(estateId) {
+    registry.updateManyLandData(x, y, data);
+  }
 }
