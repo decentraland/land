@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-import "openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol";
+
 import "openzeppelin-zos/contracts/token/ERC721/ERC721Token.sol";
 import "openzeppelin-zos/contracts/token/ERC721/ERC721Receiver.sol";
 import "openzeppelin-zos/contracts/ownership/Ownable.sol";
@@ -17,7 +17,7 @@ import "./EstateStorage.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, SupportsInterfaceWithLookup, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEstateRegistry, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
@@ -188,9 +188,16 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, Sup
     ERC721Token.initialize(_name, _symbol);
     Ownable.initialize(msg.sender);
     registry = LANDRegistry(_registry);
+  }
 
-    // register the supported interfaces via ERC165
-    _registerInterface(InterfaceId_GetMetadata);
+  // check the supported interfaces via ERC165
+  function _supportsInterface(bytes4 _interfaceId)
+    internal
+    view
+    returns (bool)
+  {
+    return super._supportsInterface(_interfaceId) || 
+      _interfaceId == InterfaceId_GetMetadata;
   }
 
   /**
