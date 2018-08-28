@@ -319,7 +319,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
-      _moveToken(
+      _doTransferFrom(
         _ownerOf(tokenId),
         address(estateRegistry),
         tokenId,
