@@ -23,7 +23,7 @@ require('chai')
  *   This is because encoding a pair like `(0, 1)` returns `1`, `(0, 2)` returns `2`, and so on.
  */
 contract('EstateRegistry', accounts => {
-  const [creator, user, anotherUser, yetAnotherUser, hacker, lala] = accounts
+  const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
 
   let contracts = null
   let land = null
