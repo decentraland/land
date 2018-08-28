@@ -185,7 +185,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function _tokenMetadata(uint256 assetId) internal view returns (string) {
     address _owner = _ownerOf(assetId);
-    if (_isContract(_owner)) {
+    if (_isContract(_owner) && _owner != address(estateRegistry)) {
       if ((ERC165(_owner)).supportsInterface(GET_METADATA)) {
         return IMetadataHolder(_owner).getMetadata(assetId);
       }

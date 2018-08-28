@@ -1,9 +1,49 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
+
+// File: contracts/estate/IEstateRegistry.sol
+
+contract IEstateRegistry {
+  function mint(address to, string metadata) external returns (uint256);
+
+  // Events
+
+  event CreateEstate(
+    address indexed _owner,
+    uint256 indexed _estateId,
+    string _data
+  );
+
+  event AddLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId
+  );
+
+  event RemoveLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId,
+    address indexed _destinatary
+  );
+
+  event Update(
+    uint256 indexed _assetId,
+    address indexed _holder,
+    address indexed _operator,
+    string _data
+  );
+
+  event UpdateOperator(
+    uint256 indexed _estateId,
+    address indexed _operator
+  );
+
+  event SetLANDRegistry(
+    address indexed _registry
+  );
+}
 
 // File: contracts/land/LANDStorage.sol
 
 contract LANDStorage {
-
   mapping (address => uint) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
@@ -13,6 +53,8 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping (uint256 => address) public updateOperator;
+
+  IEstateRegistry public estateRegistry;
 }
 
 // File: contracts/upgradable/OwnableStorage.sol
@@ -21,7 +63,7 @@ contract OwnableStorage {
 
   address public owner;
 
-  function OwnableStorage() internal {
+  constructor() internal {
     owner = msg.sender;
   }
 
@@ -78,16 +120,6 @@ contract AssetRegistryStorage {
   mapping(address => mapping(address => bool)) internal _operators;
 
   /**
-   * Simple reentrancy lock
-   */
-  bool internal _reentrancy;
-
-  /**
-   * Complex reentrancy lock
-   */
-  uint256 internal _reentrancyCount;
-
-  /**
    * Approval array
    */
   mapping(uint256 => address) internal _approval;
@@ -107,7 +139,9 @@ contract DelegateProxy {
    * @param _calldata Calldata for the delegatecall
    */
   function delegatedFwd(address _dst, bytes _calldata) internal {
-    require(isContract(_dst));
+    require(isContract(_dst), "The destination address is not a contract");
+
+    // solium-disable-next-line security/no-inline-assembly
     assembly {
       let result := delegatecall(sub(gas, 10000), _dst, add(_calldata, 0x20), mload(_calldata), 0, 0)
       let size := returndatasize
@@ -122,8 +156,9 @@ contract DelegateProxy {
     }
   }
 
-  function isContract(address _target) constant internal returns (bool) {
+  function isContract(address _target) internal view returns (bool) {
     uint256 size;
+    // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(_target) }
     return size > 0;
   }
@@ -141,23 +176,13 @@ contract Ownable is Storage {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function bytesToAddress (bytes b) pure public returns (address) {
-    uint result = 0;
-    for (uint i = b.length-1; i+1 > 0; i--) {
-      uint c = uint(b[i]);
-      uint to_inc = c * ( 16 ** ((b.length - i-1) * 2));
-      result += to_inc;
-    }
-    return address(result);
-  }
-
   modifier onlyOwner {
     assert(msg.sender == owner);
     _;
   }
 
   function transferOwnership(address _newOwner) public onlyOwner {
-    require(_newOwner != owner);
+    require(_newOwner != owner, "Cannot transfer to yourself");
     owner = _newOwner;
   }
 }
@@ -169,9 +194,18 @@ contract Proxy is Storage, DelegateProxy, Ownable {
   event Upgrade(address indexed newContract, bytes initializedWith);
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function Proxy() public {
+  constructor() public {
     proxyOwner = msg.sender;
     owner = msg.sender;
+  }
+
+  //
+  // Dispatch fallback
+  //
+
+  function () public payable {
+    require(currentContract != 0, "If app code has not been set yet, do not call");
+    delegatedFwd(currentContract, msg.data);
   }
 
   //
@@ -179,13 +213,13 @@ contract Proxy is Storage, DelegateProxy, Ownable {
   //
 
   modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner);
+    require(msg.sender == proxyOwner, "Unauthorized user");
     _;
   }
 
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != address(0));
-    require(_newOwner != proxyOwner);
+    require(_newOwner != address(0), "Empty address");
+    require(_newOwner != proxyOwner, "Already authorized");
     proxyOwner = _newOwner;
   }
 
@@ -197,16 +231,7 @@ contract Proxy is Storage, DelegateProxy, Ownable {
     currentContract = newContract;
     IApplication(this).initialize(data);
 
-    Upgrade(newContract, data);
-  }
-
-  //
-  // Dispatch fallback
-  //
-
-  function () payable public {
-    require(currentContract != 0); // if app code hasn't been set yet, don't call
-    delegatedFwd(currentContract, msg.data);
+    emit Upgrade(newContract, data);
   }
 }
 

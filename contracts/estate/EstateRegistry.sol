@@ -380,7 +380,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
    * @param y coordinate of the LAND
    * @param data string metadata
    */
-  function updateLandData(uint256 estateId, int x, int y, string data) public onlyUpdateAuthorized(estateId) {
+  function updateLandData(uint256 estateId, int x, int y, string data) external onlyUpdateAuthorized(estateId) {
     registry.updateLandData(x, y, data);
   }
 
@@ -391,7 +391,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
    * @param y coordinates of the LAND
    * @param data string metadata
    */
-  function updateManyLandData(uint256 estateId, int[] x, int[] y, string data) public onlyUpdateAuthorized(estateId) {
+  function updateManyLandData(uint256 estateId, int[] x, int[] y, string data) external onlyUpdateAuthorized(estateId) {
     registry.updateManyLandData(x, y, data);
   }
 }
