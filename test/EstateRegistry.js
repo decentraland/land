@@ -185,7 +185,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('set Land Registry', function() {
+  describe('set LAND Registry', function() {
     it('set works correctly', async function() {
       const registry = await LANDProxy.new(creationParams)
       await estate.setLANDRegistry(registry.address, creationParams)

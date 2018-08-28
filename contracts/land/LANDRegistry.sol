@@ -312,7 +312,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   {
     require(x.length > 0, "You should supply at least one coordinate");
     require(x.length == y.length, "The coordinates should have the same length");
-    require(address(estateRegistry) != 0, "The estate registry should be set");
+    require(address(estateRegistry) != 0, "The Estate registry should be set");
 
     uint256 estateTokenId = estateRegistry.mint(beneficiary, metadata);
     bytes memory estateTokenIdBytes = toBytes(estateTokenId);
