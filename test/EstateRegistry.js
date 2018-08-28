@@ -476,4 +476,27 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(estateId, 4, 5)
     })
   })
+
+  describe('support interfaces', function() {
+    it('should support InterfaceId_GetMetadata interface', async function() {
+      const interfaceId = await estate.getMetadataInterfaceId()
+      const isSupported = await estate.supportsInterface(interfaceId)
+      expect(isSupported).be.true
+    })
+
+    it('should support inherited InterfaceId_ERC721 and InterfaceId_ERC721Exists interfaces', async function() {
+      let interfaceId = '0x80ac58cd' // InterfaceId_ERC721
+      let isSupported = await estate.supportsInterface(interfaceId)
+      expect(isSupported).be.true
+
+      interfaceId = '0x4f558e79' // InterfaceId_ERC721Exists
+      isSupported = await estate.supportsInterface(interfaceId)
+      expect(isSupported).be.true
+    })
+
+    it('should not support not defined interface', async function() {
+      const isSupported = await estate.supportsInterface('123456')
+      expect(isSupported).be.false
+    })
+  })
 })
