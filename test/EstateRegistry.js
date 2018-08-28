@@ -23,11 +23,9 @@ require('chai')
  *   This is because encoding a pair like `(0, 1)` returns `1`, `(0, 2)` returns `2`, and so on.
  */
 contract('EstateRegistry', accounts => {
-  const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
+  const [creator, user, anotherUser, yetAnotherUser, hacker, lala] = accounts
 
   let contracts = null
-  let registry = null
-  let proxy = null
   let land = null
   let estate = null
 
@@ -165,8 +163,6 @@ contract('EstateRegistry', accounts => {
 
   beforeEach(async function() {
     contracts = await setupContracts(creator, creationParams)
-    proxy = contracts.proxy
-    registry = contracts.registry
     estate = contracts.estate
     land = contracts.land
   })
@@ -249,6 +245,19 @@ contract('EstateRegistry', accounts => {
         _estateId: '1',
         _data: metadata
       })
+    })
+
+    it('should allow operator to create an estate', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      await createEstate([0], [1], user, sentByAnotherUser)
+      await assertEstateCount(user, 1)
+    })
+
+    it('fails if sender is not owner or operator of all lands', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      await land.approve(anotherUser, 1, sentByUser)
+      await assertRevert(createEstate([0, 0], [1, 2], user, sentByAnotherUser))
     })
 
     it('fails if somebody else tries to steal land', async function() {
@@ -479,6 +488,22 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(estateId, 2, 3)
       await assertLandIdAtIndex(estateId, 3, 4)
       await assertLandIdAtIndex(estateId, 4, 5)
+    })
+  })
+
+  describe('land update', function() {
+    it('should not allow old owner to update land after creating an Estate', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await createEstate([0], [1], user, sentByUser)
+      await assertRevert(land.updateLandData(0, 1, 'newValue', sentByUser))
+    })
+    it('should not allow old operator to update land after creating Estate', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      await createEstate([0], [1], user, sentByAnotherUser)
+      await assertRevert(
+        land.updateLandData(0, 1, 'newValue', sentByAnotherUser)
+      )
     })
   })
 })
