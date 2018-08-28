@@ -250,6 +250,11 @@ contract('EstateRegistry', accounts => {
         _data: metadata
       })
     })
+
+    it('fails if somebody else tries to steal land', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await assertRevert(createEstate([0], [1], user, sentByAnotherUser))
+    })
   })
 
   describe('transfer many Estates', function() {
