@@ -318,7 +318,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
     /**
      * Using 1-based indexing to be able to make this check
      */
-    require(landIndex[landId] != 0, "The LAND is already owned by the Estate");
+    require(landIndex[landId] != 0, "The LAND is not part of the Estate");
 
     uint lastIndexInArray = landIds.length.sub(1);
 
@@ -376,22 +376,31 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   /**
    * @dev update LAND data owned by an Estate
    * @param estateId Estate
-   * @param x coordinate of the LAND
-   * @param y coordinate of the LAND
+   * @param landId LAND to be updated
    * @param data string metadata
    */
-  function updateLandData(uint256 estateId, int x, int y, string data) external onlyUpdateAuthorized(estateId) {
-    registry.updateLandData(x, y, data);
+  function updateLandData(uint256 estateId, uint256 landId, string data) public {
+    _updateLandData(estateId, landId, data);
   }
 
   /**
    * @dev update LANDs data owned by an Estate
    * @param estateId Estate id
-   * @param x coordinates of the LAND
-   * @param y coordinates of the LAND
+   * @param landIds LANDs to be updated
    * @param data string metadata
    */
-  function updateManyLandData(uint256 estateId, int[] x, int[] y, string data) external onlyUpdateAuthorized(estateId) {
-    registry.updateManyLandData(x, y, data);
+  function updateManyLandData(uint256 estateId, uint256[] landIds, string data) public {
+    uint length = landIds.length;
+    for (uint i = 0; i < length; i++) {
+      _updateLandData(estateId, landIds[i], data);
+    }
+  }
+
+  function _updateLandData(uint256 estateId, uint256 landId, string data) internal onlyUpdateAuthorized(estateId) {
+    require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
+    int x;
+    int y;
+    (x, y) = registry.decodeTokenId(landId);
+    registry.updateLandData(x, y, data);
   }
 }
