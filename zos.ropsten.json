@@ -1,13 +1,10 @@
 {
   "contracts": {
     "EstateRegistry": {
-      "address": "0xe61de019d75cff0fefbb0125e7b3f88b292d567e",
-      "constructorCode":
-        "608060405234801561001057600080fd5b5061390e806100206000396000f300",
-      "bodyBytecodeHash":
-        "e29ced84e5589629fe132866270089ae12e099cc6ea9891bdfcec3dca1abfc83",
-      "bytecodeHash":
-        "e655f231320684a0f046d8f5aebfeb3be826a9b5794cfab092a98303ac5dbe00"
+      "address": "0x1e70606c387d89cbe5c973791eb085488f676f99",
+      "constructorCode": "608060405234801561001057600080fd5b50613c97806100206000396000f300",
+      "bodyBytecodeHash": "a9f0d7c838d1040da2aa69ce9b70657e50eee1118853640ffe6e3d3301a574f0",
+      "bytecodeHash": "29fddfc21cf44eb8590d6772f0712df0a800275cd0e28727754f6928290f04b1"
     }
   },
   "proxies": {
@@ -15,7 +12,7 @@
       {
         "address": "0x124bf28a423b2ca80b3846c3aa0eb944fe7ebb95",
         "version": "0.1.0",
-        "implementation": "0x9300de7efb5fb4c8b32705226f3418b69d144543"
+        "implementation": "0x1e70606c387d89cbe5c973791eb085488f676f99"
       }
     ]
   },
