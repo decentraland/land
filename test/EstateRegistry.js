@@ -324,6 +324,13 @@ contract('EstateRegistry', accounts => {
         estate.transferLand(estateId, 1, yetAnotherUser, sentByAnotherUser)
       )
     })
+
+    it('should not allow an owner of an Estate transfer tokens out from an Estate which is not the owner', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await land.assignMultipleParcels([0], [2], anotherUser, sentByCreator)
+      await createEstate([0], [2], anotherUser, sentByAnotherUser)
+      await assertRevert(estate.transferLand(estateId, 2, user, sentByUser))
+    })
   })
 
   describe('transfer tokens', function() {
@@ -493,22 +500,157 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('land update', function() {
-    it('should not allow old owner to update land after creating an Estate', async function() {
+  describe('LAND update', function() {
+    it('should allow owner of an Estate to update LAND data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateId = await createEstate([0], [1], user, sentByUser)
+      await estate.updateLandData(estateId, 1, 'newValue', sentByUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+
+    it('should allow operator of an Estate to update LAND data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateId = await createEstate([0], [1], user, sentByUser)
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.updateLandData(estateId, 1, 'newValue', sentByAnotherUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+
+    it('should allow update operator of an Estate to update LAND data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateId = await createEstate([0], [1], user, sentByUser)
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await estate.updateLandData(estateId, 1, 'newValue', sentByAnotherUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+
+    it('should not allow owner an Estate to update LAND data of an Estate which is not the owner', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateIdByUser = await createEstate([0], [1], user, sentByUser)
+      await land.assignMultipleParcels([0], [2], anotherUser, sentByCreator)
+      await createEstate([0], [2], anotherUser, sentByAnotherUser)
+      await assertRevert(
+        estate.updateLandData(estateIdByUser, 2, 'newValue', sentByUser)
+      )
+    })
+
+    it('should not allow neither operator, nor owner nor updateOperator of an Estate to update LAND data', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateId = await createEstate([0], [1], user, sentByUser)
+      await assertRevert(
+        estate.updateLandData(estateId, 1, 'newValue', sentByAnotherUser)
+      )
+    })
+
+    it('should not allow old owner to update LAND data after creating an Estate', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       await createEstate([0], [1], user, sentByUser)
       await assertRevert(land.updateLandData(0, 1, 'newValue', sentByUser))
     })
-    it('should not allow old operator to update land after creating Estate', async function() {
+
+    it('should not allow old operator to update LAND data after creating an Estate', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      const estateId = await createEstate([0], [1], user, sentByAnotherUser)
+      await assertRevert(
+        land.updateLandData(estateId, 1, 'newValue', sentByAnotherUser)
+      )
+    })
+  })
+
+  describe('LANDs update', function() {
+    it('should allow owner of an Estate to update LANDs data', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [1, 2], user, sentByUser)
+      await estate.updateManyLandData(estateId, [1, 2], 'newValue', sentByUser)
+      const landsData = await Promise.all([
+        land.landData(0, 1, sentByUser),
+        land.landData(0, 2, sentByUser)
+      ])
+
+      landsData.forEach(data => data.should.be.equal('newValue'))
+    })
+
+    it('should allow operator of an Estate to update LANDs data', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [1, 2], user, sentByUser)
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.updateManyLandData(
+        estateId,
+        [1, 2],
+        'newValue',
+        sentByAnotherUser
+      )
+      const landsData = await Promise.all([
+        land.landData(0, 1, sentByUser),
+        land.landData(0, 2, sentByUser)
+      ])
+
+      landsData.forEach(data => data.should.be.equal('newValue'))
+    })
+
+    it('should allow update operator of an Estate to update LANDs data', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [1, 2], user, sentByUser)
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await estate.updateManyLandData(
+        estateId,
+        [1, 2],
+        'newValue',
+        sentByAnotherUser
+      )
+      const landsData = await Promise.all([
+        land.landData(0, 1, sentByUser),
+        land.landData(0, 2, sentByUser)
+      ])
+
+      landsData.forEach(data => data.should.be.equal('newValue'))
+    })
+
+    it('should not allow owner an Estate to update LANDs data of an Estate which is not the owner', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      const estateIdByUser = await createEstate([0], [1], user, sentByUser)
+      await land.assignMultipleParcels([0], [2], anotherUser, sentByCreator)
+      await createEstate([0], [2], anotherUser, sentByAnotherUser)
+      await assertRevert(
+        estate.updateManyLandData(estateIdByUser, [2], 'newValue', sentByUser)
+      )
+    })
+
+    it('should not allow neither operator nor owner nor updateOperator of an Estate to update LANDs data', async function() {
+      await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [1, 2], user, sentByUser)
+      await assertRevert(
+        estate.updateManyLandData(
+          estateId,
+          [1, 2],
+          'newValue',
+          sentByAnotherUser
+        )
+      )
+    })
+
+    it('should not allow old owner to update LANDs data after creating an Estate', async function() {
+      await land.assignMultipleParcels([0], [1], user, sentByCreator)
+      await createEstate([0], [1], user, sentByUser)
+      await assertRevert(
+        land.updateManyLandData([0], [1], 'newValue', sentByUser)
+      )
+    })
+
+    it('should not allow old operator to update LANDs data after creating an Estate', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       await land.setApprovalForAll(anotherUser, true, sentByUser)
       await createEstate([0], [1], user, sentByAnotherUser)
       await assertRevert(
-        land.updateLandData(0, 1, 'newValue', sentByAnotherUser)
+        land.updateManyLandData([0], [1], 'newValue', sentByAnotherUser)
       )
     })
   })
- 
+
   describe('support interfaces', function() {
     it('should support InterfaceId_GetMetadata interface', async function() {
       const interfaceId = await estate.getMetadataInterfaceId()

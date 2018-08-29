@@ -1,9 +1,49 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
+
+// File: contracts/estate/IEstateRegistry.sol
+
+contract IEstateRegistry {
+  function mint(address to, string metadata) external returns (uint256);
+
+  // Events
+
+  event CreateEstate(
+    address indexed _owner,
+    uint256 indexed _estateId,
+    string _data
+  );
+
+  event AddLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId
+  );
+
+  event RemoveLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId,
+    address indexed _destinatary
+  );
+
+  event Update(
+    uint256 indexed _assetId,
+    address indexed _holder,
+    address indexed _operator,
+    string _data
+  );
+
+  event UpdateOperator(
+    uint256 indexed _estateId,
+    address indexed _operator
+  );
+
+  event SetLANDRegistry(
+    address indexed _registry
+  );
+}
 
 // File: contracts/land/LANDStorage.sol
 
 contract LANDStorage {
-
   mapping (address => uint) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
@@ -13,6 +53,8 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping (uint256 => address) public updateOperator;
+
+  IEstateRegistry public estateRegistry;
 }
 
 // File: contracts/upgradable/OwnableStorage.sol
@@ -21,7 +63,7 @@ contract OwnableStorage {
 
   address public owner;
 
-  function OwnableStorage() internal {
+  constructor() internal {
     owner = msg.sender;
   }
 
@@ -88,6 +130,18 @@ contract AssetRegistryStorage {
 contract Storage is ProxyStorage, OwnableStorage, AssetRegistryStorage, LANDStorage {
 }
 
+// File: erc821/contracts/ERC165.sol
+
+interface ERC165 {
+  function supportsInterface(bytes4 interfaceID) external view returns (bool);
+}
+
+// File: contracts/metadata/IMetadataHolder.sol
+
+contract IMetadataHolder is ERC165 {
+  function getMetadata(uint256 /* assetId */) external view returns (string);
+}
+
 // File: contracts/upgradable/IApplication.sol
 
 contract IApplication {
@@ -100,23 +154,13 @@ contract Ownable is Storage {
 
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  function bytesToAddress (bytes b) pure public returns (address) {
-    uint result = 0;
-    for (uint i = b.length-1; i+1 > 0; i--) {
-      uint c = uint(b[i]);
-      uint to_inc = c * ( 16 ** ((b.length - i-1) * 2));
-      result += to_inc;
-    }
-    return address(result);
-  }
-
   modifier onlyOwner {
     assert(msg.sender == owner);
     _;
   }
 
   function transferOwnership(address _newOwner) public onlyOwner {
-    require(_newOwner != owner);
+    require(_newOwner != owner, "Cannot transfer to yourself");
     owner = _newOwner;
   }
 }
@@ -129,17 +173,17 @@ interface ILANDRegistry {
   function assignNewParcel(int x, int y, address beneficiary) external;
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external;
 
-  // After one year, land can be claimed from an inactive public key
+  // After one year, LAND can be claimed from an inactive public key
   function ping() external;
 
   // LAND-centric getters
-  function encodeTokenId(int x, int y) pure external returns (uint256);
-  function decodeTokenId(uint value) pure external returns (int, int);
-  function exists(int x, int y) view external returns (bool);
-  function ownerOfLand(int x, int y) view external returns (address);
-  function ownerOfLandMany(int[] x, int[] y) view external returns (address[]);
-  function landOf(address owner) view external returns (int[], int[]);
-  function landData(int x, int y) view external returns (string);
+  function encodeTokenId(int x, int y) external pure returns (uint256);
+  function decodeTokenId(uint value) external pure returns (int, int);
+  function exists(int x, int y) external view returns (bool);
+  function ownerOfLand(int x, int y) external view returns (address);
+  function ownerOfLandMany(int[] x, int[] y) external view returns (address[]);
+  function landOf(address owner) external view returns (int[], int[]);
+  function landData(int x, int y) external view returns (string);
 
   // Transfer LAND
   function transferLand(int x, int y, address to) external;
@@ -151,29 +195,17 @@ interface ILANDRegistry {
 
   // Events
 
-  event Update(  
-    uint256 indexed assetId, 
-    address indexed holder,  
-    address indexed operator,  
-    string data  
+  event Update(
+    uint256 indexed assetId,
+    address indexed holder,
+    address indexed operator,
+    string data
   );
 
   event UpdateOperator(
-    uint256 indexed assetId, 
+    uint256 indexed assetId,
     address indexed operator
   );
-}
-
-// File: erc821/contracts/ERC165.sol
-
-interface ERC165 {
-  function supportsInterface(bytes4 interfaceID) external view returns (bool);
-}
-
-// File: contracts/land/IMetadataHolder.sol
-
-contract IMetadataHolder is ERC165 {
-  function getMetadata(uint256 /* assetId */) external view returns (string);
 }
 
 // File: erc821/contracts/IERC721Base.sol
@@ -199,12 +231,21 @@ interface IERC721Base {
 
   function isAuthorized(address operator, uint256 assetId) external view returns (bool);
 
+  /**
+   * @dev Deprecated transfer event. Now we use the standard with three parameters
+   * It is only used in the ABI to get old transfer events. Do not remove
+   */
   event Transfer(
     address indexed from,
     address indexed to,
     uint256 indexed assetId,
     address operator,
     bytes userData
+  );
+  event Transfer(
+    address indexed from,
+    address indexed to,
+    uint256 indexed assetId
   );
   event ApprovalForAll(
     address indexed operator,
@@ -222,13 +263,14 @@ interface IERC721Base {
 
 interface IERC721Receiver {
   function onERC721Received(
-    address _oldOwner,
+    address _operator,
+    address _from,
     uint256 _tokenId,
     bytes   _userData
   ) external returns (bytes4);
 }
 
-// File: zeppelin-solidity/contracts/math/SafeMath.sol
+// File: openzeppelin-solidity/contracts/math/SafeMath.sol
 
 /**
  * @title SafeMath
@@ -239,39 +281,43 @@ library SafeMath {
   /**
   * @dev Multiplies two numbers, throws on overflow.
   */
-  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-    if (a == 0) {
+  function mul(uint256 _a, uint256 _b) internal pure returns (uint256 c) {
+    // Gas optimization: this is cheaper than asserting 'a' not being zero, but the
+    // benefit is lost if 'b' is also tested.
+    // See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
+    if (_a == 0) {
       return 0;
     }
-    uint256 c = a * b;
-    assert(c / a == b);
+
+    c = _a * _b;
+    assert(c / _a == _b);
     return c;
   }
 
   /**
   * @dev Integer division of two numbers, truncating the quotient.
   */
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
+  function div(uint256 _a, uint256 _b) internal pure returns (uint256) {
+    // assert(_b > 0); // Solidity automatically throws when dividing by 0
+    // uint256 c = _a / _b;
+    // assert(_a == _b * c + _a % _b); // There is no case in which this doesn't hold
+    return _a / _b;
   }
 
   /**
   * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
   */
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
+  function sub(uint256 _a, uint256 _b) internal pure returns (uint256) {
+    assert(_b <= _a);
+    return _a - _b;
   }
 
   /**
   * @dev Adds two numbers, throws on overflow.
   */
-  function add(uint256 a, uint256 b) internal pure returns (uint256) {
-    uint256 c = a + b;
-    assert(c >= a);
+  function add(uint256 _a, uint256 _b) internal pure returns (uint256 c) {
+    c = _a + _b;
+    assert(c >= _a);
     return c;
   }
 }
@@ -280,6 +326,9 @@ library SafeMath {
 
 contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
   using SafeMath for uint256;
+
+  // Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+  bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
   //
   // Global Getters
@@ -488,7 +537,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
 
     _addAssetTo(beneficiary, assetId);
 
-    emit Transfer(0, beneficiary, assetId, msg.sender, '');
+    emit Transfer(0, beneficiary, assetId);
   }
 
   function _destroy(uint256 assetId) internal {
@@ -497,7 +546,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
 
     _removeAssetFrom(holder, assetId);
 
-    emit Transfer(holder, 0, assetId, msg.sender, '');
+    emit Transfer(holder, 0, assetId);
   }
 
   //
@@ -537,7 +586,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    * @param assetId uint256 ID of the asset to be transferred
    */
   function safeTransferFrom(address from, address to, uint256 assetId) external {
-    return _doTransferFrom(from, to, assetId, '', msg.sender, true);
+    return _doTransferFrom(from, to, assetId, '', true);
   }
 
   /**
@@ -551,7 +600,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    * @param userData bytes arbitrary user information to attach to this transfer
    */
   function safeTransferFrom(address from, address to, uint256 assetId, bytes userData) external {
-    return _doTransferFrom(from, to, assetId, userData, msg.sender, true);
+    return _doTransferFrom(from, to, assetId, userData, true);
   }
 
   /**
@@ -564,7 +613,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    * @param assetId uint256 ID of the asset to be transferred
    */
   function transferFrom(address from, address to, uint256 assetId) external {
-    return _doTransferFrom(from, to, assetId, '', msg.sender, false);
+    return _doTransferFrom(from, to, assetId, '', false);
   }
 
   function _doTransferFrom(
@@ -572,13 +621,12 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     address to,
     uint256 assetId,
     bytes userData,
-    address operator,
     bool doCheck
   )
     onlyAuthorized(assetId)
     internal
   {
-    _moveToken(from, to, assetId, userData, operator, doCheck);
+    _moveToken(from, to, assetId, userData, doCheck);
   }
 
   function _moveToken(
@@ -586,7 +634,6 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     address to,
     uint256 assetId,
     bytes userData,
-    address operator,
     bool doCheck
   )
     isDestinataryDefined(to)
@@ -600,16 +647,15 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
     _addAssetTo(to, assetId);
 
     if (doCheck && _isContract(to)) {
-      // Equals to bytes4(keccak256("onERC721Received(address,uint256,bytes)"))
-      bytes4 ERC721_RECEIVED = bytes4(0xf0b9e5ba);
+      // Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))
       require(
         IERC721Receiver(to).onERC721Received(
-          holder, assetId, userData
+          msg.sender, holder, assetId, userData
         ) == ERC721_RECEIVED
       );
     }
 
-    emit Transfer(holder, to, assetId, operator, userData);
+    emit Transfer(holder, to, assetId);
   }
 
   /**
@@ -800,12 +846,9 @@ contract FullAssetRegistry is ERC721Base, ERC721Enumerable, ERC721Metadata {
 
 // File: contracts/land/LANDRegistry.sol
 
-contract LANDRegistry is Storage,
-  Ownable, FullAssetRegistry,
-  ILANDRegistry
-{
-
-  bytes4 public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
+/* solium-disable function-order */
+contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
+  bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
 
   function initialize(bytes) external {
     _name = "Decentraland LAND";
@@ -814,7 +857,7 @@ contract LANDRegistry is Storage,
   }
 
   modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner, "this function can only be called by the proxy owner");
+    require(msg.sender == proxyOwner, "This function can only be called by the proxy owner");
     _;
   }
 
@@ -823,18 +866,25 @@ contract LANDRegistry is Storage,
   //
 
   modifier onlyOwnerOf(uint256 assetId) {
-    require(msg.sender == _ownerOf(assetId), "this function can only be called by the owner of the asset");
+    require(
+      msg.sender == _ownerOf(assetId),
+      "This function can only be called by the owner of the asset"
+    );
     _;
   }
 
   modifier onlyUpdateAuthorized(uint256 tokenId) {
-    require(msg.sender == _ownerOf(tokenId) || _isUpdateAuthorized(msg.sender, tokenId), "msg.sender is not authorized to update");
+    require(
+      msg.sender == _ownerOf(tokenId) || _isUpdateAuthorized(msg.sender, tokenId),
+      "msg.sender is not authorized to update"
+    );
     _;
   }
 
   function isUpdateAuthorized(address operator, uint256 assetId) external view returns (bool) {
     return _isUpdateAuthorized(operator, assetId);
   }
+
   function _isUpdateAuthorized(address operator, uint256 assetId) internal view returns (bool) {
     return operator == _ownerOf(assetId) || updateOperator[assetId] == operator;
   }
@@ -842,6 +892,7 @@ contract LANDRegistry is Storage,
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
     authorizedDeploy[beneficiary] = true;
   }
+
   function forbidDeploy(address beneficiary) external onlyProxyOwner {
     authorizedDeploy[beneficiary] = false;
   }
@@ -861,65 +912,79 @@ contract LANDRegistry is Storage,
   //
 
   function ping() external {
-    latestPing[msg.sender] = now;
+    // solium-disable-next-line security/no-block-members
+    latestPing[msg.sender] = block.timestamp;
   }
 
   function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user));
-    latestPing[user] = now;
+    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
+    // solium-disable-next-line security/no-block-members
+    latestPing[user] = block.timestamp;
   }
 
   //
   // LAND Getters
   //
 
-  function encodeTokenId(int x, int y) pure external returns (uint) {
+  function encodeTokenId(int x, int y) external pure returns (uint) {
     return _encodeTokenId(x, y);
   }
-  function _encodeTokenId(int x, int y) pure internal returns (uint result) {
-    require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
+
+  function _encodeTokenId(int x, int y) internal pure returns (uint result) {
+    require(
+      -1000000 < x && x < 1000000 && -1000000 < y && y < 1000000,
+      "The coordinates should be inside bounds"
+    );
     return _unsafeEncodeTokenId(x, y);
   }
-  function _unsafeEncodeTokenId(int x, int y) pure internal returns (uint) {
+
+  function _unsafeEncodeTokenId(int x, int y) internal pure returns (uint) {
     return ((uint(x) * factor) & clearLow) | (uint(y) & clearHigh);
   }
 
-  function decodeTokenId(uint value) pure external returns (int, int) {
+  function decodeTokenId(uint value) external pure returns (int, int) {
     return _decodeTokenId(value);
   }
-  function _unsafeDecodeTokenId(uint value) pure internal returns (int x, int y) {
+
+  function _unsafeDecodeTokenId(uint value) internal pure returns (int x, int y) {
     x = expandNegative128BitCast((value & clearLow) >> 128);
     y = expandNegative128BitCast(value & clearHigh);
   }
-  function _decodeTokenId(uint value) pure internal returns (int x, int y) {
+
+  function _decodeTokenId(uint value) internal pure returns (int x, int y) {
     (x, y) = _unsafeDecodeTokenId(value);
-    require(-1000000 < x && x < 1000000 && -1000000 < y && y < 1000000);
+    require(
+      -1000000 < x && x < 1000000 && -1000000 < y && y < 1000000,
+      "The coordinates should be inside bounds"
+    );
   }
 
-  function expandNegative128BitCast(uint value) pure internal returns (int) {
+  function expandNegative128BitCast(uint value) internal pure returns (int) {
     if (value & (1<<127) != 0) {
       return int(value | clearLow);
     }
     return int(value);
   }
 
-  function exists(int x, int y) view external returns (bool) {
+  function exists(int x, int y) external view returns (bool) {
     return _exists(x, y);
   }
-  function _exists(int x, int y) view internal returns (bool) {
+
+  function _exists(int x, int y) internal view returns (bool) {
     return _exists(_encodeTokenId(x, y));
   }
 
-  function ownerOfLand(int x, int y) view external returns (address) {
+  function ownerOfLand(int x, int y) external view returns (address) {
     return _ownerOfLand(x, y);
   }
-  function _ownerOfLand(int x, int y) view internal returns (address) {
+
+  function _ownerOfLand(int x, int y) internal view returns (address) {
     return _ownerOf(_encodeTokenId(x, y));
   }
 
-  function ownerOfLandMany(int[] x, int[] y) view external returns (address[]) {
-    require(x.length > 0);
-    require(x.length == y.length);
+  function ownerOfLandMany(int[] x, int[] y) external view returns (address[]) {
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
 
     address[] memory addrs = new address[](x.length);
     for (uint i = 0; i < x.length; i++) {
@@ -951,8 +1016,8 @@ contract LANDRegistry is Storage,
 
   function _tokenMetadata(uint256 assetId) internal view returns (string) {
     address _owner = _ownerOf(assetId);
-    if (_isContract(_owner)) {
-      if (ERC165(_owner).supportsInterface(GET_METADATA)) {
+    if (_isContract(_owner) && _owner != address(estateRegistry)) {
+      if ((ERC165(_owner)).supportsInterface(GET_METADATA)) {
         return IMetadataHolder(_owner).getMetadata(assetId);
       }
     }
@@ -967,18 +1032,69 @@ contract LANDRegistry is Storage,
   // LAND Transfer
   //
 
+  function transferFrom(address from, address to, uint256 assetId) external {
+    require(to != address(estateRegistry), "EstateRegistry unsafe transfers are not allowed");
+    return _doTransferFrom(
+      from,
+      to,
+      assetId,
+      "",
+      false
+    );
+  }
+
+
   function transferLand(int x, int y, address to) external {
     uint256 tokenId = _encodeTokenId(x, y);
-    _doTransferFrom(_ownerOf(tokenId), to, tokenId, '', msg.sender, true);
+    _doTransferFrom(
+      _ownerOf(tokenId),
+      to,
+      tokenId,
+      "",
+      true
+    );
   }
 
   function transferManyLand(int[] x, int[] y, address to) external {
-    require(x.length > 0);
-    require(x.length == y.length);
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);
-      _doTransferFrom(_ownerOf(tokenId), to, tokenId, '', msg.sender, true);
+      _doTransferFrom(
+        _ownerOf(tokenId),
+        to,
+        tokenId,
+        "",
+        true
+      );
+    }
+  }
+
+  function transferLandToEstate(int x, int y, uint256 estateId) external {
+    uint256 tokenId = _encodeTokenId(x, y);
+    _doTransferFrom(
+      _ownerOf(tokenId),
+      address(estateRegistry),
+      tokenId,
+      toBytes(estateId),
+      true
+    );
+  }
+
+  function transferManyLandToEstate(int[] x, int[] y, uint256 estateId) external {
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
+
+    for (uint i = 0; i < x.length; i++) {
+      uint256 tokenId = _encodeTokenId(x[i], y[i]);
+      _doTransferFrom(
+        _ownerOf(tokenId),
+        address(estateRegistry),
+        tokenId,
+        toBytes(estateId),
+        true
+      );
     }
   }
 
@@ -988,22 +1104,109 @@ contract LANDRegistry is Storage,
   }
 
   //
+  // Estate generation
+  //
+
+  event EstateRegistrySet(address indexed registry);
+
+  function setEstateRegistry(address registry) external onlyProxyOwner {
+    estateRegistry = IEstateRegistry(registry);
+    emit EstateRegistrySet(registry);
+  }
+
+  function createEstate(int[] x, int[] y, address beneficiary) external returns (uint256) {
+    // solium-disable-next-line arg-overflow
+    return _createEstate(x, y, beneficiary, "");
+  }
+
+  function createEstateWithMetadata(
+    int[] x,
+    int[] y,
+    address beneficiary,
+    string metadata
+  )
+    external
+    returns (uint256)
+  {
+    // solium-disable-next-line arg-overflow
+    return _createEstate(x, y, beneficiary, metadata);
+  }
+
+  function _createEstate(
+    int[] x,
+    int[] y,
+    address beneficiary,
+    string metadata
+  )
+    internal
+    returns (uint256)
+  {
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
+    require(address(estateRegistry) != 0, "The Estate registry should be set");
+
+    uint256 estateTokenId = estateRegistry.mint(beneficiary, metadata);
+    bytes memory estateTokenIdBytes = toBytes(estateTokenId);
+
+    for (uint i = 0; i < x.length; i++) {
+      uint256 tokenId = _encodeTokenId(x[i], y[i]);
+      _doTransferFrom(
+        _ownerOf(tokenId),
+        address(estateRegistry),
+        tokenId,
+        estateTokenIdBytes,
+        true
+      );
+    }
+
+    return estateTokenId;
+  }
+
+  function toBytes(uint256 x) internal pure returns (bytes b) {
+    b = new bytes(32);
+    // solium-disable-next-line security/no-inline-assembly
+    assembly { mstore(add(b, 32), x) }
+  }
+
+  //
   // LAND Update
   //
 
-  function updateLandData(int x, int y, string data) external onlyUpdateAuthorized (_encodeTokenId(x, y)) {
+  function updateLandData(
+    int x,
+    int y,
+    string data
+  )
+    external
+    onlyUpdateAuthorized(_encodeTokenId(x, y))
+  {
     return _updateLandData(x, y, data);
   }
-  function _updateLandData(int x, int y, string data) internal onlyUpdateAuthorized (_encodeTokenId(x, y)) {
+
+  function _updateLandData(
+    int x,
+    int y,
+    string data
+  )
+    internal
+    onlyUpdateAuthorized(_encodeTokenId(x, y))
+  {
     uint256 assetId = _encodeTokenId(x, y);
+    address owner = _holderOf[assetId];
+
     _update(assetId, data);
 
-    emit Update(assetId, _holderOf[assetId], msg.sender, data);
+    emit Update(
+      assetId,
+      owner,
+      msg.sender,
+      data
+    );
   }
 
   function updateManyLandData(int[] x, int[] y, string data) external {
-    require(x.length > 0);
-    require(x.length == y.length);
+    require(x.length > 0, "You should supply at least one coordinate");
+    require(x.length == y.length, "The coordinates should have the same length");
     for (uint i = 0; i < x.length; i++) {
       _updateLandData(x[i], y[i], data);
     }
@@ -1014,15 +1217,24 @@ contract LANDRegistry is Storage,
     address to,
     uint256 assetId,
     bytes userData,
-    address operator,
     bool doCheck
-  ) internal {
+  )
+    internal
+  {
     updateOperator[assetId] = address(0);
-    super._doTransferFrom(from, to, assetId, userData, operator, doCheck);
+
+    super._doTransferFrom(
+      from,
+      to,
+      assetId,
+      userData,
+      doCheck
+    );
   }
 
   function _isContract(address addr) internal view returns (bool) {
     uint size;
+    // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
   }
