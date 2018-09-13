@@ -212,7 +212,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     );
   }
 
-
   function transferLand(int x, int y, address to) external {
     uint256 tokenId = _encodeTokenId(x, y);
     _doTransferFrom(
