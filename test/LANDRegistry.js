@@ -18,8 +18,6 @@ contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
 
   let contracts = null
-  let registry = null
-  let proxy = null
   let estate = null
   let land = null
 
@@ -46,8 +44,6 @@ contract('LANDRegistry', accounts => {
 
   beforeEach(async function() {
     contracts = await setupContracts(creator, creationParams)
-    proxy = contracts.proxy
-    registry = contracts.registry
     estate = contracts.estate
     land = contracts.land
 
@@ -438,8 +434,6 @@ contract('LANDRegistry', accounts => {
 
     describe('transferLand', function() {
       it('transfers land if it is called by owner', async function() {
-        const [xUser, yUser] = await getLandOfUser()
-
         await land.transferLand(0, 1, creator, sentByUser)
         const [xCreator, yCreator] = await land.landOf(creator)
         const [xNewUser, yNewUser] = await land.landOf(user)
@@ -456,8 +450,6 @@ contract('LANDRegistry', accounts => {
       })
 
       it('transfers land if it is called by operator', async function() {
-        const [xUser, yUser] = await getLandOfUser()
-
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, { from: operator })
         const [xCreator, yCreator] = await land.landOf(creator)
@@ -552,8 +544,6 @@ contract('LANDRegistry', accounts => {
 
     describe('transferLandToEstate', function() {
       it('transfers land to an Estate if it is called by owner', async function() {
-        const [xUser, yUser] = await getLandOfUser()
-
         await land.transferLandToEstate(0, 1, estateId, sentByUser)
         const [xEstate, yEstate] = await land.landOf(estate.address)
         const [xNewUser, yNewUser] = await land.landOf(user)

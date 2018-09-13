@@ -2,17 +2,15 @@ pragma solidity ^0.4.23;
 
 
 contract LANDRegistry {
+  function decodeTokenId(uint value) external pure returns (int, int);
+  function updateLandData(int x, int y, string data) external;
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
   function safeTransferFrom(address, address, uint256) public;
-  function decodeTokenId(uint value) external pure returns (int, int);
-  function updateLandData(int x, int y, string data) external;
 }
 
 
 contract EstateStorage {
-  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
-
   LANDRegistry public registry;
 
   // From Estate to list of owned LAND ids (LANDs)
@@ -29,4 +27,6 @@ contract EstateStorage {
 
   // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
+
+  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
 }

@@ -9,6 +9,7 @@ import "zos-lib/contracts/migrations/Migratable.sol";
 import "./IEstateRegistry.sol";
 import "./EstateStorage.sol";
 
+
 /**
  * @title ERC721 registry of every minted Estate and their owned LANDs
  * @dev Usings we are inheriting and depending on:
@@ -41,34 +42,6 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
    */
   function mint(address to, string metadata) external onlyRegistry returns (uint256) {
     return _mintEstate(to, metadata);
-  }
-
-  /**
-   * @notice Handle the receipt of an NFT
-   * @dev The ERC721 smart contract calls this function on the recipient
-   * after a `safetransfer`. This function MAY throw to revert and reject the
-   * transfer. Return of other than the magic value MUST result in the
-   * transaction being reverted.
-   * Note: the contract address is always the message sender.
-   * @param _operator The address which called `safeTransferFrom` function
-   * @param _from The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transferred
-   * @param _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   */
-  function onERC721Received(
-    address _operator,
-    address _from,
-    uint256 _tokenId,
-    bytes _data
-  )
-    public
-    onlyRegistry
-    returns (bytes4)
-  {
-    uint256 estateId = _bytesToUint(_data);
-    _pushLandId(estateId, _tokenId);
-    return ERC721_RECEIVED;
   }
 
   /**
@@ -184,20 +157,38 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
     isInitializer("EstateRegistry", "0.0.1")
   {
     require(_registry != 0, "The registry should be a valid address");
-    
+
     ERC721Token.initialize(_name, _symbol);
     Ownable.initialize(msg.sender);
     registry = LANDRegistry(_registry);
   }
 
-  // check the supported interfaces via ERC165
-  function _supportsInterface(bytes4 _interfaceId)
-    internal
-    view
-    returns (bool)
+  /**
+   * @notice Handle the receipt of an NFT
+   * @dev The ERC721 smart contract calls this function on the recipient
+   * after a `safetransfer`. This function MAY throw to revert and reject the
+   * transfer. Return of other than the magic value MUST result in the
+   * transaction being reverted.
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transferred
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+   */
+  function onERC721Received(
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes _data
+  )
+    public
+    onlyRegistry
+    returns (bytes4)
   {
-    return super._supportsInterface(_interfaceId) || 
-      _interfaceId == InterfaceId_GetMetadata;
+    uint256 estateId = _bytesToUint(_data);
+    _pushLandId(estateId, _tokenId);
+    return ERC721_RECEIVED;
   }
 
   /**
@@ -245,6 +236,39 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   /**
+   * @dev update LAND data owned by an Estate
+   * @param estateId Estate
+   * @param landId LAND to be updated
+   * @param data string metadata
+   */
+  function updateLandData(uint256 estateId, uint256 landId, string data) public {
+    _updateLandData(estateId, landId, data);
+  }
+
+  /**
+   * @dev update LANDs data owned by an Estate
+   * @param estateId Estate id
+   * @param landIds LANDs to be updated
+   * @param data string metadata
+   */
+  function updateManyLandData(uint256 estateId, uint256[] landIds, string data) public {
+    uint length = landIds.length;
+    for (uint i = 0; i < length; i++) {
+      _updateLandData(estateId, landIds[i], data);
+    }
+  }
+
+  // check the supported interfaces via ERC165
+  function _supportsInterface(bytes4 _interfaceId)
+    internal
+    view
+    returns (bool)
+  {
+    return super._supportsInterface(_interfaceId) ||
+      _interfaceId == InterfaceId_GetMetadata;
+  }
+
+  /**
    * @dev Internal function to mint a new Estate with some metadata
    * @param to The address that will own the minted token
    * @param metadata Set an initial metadata
@@ -286,7 +310,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   function _pushLandId(uint256 estateId, uint256 landId) internal {
     require(exists(estateId), "The Estate id should exist");
     require(landIdEstate[landId] == 0, "The LAND is already owned by an Estate");
-    require(registry.ownerOf(landId) == address(this), "The Estate Registry cannot manage this LAND");
+    require(registry.ownerOf(landId) == address(this), "The EstateRegistry cannot manage the LAND");
 
     estateLandIds[estateId].push(landId);
 
@@ -373,30 +397,14 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
     return uint256(out);
   }
 
-  /**
-   * @dev update LAND data owned by an Estate
-   * @param estateId Estate
-   * @param landId LAND to be updated
-   * @param data string metadata
-   */
-  function updateLandData(uint256 estateId, uint256 landId, string data) public {
-    _updateLandData(estateId, landId, data);
-  }
-
-  /**
-   * @dev update LANDs data owned by an Estate
-   * @param estateId Estate id
-   * @param landIds LANDs to be updated
-   * @param data string metadata
-   */
-  function updateManyLandData(uint256 estateId, uint256[] landIds, string data) public {
-    uint length = landIds.length;
-    for (uint i = 0; i < length; i++) {
-      _updateLandData(estateId, landIds[i], data);
-    }
-  }
-
-  function _updateLandData(uint256 estateId, uint256 landId, string data) internal onlyUpdateAuthorized(estateId) {
+  function _updateLandData(
+    uint256 estateId,
+    uint256 landId,
+    string data
+  )
+    internal
+    onlyUpdateAuthorized(estateId)
+  {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     int x;
     int y;
