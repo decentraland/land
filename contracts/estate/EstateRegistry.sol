@@ -388,6 +388,8 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   function _bytesToUint(bytes b) internal pure returns (uint256) {
+    require(b.length == 32, "Array length must be equal to 32 bytes");
+
     bytes32 out;
 
     for (uint i = 0; i < b.length; i++) {
