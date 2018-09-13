@@ -11,6 +11,11 @@ contract LANDRegistry {
 
 
 contract EstateStorage {
+  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
+  bytes4 internal constant InterfaceId_ValidateFingerprint = bytes4(
+    keccak256("validateFingerprint(uint256,bytes)")
+  );
+
   LANDRegistry public registry;
 
   // From Estate to list of owned LAND ids (LANDs)
@@ -27,6 +32,4 @@ contract EstateStorage {
 
   // Operator of the Estate
   mapping (uint256 => address) internal updateOperator;
-
-  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
 }
