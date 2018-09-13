@@ -240,6 +240,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function transferLandToEstate(int x, int y, uint256 estateId) external {
+    require(
+      estateRegistry.ownerOf(estateId) == msg.sender,
+      'You must own the Estate you want to transfer to'
+    );
+
     uint256 tokenId = _encodeTokenId(x, y);
     _doTransferFrom(
       _ownerOf(tokenId),
@@ -253,6 +258,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function transferManyLandToEstate(int[] x, int[] y, uint256 estateId) external {
     require(x.length > 0, "You should supply at least one coordinate");
     require(x.length == y.length, "The coordinates should have the same length");
+    require(
+      estateRegistry.ownerOf(estateId) == msg.sender,
+      'You must own the Estate you want to transfer to'
+    );
 
     for (uint i = 0; i < x.length; i++) {
       uint256 tokenId = _encodeTokenId(x[i], y[i]);

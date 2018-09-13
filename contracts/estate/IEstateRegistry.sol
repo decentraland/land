@@ -3,6 +3,7 @@ pragma solidity ^0.4.22;
 
 contract IEstateRegistry {
   function mint(address to, string metadata) external returns (uint256);
+  function ownerOf(uint256 _tokenId) public view returns (address _owner); // from ERC721
 
   // Events
 

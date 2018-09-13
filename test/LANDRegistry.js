@@ -28,6 +28,7 @@ contract('LANDRegistry', accounts => {
   }
   const sentByUser = { ...creationParams, from: user }
   const sentByCreator = { ...creationParams, from: creator }
+  const sentByOperator = { ...creationParams, from: operator }
 
   async function createEstate(xs, ys, owner, sendParams) {
     return createEstateFull(contracts, xs, ys, owner, '', sendParams)
@@ -451,7 +452,7 @@ contract('LANDRegistry', accounts => {
 
       it('transfers land if it is called by operator', async function() {
         await land.setApprovalForAll(operator, true, sentByUser)
-        await land.transferLand(0, 1, creator, { from: operator })
+        await land.transferLand(0, 1, creator, sentByOperator)
         const [xCreator, yCreator] = await land.landOf(creator)
         const [xNewUser, yNewUser] = await land.landOf(user)
 
@@ -467,7 +468,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('does not transfer land if it is called by not authorized operator', async function() {
-        await assertRevert(land.transferLand(0, 1, creator, { from: operator }))
+        await assertRevert(land.transferLand(0, 1, creator, sentByOperator))
       })
 
       it('does not transfer land if land does not exist', async function() {
@@ -498,7 +499,7 @@ contract('LANDRegistry', accounts => {
         const [xUser, yUser] = await getLandOfUser()
 
         await land.setApprovalForAll(operator, true, sentByUser)
-        await land.transferManyLand(xUser, yUser, creator, { from: operator })
+        await land.transferManyLand(xUser, yUser, creator, sentByOperator)
         const [xCreator, yCreator] = await land.landOf(creator)
         const [xNewUser, yNewUser] = await land.landOf(user)
 
@@ -516,7 +517,7 @@ contract('LANDRegistry', accounts => {
       it('does not transfer lands if it is called by not authorized operator', async function() {
         const [xUser, yUser] = await land.landOf(user)
         await assertRevert(
-          land.transferManyLand(xUser, yUser, creator, { from: operator })
+          land.transferManyLand(xUser, yUser, creator, sentByOperator)
         )
       })
 
@@ -539,12 +540,20 @@ contract('LANDRegistry', accounts => {
 
     beforeEach(async function() {
       await land.assignMultipleParcels([3], [3], creator, sentByCreator)
-      estateId = await createEstate([3], [3], creator, sentByCreator)
+      estateId = await createEstate([3], [3], user, sentByCreator)
     })
 
     describe('transferLandToEstate', function() {
+      it('doesnt transfer the land to an Estate if it is owned by the sender', async function() {
+        await land.assignMultipleParcels([4], [4], operator, sentByCreator)
+        await assertRevert(
+          land.transferLandToEstate(4, 4, estateId, sentByOperator)
+        )
+      })
+
       it('transfers land to an Estate if it is called by owner', async function() {
         await land.transferLandToEstate(0, 1, estateId, sentByUser)
+
         const [xEstate, yEstate] = await land.landOf(estate.address)
         const [xNewUser, yNewUser] = await land.landOf(user)
 
@@ -563,7 +572,7 @@ contract('LANDRegistry', accounts => {
 
       it('does not transfer land if it is called by not authorized operator', async function() {
         await assertRevert(
-          land.transferLandToEstate(0, 1, estateId, { from: operator })
+          land.transferLandToEstate(0, 1, estateId, sentByOperator)
         )
       })
 
@@ -575,6 +584,13 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('transferManyLandToEstate', function() {
+      it('doesnt transfer the lands to an Estate if it is owned by the sender', async function() {
+        await land.assignMultipleParcels([4], [4], operator, sentByCreator)
+        await assertRevert(
+          land.transferManyLandToEstate([4], [4], estateId, sentByOperator)
+        )
+      })
+
       it('transfers lands if it is called by owner', async function() {
         const [xUser, yUser] = await getLandOfUser()
 
@@ -621,13 +637,13 @@ contract('LANDRegistry', accounts => {
 
   describe('update authorized', function() {
     it('update not allowed before setUpdateOperator', async function() {
-      await assertRevert(land.updateLandData(0, 1, '', { from: operator }))
+      await assertRevert(land.updateLandData(0, 1, '', sentByOperator))
     })
 
     it('update allowed after setUpdateOperator', async function() {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
-      await land.updateLandData(0, 1, 'newValue', { from: operator })
+      await land.updateLandData(0, 1, 'newValue', sentByOperator)
       const data = await land.landData(0, 1)
       data.should.be.equal('newValue')
     })
@@ -636,18 +652,14 @@ contract('LANDRegistry', accounts => {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
       await land.setUpdateOperator(landId, anotherUser, sentByUser)
-      await assertRevert(
-        land.updateLandData(0, 1, 'newValue', { from: operator })
-      )
+      await assertRevert(land.updateLandData(0, 1, 'newValue', sentByOperator))
     })
 
     it('update disallowed after transfer', async function() {
       const landId = await land.encodeTokenId(0, 1)
       await land.setUpdateOperator(landId, operator, sentByUser)
       await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
-      await assertRevert(
-        land.updateLandData(0, 1, 'newValue', { from: operator })
-      )
+      await assertRevert(land.updateLandData(0, 1, 'newValue', sentByOperator))
     })
 
     it('update operator emits UpdateOperator event', async function() {
