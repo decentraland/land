@@ -269,9 +269,9 @@ contract('EstateRegistry', accounts => {
   })
 
   describe('marketplace v2 compliance', function() {
-    it('supports validateFingerprint interface', async function() {
+    it('supports verifyFingerprint interface', async function() {
       const isSupported = await estate.supportsInterface(
-        web3.sha3('validateFingerprint(uint256,bytes)')
+        web3.sha3('verifyFingerprint(uint256,bytes)')
       )
       expect(isSupported).be.true
     })
@@ -283,9 +283,9 @@ contract('EstateRegistry', accounts => {
       expect(fingerprint).to.be.equal(expectedHash)
     })
 
-    it('validates the fingerprint correctly', async function() {
+    it('verifies the fingerprint correctly', async function() {
       const { estateId, expectedHash } = await getEstateAndHash()
-      const result = await estate.validateFingerprint(estateId, expectedHash)
+      const result = await estate.verifyFingerprint(estateId, expectedHash)
       expect(result).to.be.true
     })
 

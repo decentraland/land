@@ -12,8 +12,8 @@ contract LANDRegistry {
 
 contract EstateStorage {
   bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
-  bytes4 internal constant InterfaceId_ValidateFingerprint = bytes4(
-    keccak256("validateFingerprint(uint256,bytes)")
+  bytes4 internal constant InterfaceId_VerifyFingerprint = bytes4(
+    keccak256("verifyFingerprint(uint256,bytes)")
   );
 
   LANDRegistry public registry;

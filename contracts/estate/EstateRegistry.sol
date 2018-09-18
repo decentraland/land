@@ -210,15 +210,11 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   /**
-   * @dev Validates a checksum of the contents of the Estate
+   * @dev Verifies a checksum of the contents of the Estate
    * @param estateId the estateid to be verified
    * @param fingerprint the user provided identification of the Estate contents
    */
-  function validateFingerprint(uint256 estateId, bytes fingerprint)
-    public
-    view
-    returns (bool)
-  {
+  function verifyFingerprint(uint256 estateId, bytes fingerprint) public view returns (bool) {
     return getFingerprint(estateId) == _bytesToBytes32(fingerprint);
   }
 
@@ -294,7 +290,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
     // solium-disable-next-line operator-whitespace
     return super._supportsInterface(_interfaceId) ||
       _interfaceId == InterfaceId_GetMetadata ||
-      _interfaceId == InterfaceId_ValidateFingerprint;
+      _interfaceId == InterfaceId_VerifyFingerprint;
   }
 
   /**
