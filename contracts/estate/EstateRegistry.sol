@@ -154,7 +154,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address _registry
   )
     public
-    isInitializer("EstateRegistry", "0.0.1")
+    isInitializer("EstateRegistry", "0.0.2")
   {
     require(_registry != 0, "The registry should be a valid address");
 
@@ -189,6 +189,33 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     uint256 estateId = _bytesToUint(_data);
     _pushLandId(estateId, _tokenId);
     return ERC721_RECEIVED;
+  }
+
+  /**
+   * @dev Creates a checksum of the contents of the Estate
+   * @param estateId the estateId to be verified
+   */
+  function getFingerprint(uint256 estateId)
+    public
+    view
+    returns (bytes32 result)
+  {
+    result = keccak256(abi.encodePacked(estateId));
+
+    uint256 length = estateLandIds[estateId].length;
+    for (uint i = 0; i < length; i++) {
+      result ^= keccak256(abi.encodePacked(estateLandIds[estateId][i]));
+    }
+    return result;
+  }
+
+  /**
+   * @dev Verifies a checksum of the contents of the Estate
+   * @param estateId the estateid to be verified
+   * @param fingerprint the user provided identification of the Estate contents
+   */
+  function verifyFingerprint(uint256 estateId, bytes fingerprint) public view returns (bool) {
+    return getFingerprint(estateId) == _bytesToBytes32(fingerprint);
   }
 
   /**
@@ -259,13 +286,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   // check the supported interfaces via ERC165
-  function _supportsInterface(bytes4 _interfaceId)
-    internal
-    view
-    returns (bool)
-  {
+  function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
+    // solium-disable-next-line operator-whitespace
     return super._supportsInterface(_interfaceId) ||
-      _interfaceId == InterfaceId_GetMetadata;
+      _interfaceId == InterfaceId_GetMetadata ||
+      _interfaceId == InterfaceId_VerifyFingerprint;
   }
 
   /**
@@ -388,13 +413,17 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   function _bytesToUint(bytes b) internal pure returns (uint256) {
+    return uint256(_bytesToBytes32(b));
+  }
+
+  function _bytesToBytes32(bytes b) internal pure returns (bytes32) {
     bytes32 out;
 
     for (uint i = 0; i < b.length; i++) {
       out |= bytes32(b[i] & 0xFF) >> i.mul(8);
     }
 
-    return uint256(out);
+    return out;
   }
 
   function _updateLandData(

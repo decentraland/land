@@ -3,9 +3,6 @@ require('babel-polyfill')
 
 const fs = require('fs')
 
-const abi = require('ethereumjs-abi')
-const abiDecoder = require('abi-decoder')
-
 const LANDRegistry = artifacts.require('LANDRegistry')
 let land
 let globalLock = false
