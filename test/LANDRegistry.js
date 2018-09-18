@@ -544,7 +544,7 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('transferLandToEstate', function() {
-      it('doesnt transfer the LAND to an Estate if it is owned by the sender', async function() {
+      it('should not transfer the LAND to an Estate if it not is owned by the sender', async function() {
         await land.assignMultipleParcels([4], [4], operator, sentByCreator)
         await assertRevert(
           land.transferLandToEstate(4, 4, estateId, sentByOperator)
@@ -584,7 +584,7 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('transferManyLandToEstate', function() {
-      it('doesnt transfer the LANDs to an Estate if it is owned by the sender', async function() {
+      it('should not transfer the LANDs to an Estate if it is not owned by the sender', async function() {
         await land.assignMultipleParcels([4], [4], operator, sentByCreator)
         await assertRevert(
           land.transferManyLandToEstate([4], [4], estateId, sentByOperator)
