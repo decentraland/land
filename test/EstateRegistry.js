@@ -268,6 +268,45 @@ contract('EstateRegistry', accounts => {
     })
   })
 
+  describe('marketplace v2 compliance', function() {
+    it('supports verifyFingerprint interface', async function() {
+      const isSupported = await estate.supportsInterface(
+        web3.sha3('verifyFingerprint(uint256,bytes)')
+      )
+      expect(isSupported).be.true
+    })
+
+    it('creates the fingerprint correctly', async function() {
+      const { estateId, expectedHash } = await getEstateAndHash()
+      const fingerprint = await estate.getFingerprint(estateId)
+
+      expect(fingerprint).to.be.equal(expectedHash)
+    })
+
+    it('verifies the fingerprint correctly', async function() {
+      const { estateId, expectedHash } = await getEstateAndHash()
+      const result = await estate.verifyFingerprint(estateId, expectedHash)
+      expect(result).to.be.true
+    })
+
+    const getEstateAndHash = async () => {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const firstLandId = await land.encodeTokenId(fiveX[0], fiveY[0])
+
+      let expectedHash = await contracts.estate.calculateXor(
+        estateId,
+        firstLandId
+      )
+
+      for (let i = 1; i < fiveX.length; i++) {
+        const landId = await land.encodeTokenId(fiveX[i], fiveY[i])
+        expectedHash = await contracts.estate.compoundXor(expectedHash, landId)
+      }
+
+      return { estateId, expectedHash }
+    }
+  })
+
   describe('transfer many Estates', function() {
     it('the owner can transfer many estates', async function() {
       const estateIds = await createTwoEstates(user, sentByUser)
