@@ -18,7 +18,7 @@ import "./EstateStorage.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Receiver, Ownable, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
