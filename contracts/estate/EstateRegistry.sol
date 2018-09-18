@@ -64,7 +64,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   /**
    * @notice Transfer many tokens owned by an Estate to a new owner
    * @param estateId Current owner of the token
-   * @param landIds Lands to be transfered
+   * @param landIds LANDs to be transfered
    * @param destinatary New owner
    */
   function transferManyLands(

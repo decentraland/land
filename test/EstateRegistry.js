@@ -254,7 +254,7 @@ contract('EstateRegistry', accounts => {
       await assertEstateCount(user, 1)
     })
 
-    it('fails if sender is not owner or operator of all lands', async function() {
+    it('fails if sender is not owner or operator of all LANDs', async function() {
       await land.assignMultipleParcels([0, 0], [1, 2], user, sentByCreator)
       await land.approve(anotherUser, 1, sentByUser)
       await assertRevert(
@@ -262,7 +262,7 @@ contract('EstateRegistry', accounts => {
       )
     })
 
-    it('fails if somebody else tries to steal land', async function() {
+    it('fails if somebody else tries to steal LAND', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       await assertRevert(createEstate([0], [1], anotherUser, sentByAnotherUser))
     })
