@@ -4,7 +4,7 @@ import setupContracts, {
   ESTATE_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
-import abi from 'ethereumjs-abi'
+import { getSoliditySha3 } from './helpers/getSoliditySha3'
 
 const BigNumber = web3.BigNumber
 
@@ -555,16 +555,38 @@ contract('EstateRegistry', accounts => {
       expect(fingerprint).to.be.equal(expectedHash)
     })
 
+    it('should generate a the same hash even if the parcel order changes', async function() {
+      await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
+      const estateId = await createEstate(fiveX, fiveY, user, sentByUser)
+
+      const fingerprint = await estate.getFingerprint(estateId)
+
+      // Remove LANDs
+      for (const [index, x] of fiveX.entries()) {
+        const y = fiveY[index]
+        const landId = await land.encodeTokenId(x, y)
+        await estate.transferLand(estateId, landId, user, sentByUser)
+      }
+
+      // Reverse order
+      for (const [index, x] of fiveX.reverse().entries()) {
+        const y = fiveY[index]
+        const landId = await land.encodeTokenId(x, y)
+        await transferIn(estateId, landId, user)
+      }
+
+      // Regenerate fingerprint
+      const reverseFingerprint = await estate.getFingerprint(estateId)
+
+      expect(fingerprint).to.be.equal(reverseFingerprint)
+    })
+
     it('verifies the fingerprint correctly', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
       const expectedHash = await getEstateHash(estateId, fiveX, fiveY)
       const result = await estate.verifyFingerprint(estateId, expectedHash)
       expect(result).to.be.true
     })
-
-    function getSoliditySha3(value) {
-      return '0x' + abi.soliditySHA3(['uint256'], [value]).toString('hex')
-    }
 
     async function getEstateHash(estateId, xCoords, yCoords) {
       const firstLandId = await land.encodeTokenId(xCoords[0], yCoords[0])
