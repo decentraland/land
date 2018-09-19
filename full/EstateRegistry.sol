@@ -1,250 +1,5 @@
 pragma solidity ^0.4.24;
 
-// File: contracts/estate/EstateStorage.sol
-
-contract LANDRegistry {
-  function ping() public;
-  function ownerOf(uint256 tokenId) public returns (address);
-  function safeTransferFrom(address, address, uint256) public;
-  function decodeTokenId(uint value) external pure returns (int, int);
-  function updateLandData(int x, int y, string data) external;
-}
-
-
-contract EstateStorage {
-  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
-
-  LANDRegistry public registry;
-
-  // From Estate to list of owned LAND ids (LANDs)
-  mapping(uint256 => uint256[]) public estateLandIds;
-
-  // From LAND id (LAND) to its owner Estate id
-  mapping(uint256 => uint256) public landIdEstate;
-
-  // From Estate id to mapping of LAND id to index on the array above (estateLandIds)
-  mapping(uint256 => mapping(uint256 => uint256)) public estateLandIndex;
-
-  // Metadata of the Estate
-  mapping(uint256 => string) internal estateData;
-
-  // Operator of the Estate
-  mapping (uint256 => address) internal updateOperator;
-}
-
-// File: contracts/estate/IEstateRegistry.sol
-
-contract IEstateRegistry {
-  function mint(address to, string metadata) external returns (uint256);
-
-  // Events
-
-  event CreateEstate(
-    address indexed _owner,
-    uint256 indexed _estateId,
-    string _data
-  );
-
-  event AddLand(
-    uint256 indexed _estateId,
-    uint256 indexed _landId
-  );
-
-  event RemoveLand(
-    uint256 indexed _estateId,
-    uint256 indexed _landId,
-    address indexed _destinatary
-  );
-
-  event Update(
-    uint256 indexed _assetId,
-    address indexed _holder,
-    address indexed _operator,
-    string _data
-  );
-
-  event UpdateOperator(
-    uint256 indexed _estateId,
-    address indexed _operator
-  );
-
-  event SetLANDRegistry(
-    address indexed _registry
-  );
-}
-
-// File: zos-lib/contracts/migrations/Migratable.sol
-
-/**
- * @title Migratable
- * Helper contract to support intialization and migration schemes between
- * different implementations of a contract in the context of upgradeability.
- * To use it, replace the constructor with a function that has the
- * `isInitializer` modifier starting with `"0"` as `migrationId`.
- * When you want to apply some migration code during an upgrade, increase
- * the `migrationId`. Or, if the migration code must be applied only after
- * another migration has been already applied, use the `isMigration` modifier.
- * This helper supports multiple inheritance.
- * WARNING: It is the developer's responsibility to ensure that migrations are
- * applied in a correct order, or that they are run at all.
- * See `Initializable` for a simpler version.
- */
-contract Migratable {
-  /**
-   * @dev Emitted when the contract applies a migration.
-   * @param contractName Name of the Contract.
-   * @param migrationId Identifier of the migration applied.
-   */
-  event Migrated(string contractName, string migrationId);
-
-  /**
-   * @dev Mapping of the already applied migrations.
-   * (contractName => (migrationId => bool))
-   */
-  mapping (string => mapping (string => bool)) internal migrated;
-
-  /**
-   * @dev Internal migration id used to specify that a contract has already been initialized.
-   */
-  string constant private INITIALIZED_ID = "initialized";
-
-
-  /**
-   * @dev Modifier to use in the initialization function of a contract.
-   * @param contractName Name of the contract.
-   * @param migrationId Identifier of the migration.
-   */
-  modifier isInitializer(string contractName, string migrationId) {
-    validateMigrationIsPending(contractName, INITIALIZED_ID);
-    validateMigrationIsPending(contractName, migrationId);
-    _;
-    emit Migrated(contractName, migrationId);
-    migrated[contractName][migrationId] = true;
-    migrated[contractName][INITIALIZED_ID] = true;
-  }
-
-  /**
-   * @dev Modifier to use in the migration of a contract.
-   * @param contractName Name of the contract.
-   * @param requiredMigrationId Identifier of the previous migration, required
-   * to apply new one.
-   * @param newMigrationId Identifier of the new migration to be applied.
-   */
-  modifier isMigration(string contractName, string requiredMigrationId, string newMigrationId) {
-    require(isMigrated(contractName, requiredMigrationId), "Prerequisite migration ID has not been run yet");
-    validateMigrationIsPending(contractName, newMigrationId);
-    _;
-    emit Migrated(contractName, newMigrationId);
-    migrated[contractName][newMigrationId] = true;
-  }
-
-  /**
-   * @dev Returns true if the contract migration was applied.
-   * @param contractName Name of the contract.
-   * @param migrationId Identifier of the migration.
-   * @return true if the contract migration was applied, false otherwise.
-   */
-  function isMigrated(string contractName, string migrationId) public view returns(bool) {
-    return migrated[contractName][migrationId];
-  }
-
-  /**
-   * @dev Initializer that marks the contract as initialized.
-   * It is important to run this if you had deployed a previous version of a Migratable contract.
-   * For more information see https://github.com/zeppelinos/zos-lib/issues/158.
-   */
-  function initialize() isInitializer("Migratable", "1.2.1") public {
-  }
-
-  /**
-   * @dev Reverts if the requested migration was already executed.
-   * @param contractName Name of the contract.
-   * @param migrationId Identifier of the migration.
-   */
-  function validateMigrationIsPending(string contractName, string migrationId) private view {
-    require(!isMigrated(contractName, migrationId), "Requested target migration ID has already been run");
-  }
-}
-
-// File: openzeppelin-zos/contracts/ownership/Ownable.sol
-
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Ownable is Migratable {
-  address public owner;
-
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  function initialize(address _sender) public isInitializer("Ownable", "1.9.0") {
-    owner = _sender;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    emit OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
-
-}
-
-// File: openzeppelin-zos/contracts/token/ERC721/ERC721Receiver.sol
-
-/**
- * @title ERC721 token receiver interface
- * @dev Interface for any contract that wants to support safeTransfers
- * from ERC721 asset contracts.
- */
-contract ERC721Receiver {
-  /**
-   * @dev Magic value to be returned upon successful reception of an NFT
-   *  Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`,
-   *  which can be also obtained as `ERC721Receiver(0).onERC721Received.selector`
-   */
-  bytes4 internal constant ERC721_RECEIVED = 0x150b7a02;
-
-  /**
-   * @notice Handle the receipt of an NFT
-   * @dev The ERC721 smart contract calls this function on the recipient
-   * after a `safetransfer`. This function MAY throw to revert and reject the
-   * transfer. Return of other than the magic value MUST result in the 
-   * transaction being reverted.
-   * Note: the contract address is always the message sender.
-   * @param _operator The address which called `safeTransferFrom` function
-   * @param _from The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transfered
-   * @param _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   */
-  function onERC721Received(
-    address _operator,
-    address _from,
-    uint256 _tokenId,
-    bytes _data
-  )
-    public
-    returns(bytes4);
-}
-
 // File: openzeppelin-zos/contracts/introspection/ERC165.sol
 
 /**
@@ -351,6 +106,92 @@ contract ERC721Metadata is ERC721Basic {
 contract ERC721 is ERC721Basic, ERC721Enumerable, ERC721Metadata {
 }
 
+// File: openzeppelin-zos/contracts/token/ERC721/ERC721Receiver.sol
+
+/**
+ * @title ERC721 token receiver interface
+ * @dev Interface for any contract that wants to support safeTransfers
+ * from ERC721 asset contracts.
+ */
+contract ERC721Receiver {
+  /**
+   * @dev Magic value to be returned upon successful reception of an NFT
+   *  Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`,
+   *  which can be also obtained as `ERC721Receiver(0).onERC721Received.selector`
+   */
+  bytes4 internal constant ERC721_RECEIVED = 0x150b7a02;
+
+  /**
+   * @notice Handle the receipt of an NFT
+   * @dev The ERC721 smart contract calls this function on the recipient
+   * after a `safetransfer`. This function MAY throw to revert and reject the
+   * transfer. Return of other than the magic value MUST result in the 
+   * transaction being reverted.
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transfered
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+   */
+  function onERC721Received(
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes _data
+  )
+    public
+    returns(bytes4);
+}
+
+// File: openzeppelin-zos/contracts/math/SafeMath.sol
+
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
+library SafeMath {
+
+  /**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    if (a == 0) {
+      return 0;
+    }
+    c = a * b;
+    assert(c / a == b);
+    return c;
+  }
+
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    // uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return a / b;
+  }
+
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    assert(b <= a);
+    return a - b;
+  }
+
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
+  function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    c = a + b;
+    assert(c >= a);
+    return c;
+  }
+}
+
 // File: openzeppelin-zos/contracts/AddressUtils.sol
 
 /**
@@ -407,54 +248,6 @@ contract ERC165Support is ERC165 {
     returns (bool) 
   {
     return _interfaceId == InterfaceId_ERC165;
-  }
-}
-
-// File: openzeppelin-zos/contracts/math/SafeMath.sol
-
-/**
- * @title SafeMath
- * @dev Math operations with safety checks that throw on error
- */
-library SafeMath {
-
-  /**
-  * @dev Multiplies two numbers, throws on overflow.
-  */
-  function mul(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    if (a == 0) {
-      return 0;
-    }
-    c = a * b;
-    assert(c / a == b);
-    return c;
-  }
-
-  /**
-  * @dev Integer division of two numbers, truncating the quotient.
-  */
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    // uint256 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return a / b;
-  }
-
-  /**
-  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
-  */
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  /**
-  * @dev Adds two numbers, throws on overflow.
-  */
-  function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    c = a + b;
-    assert(c >= a);
-    return c;
   }
 }
 
@@ -805,6 +598,99 @@ contract ERC721BasicToken is ERC165Support, ERC721Basic {
   }
 }
 
+// File: zos-lib/contracts/migrations/Migratable.sol
+
+/**
+ * @title Migratable
+ * Helper contract to support intialization and migration schemes between
+ * different implementations of a contract in the context of upgradeability.
+ * To use it, replace the constructor with a function that has the
+ * `isInitializer` modifier starting with `"0"` as `migrationId`.
+ * When you want to apply some migration code during an upgrade, increase
+ * the `migrationId`. Or, if the migration code must be applied only after
+ * another migration has been already applied, use the `isMigration` modifier.
+ * This helper supports multiple inheritance.
+ * WARNING: It is the developer's responsibility to ensure that migrations are
+ * applied in a correct order, or that they are run at all.
+ * See `Initializable` for a simpler version.
+ */
+contract Migratable {
+  /**
+   * @dev Emitted when the contract applies a migration.
+   * @param contractName Name of the Contract.
+   * @param migrationId Identifier of the migration applied.
+   */
+  event Migrated(string contractName, string migrationId);
+
+  /**
+   * @dev Mapping of the already applied migrations.
+   * (contractName => (migrationId => bool))
+   */
+  mapping (string => mapping (string => bool)) internal migrated;
+
+  /**
+   * @dev Internal migration id used to specify that a contract has already been initialized.
+   */
+  string constant private INITIALIZED_ID = "initialized";
+
+
+  /**
+   * @dev Modifier to use in the initialization function of a contract.
+   * @param contractName Name of the contract.
+   * @param migrationId Identifier of the migration.
+   */
+  modifier isInitializer(string contractName, string migrationId) {
+    validateMigrationIsPending(contractName, INITIALIZED_ID);
+    validateMigrationIsPending(contractName, migrationId);
+    _;
+    emit Migrated(contractName, migrationId);
+    migrated[contractName][migrationId] = true;
+    migrated[contractName][INITIALIZED_ID] = true;
+  }
+
+  /**
+   * @dev Modifier to use in the migration of a contract.
+   * @param contractName Name of the contract.
+   * @param requiredMigrationId Identifier of the previous migration, required
+   * to apply new one.
+   * @param newMigrationId Identifier of the new migration to be applied.
+   */
+  modifier isMigration(string contractName, string requiredMigrationId, string newMigrationId) {
+    require(isMigrated(contractName, requiredMigrationId), "Prerequisite migration ID has not been run yet");
+    validateMigrationIsPending(contractName, newMigrationId);
+    _;
+    emit Migrated(contractName, newMigrationId);
+    migrated[contractName][newMigrationId] = true;
+  }
+
+  /**
+   * @dev Returns true if the contract migration was applied.
+   * @param contractName Name of the contract.
+   * @param migrationId Identifier of the migration.
+   * @return true if the contract migration was applied, false otherwise.
+   */
+  function isMigrated(string contractName, string migrationId) public view returns(bool) {
+    return migrated[contractName][migrationId];
+  }
+
+  /**
+   * @dev Initializer that marks the contract as initialized.
+   * It is important to run this if you had deployed a previous version of a Migratable contract.
+   * For more information see https://github.com/zeppelinos/zos-lib/issues/158.
+   */
+  function initialize() isInitializer("Migratable", "1.2.1") public {
+  }
+
+  /**
+   * @dev Reverts if the requested migration was already executed.
+   * @param contractName Name of the contract.
+   * @param migrationId Identifier of the migration.
+   */
+  function validateMigrationIsPending(string contractName, string migrationId) private view {
+    require(!isMigrated(contractName, migrationId), "Requested target migration ID has already been run");
+  }
+}
+
 // File: openzeppelin-zos/contracts/token/ERC721/ERC721Token.sol
 
 /**
@@ -1020,6 +906,124 @@ contract ERC721Token is Migratable, ERC165Support, ERC721BasicToken, ERC721 {
 
 }
 
+// File: openzeppelin-zos/contracts/ownership/Ownable.sol
+
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
+contract Ownable is Migratable {
+  address public owner;
+
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+  /**
+   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+   * account.
+   */
+  function initialize(address _sender) public isInitializer("Ownable", "1.9.0") {
+    owner = _sender;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
+  }
+
+  /**
+   * @dev Allows the current owner to transfer control of the contract to a newOwner.
+   * @param newOwner The address to transfer ownership to.
+   */
+  function transferOwnership(address newOwner) public onlyOwner {
+    require(newOwner != address(0));
+    emit OwnershipTransferred(owner, newOwner);
+    owner = newOwner;
+  }
+
+}
+
+// File: contracts/estate/IEstateRegistry.sol
+
+contract IEstateRegistry {
+  function mint(address to, string metadata) external returns (uint256);
+  function ownerOf(uint256 _tokenId) public view returns (address _owner); // from ERC721
+
+  // Events
+
+  event CreateEstate(
+    address indexed _owner,
+    uint256 indexed _estateId,
+    string _data
+  );
+
+  event AddLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId
+  );
+
+  event RemoveLand(
+    uint256 indexed _estateId,
+    uint256 indexed _landId,
+    address indexed _destinatary
+  );
+
+  event Update(
+    uint256 indexed _assetId,
+    address indexed _holder,
+    address indexed _operator,
+    string _data
+  );
+
+  event UpdateOperator(
+    uint256 indexed _estateId,
+    address indexed _operator
+  );
+
+  event SetLANDRegistry(
+    address indexed _registry
+  );
+}
+
+// File: contracts/estate/EstateStorage.sol
+
+contract LANDRegistry {
+  function decodeTokenId(uint value) external pure returns (int, int);
+  function updateLandData(int x, int y, string data) external;
+  function ping() public;
+  function ownerOf(uint256 tokenId) public returns (address);
+  function safeTransferFrom(address, address, uint256) public;
+}
+
+
+contract EstateStorage {
+  bytes4 internal constant InterfaceId_GetMetadata = bytes4(keccak256("getMetadata(uint256)"));
+  bytes4 internal constant InterfaceId_VerifyFingerprint = bytes4(
+    keccak256("verifyFingerprint(uint256,bytes)")
+  );
+
+  LANDRegistry public registry;
+
+  // From Estate to list of owned LAND ids (LANDs)
+  mapping(uint256 => uint256[]) public estateLandIds;
+
+  // From LAND id (LAND) to its owner Estate id
+  mapping(uint256 => uint256) public landIdEstate;
+
+  // From Estate id to mapping of LAND id to index on the array above (estateLandIds)
+  mapping(uint256 => mapping(uint256 => uint256)) public estateLandIndex;
+
+  // Metadata of the Estate
+  mapping(uint256 => string) internal estateData;
+
+  // Operator of the Estate
+  mapping (uint256 => address) internal updateOperator;
+}
+
 // File: contracts/estate/EstateRegistry.sol
 
 /**
@@ -1030,7 +1034,7 @@ contract ERC721Token is Migratable, ERC165Support, ERC721BasicToken, ERC721 {
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEstateRegistry, EstateStorage {
+contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Receiver, Ownable, EstateStorage {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
@@ -1057,34 +1061,6 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   /**
-   * @notice Handle the receipt of an NFT
-   * @dev The ERC721 smart contract calls this function on the recipient
-   * after a `safetransfer`. This function MAY throw to revert and reject the
-   * transfer. Return of other than the magic value MUST result in the
-   * transaction being reverted.
-   * Note: the contract address is always the message sender.
-   * @param _operator The address which called `safeTransferFrom` function
-   * @param _from The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transferred
-   * @param _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   */
-  function onERC721Received(
-    address _operator,
-    address _from,
-    uint256 _tokenId,
-    bytes _data
-  )
-    public
-    onlyRegistry
-    returns (bytes4)
-  {
-    uint256 estateId = _bytesToUint(_data);
-    _pushLandId(estateId, _tokenId);
-    return ERC721_RECEIVED;
-  }
-
-  /**
    * @notice Transfer a LAND owned by an Estate to a new owner
    * @param estateId Current owner of the token
    * @param landId LAND to be transfered
@@ -1104,7 +1080,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   /**
    * @notice Transfer many tokens owned by an Estate to a new owner
    * @param estateId Current owner of the token
-   * @param landIds Lands to be transfered
+   * @param landIds LANDs to be transfered
    * @param destinatary New owner
    */
   function transferManyLands(
@@ -1194,23 +1170,68 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
     address _registry
   )
     public
-    isInitializer("EstateRegistry", "0.0.1")
+    isInitializer("EstateRegistry", "0.0.2")
   {
     require(_registry != 0, "The registry should be a valid address");
-    
+
     ERC721Token.initialize(_name, _symbol);
     Ownable.initialize(msg.sender);
     registry = LANDRegistry(_registry);
   }
 
-  // check the supported interfaces via ERC165
-  function _supportsInterface(bytes4 _interfaceId)
-    internal
-    view
-    returns (bool)
+  /**
+   * @notice Handle the receipt of an NFT
+   * @dev The ERC721 smart contract calls this function on the recipient
+   * after a `safetransfer`. This function MAY throw to revert and reject the
+   * transfer. Return of other than the magic value MUST result in the
+   * transaction being reverted.
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transferred
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+   */
+  function onERC721Received(
+    address _operator,
+    address _from,
+    uint256 _tokenId,
+    bytes _data
+  )
+    public
+    onlyRegistry
+    returns (bytes4)
   {
-    return super._supportsInterface(_interfaceId) || 
-      _interfaceId == InterfaceId_GetMetadata;
+    uint256 estateId = _bytesToUint(_data);
+    _pushLandId(estateId, _tokenId);
+    return ERC721_RECEIVED;
+  }
+
+  /**
+   * @dev Creates a checksum of the contents of the Estate
+   * @param estateId the estateId to be verified
+   */
+  function getFingerprint(uint256 estateId)
+    public
+    view
+    returns (bytes32 result)
+  {
+    result = keccak256(abi.encodePacked(estateId));
+
+    uint256 length = estateLandIds[estateId].length;
+    for (uint i = 0; i < length; i++) {
+      result ^= keccak256(abi.encodePacked(estateLandIds[estateId][i]));
+    }
+    return result;
+  }
+
+  /**
+   * @dev Verifies a checksum of the contents of the Estate
+   * @param estateId the estateid to be verified
+   * @param fingerprint the user provided identification of the Estate contents
+   */
+  function verifyFingerprint(uint256 estateId, bytes fingerprint) public view returns (bool) {
+    return getFingerprint(estateId) == _bytesToBytes32(fingerprint);
   }
 
   /**
@@ -1258,6 +1279,37 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   /**
+   * @dev update LAND data owned by an Estate
+   * @param estateId Estate
+   * @param landId LAND to be updated
+   * @param data string metadata
+   */
+  function updateLandData(uint256 estateId, uint256 landId, string data) public {
+    _updateLandData(estateId, landId, data);
+  }
+
+  /**
+   * @dev update LANDs data owned by an Estate
+   * @param estateId Estate id
+   * @param landIds LANDs to be updated
+   * @param data string metadata
+   */
+  function updateManyLandData(uint256 estateId, uint256[] landIds, string data) public {
+    uint length = landIds.length;
+    for (uint i = 0; i < length; i++) {
+      _updateLandData(estateId, landIds[i], data);
+    }
+  }
+
+  // check the supported interfaces via ERC165
+  function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
+    // solium-disable-next-line operator-whitespace
+    return super._supportsInterface(_interfaceId) ||
+      _interfaceId == InterfaceId_GetMetadata ||
+      _interfaceId == InterfaceId_VerifyFingerprint;
+  }
+
+  /**
    * @dev Internal function to mint a new Estate with some metadata
    * @param to The address that will own the minted token
    * @param metadata Set an initial metadata
@@ -1299,7 +1351,7 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   function _pushLandId(uint256 estateId, uint256 landId) internal {
     require(exists(estateId), "The Estate id should exist");
     require(landIdEstate[landId] == 0, "The LAND is already owned by an Estate");
-    require(registry.ownerOf(landId) == address(this), "The Estate Registry cannot manage this LAND");
+    require(registry.ownerOf(landId) == address(this), "The EstateRegistry cannot manage the LAND");
 
     estateLandIds[estateId].push(landId);
 
@@ -1377,39 +1429,27 @@ contract EstateRegistry is Migratable, ERC721Token, ERC721Receiver, Ownable, IEs
   }
 
   function _bytesToUint(bytes b) internal pure returns (uint256) {
+    return uint256(_bytesToBytes32(b));
+  }
+
+  function _bytesToBytes32(bytes b) internal pure returns (bytes32) {
     bytes32 out;
 
     for (uint i = 0; i < b.length; i++) {
       out |= bytes32(b[i] & 0xFF) >> i.mul(8);
     }
 
-    return uint256(out);
+    return out;
   }
 
-  /**
-   * @dev update LAND data owned by an Estate
-   * @param estateId Estate
-   * @param landId LAND to be updated
-   * @param data string metadata
-   */
-  function updateLandData(uint256 estateId, uint256 landId, string data) public {
-    _updateLandData(estateId, landId, data);
-  }
-
-  /**
-   * @dev update LANDs data owned by an Estate
-   * @param estateId Estate id
-   * @param landIds LANDs to be updated
-   * @param data string metadata
-   */
-  function updateManyLandData(uint256 estateId, uint256[] landIds, string data) public {
-    uint length = landIds.length;
-    for (uint i = 0; i < length; i++) {
-      _updateLandData(estateId, landIds[i], data);
-    }
-  }
-
-  function _updateLandData(uint256 estateId, uint256 landId, string data) internal onlyUpdateAuthorized(estateId) {
+  function _updateLandData(
+    uint256 estateId,
+    uint256 landId,
+    string data
+  )
+    internal
+    onlyUpdateAuthorized(estateId)
+  {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     int x;
     int y;

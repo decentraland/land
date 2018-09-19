@@ -1,9 +1,78 @@
 pragma solidity ^0.4.23;
 
+// File: contracts/upgradable/ProxyStorage.sol
+
+contract ProxyStorage {
+
+  /**
+   * Current contract to which we are proxing
+   */
+  address public currentContract;
+  address public proxyOwner;
+}
+
+// File: contracts/upgradable/OwnableStorage.sol
+
+contract OwnableStorage {
+
+  address public owner;
+
+  constructor() internal {
+    owner = msg.sender;
+  }
+
+}
+
+// File: erc821/contracts/AssetRegistryStorage.sol
+
+contract AssetRegistryStorage {
+
+  string internal _name;
+  string internal _symbol;
+  string internal _description;
+
+  /**
+   * Stores the total count of assets managed by this registry
+   */
+  uint256 internal _count;
+
+  /**
+   * Stores an array of assets owned by a given account
+   */
+  mapping(address => uint256[]) internal _assetsOf;
+
+  /**
+   * Stores the current holder of an asset
+   */
+  mapping(uint256 => address) internal _holderOf;
+
+  /**
+   * Stores the index of an asset in the `_assetsOf` array of its holder
+   */
+  mapping(uint256 => uint256) internal _indexOfAsset;
+
+  /**
+   * Stores the data associated with an asset
+   */
+  mapping(uint256 => string) internal _assetData;
+
+  /**
+   * For a given account, for a given operator, store whether that operator is
+   * allowed to transfer and modify assets on behalf of them.
+   */
+  mapping(address => mapping(address => bool)) internal _operators;
+
+  /**
+   * Approval array
+   */
+  mapping(uint256 => address) internal _approval;
+}
+
 // File: contracts/estate/IEstateRegistry.sol
 
 contract IEstateRegistry {
   function mint(address to, string metadata) external returns (uint256);
+  function ownerOf(uint256 _tokenId) public view returns (address _owner); // from ERC721
 
   // Events
 
@@ -57,77 +126,26 @@ contract LANDStorage {
   IEstateRegistry public estateRegistry;
 }
 
-// File: contracts/upgradable/OwnableStorage.sol
-
-contract OwnableStorage {
-
-  address public owner;
-
-  constructor() internal {
-    owner = msg.sender;
-  }
-
-}
-
-// File: contracts/upgradable/ProxyStorage.sol
-
-contract ProxyStorage {
-
-  /**
-   * Current contract to which we are proxing
-   */
-  address public currentContract;
-  address public proxyOwner;
-}
-
-// File: erc821/contracts/AssetRegistryStorage.sol
-
-contract AssetRegistryStorage {
-
-  string internal _name;
-  string internal _symbol;
-  string internal _description;
-
-  /**
-   * Stores the total count of assets managed by this registry
-   */
-  uint256 internal _count;
-
-  /**
-   * Stores an array of assets owned by a given account
-   */
-  mapping(address => uint256[]) internal _assetsOf;
-
-  /**
-   * Stores the current holder of an asset
-   */
-  mapping(uint256 => address) internal _holderOf;
-
-  /**
-   * Stores the index of an asset in the `_assetsOf` array of its holder
-   */
-  mapping(uint256 => uint256) internal _indexOfAsset;
-
-  /**
-   * Stores the data associated with an asset
-   */
-  mapping(uint256 => string) internal _assetData;
-
-  /**
-   * For a given account, for a given operator, store whether that operator is
-   * allowed to transfer and modify assets on behalf of them.
-   */
-  mapping(address => mapping(address => bool)) internal _operators;
-
-  /**
-   * Approval array
-   */
-  mapping(uint256 => address) internal _approval;
-}
-
 // File: contracts/Storage.sol
 
 contract Storage is ProxyStorage, OwnableStorage, AssetRegistryStorage, LANDStorage {
+}
+
+// File: contracts/upgradable/Ownable.sol
+
+contract Ownable is Storage {
+
+  event OwnerUpdate(address _prevOwner, address _newOwner);
+
+  modifier onlyOwner {
+    assert(msg.sender == owner);
+    _;
+  }
+
+  function transferOwnership(address _newOwner) public onlyOwner {
+    require(_newOwner != owner, "Cannot transfer to yourself");
+    owner = _newOwner;
+  }
 }
 
 // File: contracts/upgradable/DelegateProxy.sol
@@ -168,23 +186,6 @@ contract DelegateProxy {
 
 contract IApplication {
   function initialize(bytes data) public;
-}
-
-// File: contracts/upgradable/Ownable.sol
-
-contract Ownable is Storage {
-
-  event OwnerUpdate(address _prevOwner, address _newOwner);
-
-  modifier onlyOwner {
-    assert(msg.sender == owner);
-    _;
-  }
-
-  function transferOwnership(address _newOwner) public onlyOwner {
-    require(_newOwner != owner, "Cannot transfer to yourself");
-    owner = _newOwner;
-  }
 }
 
 // File: contracts/upgradable/Proxy.sol
