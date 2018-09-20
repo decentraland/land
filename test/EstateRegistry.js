@@ -4,6 +4,7 @@ import setupContracts, {
   ESTATE_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
+import { getSoliditySha3 } from './helpers/getSoliditySha3'
 
 const BigNumber = web3.BigNumber
 
@@ -268,45 +269,6 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('marketplace v2 compliance', function() {
-    it('supports verifyFingerprint interface', async function() {
-      const isSupported = await estate.supportsInterface(
-        web3.sha3('verifyFingerprint(uint256,bytes)')
-      )
-      expect(isSupported).be.true
-    })
-
-    it('creates the fingerprint correctly', async function() {
-      const { estateId, expectedHash } = await getEstateAndHash()
-      const fingerprint = await estate.getFingerprint(estateId)
-
-      expect(fingerprint).to.be.equal(expectedHash)
-    })
-
-    it('verifies the fingerprint correctly', async function() {
-      const { estateId, expectedHash } = await getEstateAndHash()
-      const result = await estate.verifyFingerprint(estateId, expectedHash)
-      expect(result).to.be.true
-    })
-
-    const getEstateAndHash = async () => {
-      const estateId = await createUserEstateWithNumberedTokens()
-      const firstLandId = await land.encodeTokenId(fiveX[0], fiveY[0])
-
-      let expectedHash = await contracts.estate.calculateXor(
-        estateId,
-        firstLandId
-      )
-
-      for (let i = 1; i < fiveX.length; i++) {
-        const landId = await land.encodeTokenId(fiveX[i], fiveY[i])
-        expectedHash = await contracts.estate.compoundXor(expectedHash, landId)
-      }
-
-      return { estateId, expectedHash }
-    }
-  })
-
   describe('transfer many Estates', function() {
     it('the owner can transfer many estates', async function() {
       const estateIds = await createTwoEstates(user, sentByUser)
@@ -537,6 +499,110 @@ contract('EstateRegistry', accounts => {
       await assertLandIdAtIndex(estateId, 3, 4)
       await assertLandIdAtIndex(estateId, 4, 5)
     })
+  })
+
+  describe('fingerprint management', function() {
+    it('supports verifyFingerprint interface', async function() {
+      const isSupported = await estate.supportsInterface(
+        web3.sha3('verifyFingerprint(uint256,bytes)')
+      )
+      expect(isSupported).be.true
+    })
+
+    it('creates the fingerprint correctly', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const expectedHash = await getEstateHash(estateId, fiveX, fiveY)
+      const fingerprint = await estate.getFingerprint(estateId)
+
+      expect(fingerprint).to.be.equal(expectedHash)
+    })
+
+    it('should change the fingerprint as the composable children change', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const firstHash = await getEstateHash(estateId, fiveX, fiveY)
+
+      let fingerprint
+
+      await land.assignMultipleParcels([10, 11], [-1, -19], user, sentByCreator)
+      const newLandIds = await Promise.all([
+        land.encodeTokenId(10, -1),
+        land.encodeTokenId(11, -19)
+      ])
+
+      await transferIn(estateId, newLandIds[0], user)
+      fingerprint = await estate.getFingerprint(estateId)
+      expect(fingerprint).not.to.be.equal(firstHash)
+
+      fingerprint = await estate.getFingerprint(estateId)
+      await transferIn(estateId, newLandIds[1], user)
+      expect(fingerprint).not.to.be.equal(firstHash)
+
+      await transferOut(estateId, newLandIds[0], sentByUser)
+      await transferOut(estateId, newLandIds[1], sentByUser)
+
+      fingerprint = await estate.getFingerprint(estateId)
+      expect(fingerprint).to.be.equal(firstHash)
+    })
+
+    it('should encode only the id on empty estates', async function() {
+      await land.assignMultipleParcels([0], [0], user, sentByCreator)
+      const estateId = await createEstate([0], [0], user, sentByUser)
+      await transferOut(estateId, 0, sentByUser)
+
+      const expectedHash = getSoliditySha3(estateId)
+      const fingerprint = await estate.getFingerprint(estateId)
+
+      expect(fingerprint).to.be.equal(expectedHash)
+    })
+
+    it('should generate a the same hash even if the parcel order changes', async function() {
+      await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
+      const estateId = await createEstate(fiveX, fiveY, user, sentByUser)
+
+      const fingerprint = await estate.getFingerprint(estateId)
+
+      // Remove LANDs
+      for (const [index, x] of fiveX.entries()) {
+        const y = fiveY[index]
+        const landId = await land.encodeTokenId(x, y)
+        await estate.transferLand(estateId, landId, user, sentByUser)
+      }
+
+      // Reverse order
+      for (const [index, x] of fiveX.reverse().entries()) {
+        const y = fiveY[index]
+        const landId = await land.encodeTokenId(x, y)
+        await transferIn(estateId, landId, user)
+      }
+
+      // Regenerate fingerprint
+      const reverseFingerprint = await estate.getFingerprint(estateId)
+
+      expect(fingerprint).to.be.equal(reverseFingerprint)
+    })
+
+    it('verifies the fingerprint correctly', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const expectedHash = await getEstateHash(estateId, fiveX, fiveY)
+      const result = await estate.verifyFingerprint(estateId, expectedHash)
+      expect(result).to.be.true
+    })
+
+    async function getEstateHash(estateId, xCoords, yCoords) {
+      const firstLandId = await land.encodeTokenId(xCoords[0], yCoords[0])
+
+      let expectedHash = await contracts.estate.calculateXor(
+        estateId,
+        firstLandId
+      )
+
+      for (let i = 1; i < xCoords.length; i++) {
+        const landId = await land.encodeTokenId(xCoords[i], yCoords[i])
+        expectedHash = await contracts.estate.compoundXor(expectedHash, landId)
+      }
+
+      return expectedHash
+    }
   })
 
   describe('LAND update', function() {
