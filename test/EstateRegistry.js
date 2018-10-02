@@ -64,10 +64,19 @@ contract('EstateRegistry', accounts => {
 
     return estateIds.map(id => id.toNumber())
   }
+  async function createUserEstateWithToken0() {
+    await land.assignMultipleParcels([0], [0], user, sentByCreator)
+    return createEstate([0], [0], user, sentByUser)
+  }
 
   async function createUserEstateWithToken1() {
     await land.assignMultipleParcels([0], [1], user, sentByCreator)
     return createEstate([0], [1], user, sentByUser)
+  }
+
+  async function createUserEstateWithToken2() {
+    await land.assignMultipleParcels([0], [2], user, sentByCreator)
+    return createEstate([0], [2], user, sentByUser)
   }
 
   async function createUserEstateWithNumberedTokens() {
@@ -542,6 +551,16 @@ contract('EstateRegistry', accounts => {
 
       fingerprint = await estate.getFingerprint(estateId)
       expect(fingerprint).to.be.equal(firstHash)
+    })
+
+    it('should not have checksum collision with land', async function() {
+      const estateId1 = await createUserEstateWithToken2() // Estate Id: 1, Land Id: 2
+      const estateId2 = await createUserEstateWithToken1() // Estate Id: 2, Land Id: 1
+
+      const fingerprint1 = await estate.getFingerprint(estateId1)
+      const fingerprint2 = await estate.getFingerprint(estateId2)
+
+      expect(fingerprint1).to.not.be.equal(fingerprint2)
     })
 
     it('should encode only the id on empty estates', async function() {
