@@ -21,8 +21,8 @@ contract EstateRegistryTest is EstateRegistry {
     return InterfaceId_GetMetadata;
   }
 
-  function calculateXor(uint256 x, uint256 y) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(x)) ^ keccak256(abi.encodePacked(y));
+  function calculateXor(string salt, uint256 x, uint256 y) public pure returns (bytes32) {
+    return keccak256(abi.encodePacked(salt, x)) ^ keccak256(abi.encodePacked(y));
   }
 
   function compoundXor(bytes32 x, uint256 y) public pure returns (bytes32) {
