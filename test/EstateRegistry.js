@@ -4,7 +4,6 @@ import setupContracts, {
   ESTATE_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
-import { getSoliditySha3 } from './helpers/getSoliditySha3'
 
 const BigNumber = web3.BigNumber
 
@@ -64,10 +63,25 @@ contract('EstateRegistry', accounts => {
 
     return estateIds.map(id => id.toNumber())
   }
+  async function createEmptyState() {
+    await land.assignMultipleParcels([0], [0], user, sentByCreator)
+    const estate = await createEstate([0], [0], user, sentByUser)
+    await transferOut(estate, 0)
+    return estate
+  }
+  async function createUserEstateWithToken0() {
+    await land.assignMultipleParcels([0], [0], user, sentByCreator)
+    return createEstate([0], [0], user, sentByUser)
+  }
 
   async function createUserEstateWithToken1() {
     await land.assignMultipleParcels([0], [1], user, sentByCreator)
     return createEstate([0], [1], user, sentByUser)
+  }
+
+  async function createUserEstateWithToken2() {
+    await land.assignMultipleParcels([0], [2], user, sentByCreator)
+    return createEstate([0], [2], user, sentByUser)
   }
 
   async function createUserEstateWithNumberedTokens() {
@@ -502,6 +516,15 @@ contract('EstateRegistry', accounts => {
   })
 
   describe('fingerprint management', function() {
+
+    async function getEstateHash(estateId, xs, ys) {
+      const tokenIds = []
+      for (let i = 0; i < xs.length; i++) {
+        tokenIds.push(await land.encodeTokenId(xs[i], ys[i]))
+      }
+      return contracts.estate.calculateEstateHash(estateId, tokenIds)
+    }
+
     it('supports verifyFingerprint interface', async function() {
       const isSupported = await estate.supportsInterface(
         web3.sha3('verifyFingerprint(uint256,bytes)')
@@ -544,12 +567,38 @@ contract('EstateRegistry', accounts => {
       expect(fingerprint).to.be.equal(firstHash)
     })
 
+    it('should not have checksum collision with land', async function() {
+      const estateId1 = await createUserEstateWithToken2() // Estate Id: 1, Land Id: 2
+      const estateId2 = await createUserEstateWithToken1() // Estate Id: 2, Land Id: 1
+
+      const fingerprint1 = await estate.getFingerprint(estateId1)
+      const fingerprint2 = await estate.getFingerprint(estateId2)
+
+      expect(fingerprint1).to.not.be.equal(fingerprint2)
+    })
+
+    it('should generate hash as known', async function() {
+      const zeroHash = await getEstateHash(1, [], [])
+      const zeroHashHardcoded = '0xb8b1bfdd7af27c740274ea263d3ce1c87126873e38ef6649d85f71523c26bbac'
+
+      expect(zeroHashHardcoded).to.be.equal(zeroHash)
+
+      const estateId1 = await createUserEstateWithToken2() // Estate Id: 1, Land Id: 2
+      const estateId2 = await createUserEstateWithToken1() // Estate Id: 2, Land Id: 1
+
+      const fingerprint1 = await estate.getFingerprint(estateId1)
+      const fingerprint2 = await estate.getFingerprint(estateId2)
+
+      expect(fingerprint1).to.be.equal('0xf8e63827685a5f94f0c3893af927da60f3adb41ff26e7758222abc689f9de162')
+      expect(fingerprint2).to.be.equal('0x4159dc8cf53dc323fcda38228b3de14986869517ab28a9f8e3614ace17534cda')
+    })
+
     it('should encode only the id on empty estates', async function() {
       await land.assignMultipleParcels([0], [0], user, sentByCreator)
       const estateId = await createEstate([0], [0], user, sentByUser)
       await transferOut(estateId, 0, sentByUser)
 
-      const expectedHash = getSoliditySha3(estateId)
+      const expectedHash = await getEstateHash(1, [], [])
       const fingerprint = await estate.getFingerprint(estateId)
 
       expect(fingerprint).to.be.equal(expectedHash)
@@ -587,22 +636,6 @@ contract('EstateRegistry', accounts => {
       const result = await estate.verifyFingerprint(estateId, expectedHash)
       expect(result).to.be.true
     })
-
-    async function getEstateHash(estateId, xCoords, yCoords) {
-      const firstLandId = await land.encodeTokenId(xCoords[0], yCoords[0])
-
-      let expectedHash = await contracts.estate.calculateXor(
-        estateId,
-        firstLandId
-      )
-
-      for (let i = 1; i < xCoords.length; i++) {
-        const landId = await land.encodeTokenId(xCoords[i], yCoords[i])
-        expectedHash = await contracts.estate.compoundXor(expectedHash, landId)
-      }
-
-      return expectedHash
-    }
   })
 
   describe('LAND update', function() {
