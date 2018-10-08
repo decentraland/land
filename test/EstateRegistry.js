@@ -70,9 +70,19 @@ contract('EstateRegistry', accounts => {
     return createEstate([0], [1], user, sentByUser)
   }
 
+  async function createUserEstateWithToken2() {
+    await land.assignMultipleParcels([0], [2], user, sentByCreator)
+    return createEstate([0], [2], user, sentByUser)
+  }
+
   async function createUserEstateWithNumberedTokens() {
     await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
     return createEstate(fiveX, fiveY, user, sentByUser)
+  }
+
+  async function createAnotherUserEstateWithNumberedTokens() {
+    await land.assignMultipleParcels(fiveY, fiveX, anotherUser, sentByCreator)
+    return createEstate(fiveY, fiveX, anotherUser, sentByAnotherUser)
   }
 
   async function assertEstateCount(owner, expectedCount) {
@@ -555,7 +565,7 @@ contract('EstateRegistry', accounts => {
       expect(fingerprint).to.be.equal(expectedHash)
     })
 
-    it('should generate a the same hash even if the parcel order changes', async function() {
+    it('should generate the same hash even if the parcel order changes', async function() {
       await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
       const estateId = await createEstate(fiveX, fiveY, user, sentByUser)
 
@@ -604,6 +614,22 @@ contract('EstateRegistry', accounts => {
 
       return expectedHash
     }
+
+    it('should not have checksum collision with one LAND', async function() {
+      const estateId1 = await createUserEstateWithToken2() // Estate Id: 1, Land Id: 2
+      const estateId2 = await createUserEstateWithToken1() // Estate Id: 2, Land Id: 1
+      const fingerprint1 = await estate.getFingerprint(estateId1)
+      const fingerprint2 = await estate.getFingerprint(estateId2)
+      expect(fingerprint1).to.not.be.equal(fingerprint2)
+    })
+
+    it('should not have checksum collision with multiple LANDs', async function() {
+      const estateId1 = await createUserEstateWithNumberedTokens()
+      const estateId2 = await createAnotherUserEstateWithNumberedTokens()
+      const fingerprint1 = await estate.getFingerprint(estateId1)
+      const fingerprint2 = await estate.getFingerprint(estateId2)
+      expect(fingerprint1).to.not.be.equal(fingerprint2)
+    })
   })
 
   describe('LAND update', function() {
