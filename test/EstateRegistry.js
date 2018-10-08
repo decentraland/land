@@ -549,7 +549,7 @@ contract('EstateRegistry', accounts => {
       const estateId = await createEstate([0], [0], user, sentByUser)
       await transferOut(estateId, 0, sentByUser)
 
-      const expectedHash = getSoliditySha3(estateId)
+      const expectedHash = getSoliditySha3('estateId', estateId)
       const fingerprint = await estate.getFingerprint(estateId)
 
       expect(fingerprint).to.be.equal(expectedHash)
@@ -592,6 +592,7 @@ contract('EstateRegistry', accounts => {
       const firstLandId = await land.encodeTokenId(xCoords[0], yCoords[0])
 
       let expectedHash = await contracts.estate.calculateXor(
+        'estateId', // salt
         estateId,
         firstLandId
       )
