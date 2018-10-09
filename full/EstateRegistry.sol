@@ -1216,7 +1216,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     view
     returns (bytes32 result)
   {
-    result = keccak256(abi.encodePacked(estateId));
+    result = keccak256(abi.encodePacked("estateId", estateId));
 
     uint256 length = estateLandIds[estateId].length;
     for (uint i = 0; i < length; i++) {
