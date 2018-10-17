@@ -1021,7 +1021,7 @@ contract EstateStorage {
   mapping(uint256 => string) internal estateData;
 
   // Operator of the Estate
-  mapping (uint256 => address) internal updateOperator;
+  mapping (uint256 => address) public updateOperator;
 }
 
 // File: contracts/estate/EstateRegistry.sol

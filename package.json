@@ -21,8 +21,8 @@
   "dependencies": {
     "erc821": "^4.3.0",
     "openzeppelin-zos": "1.9.4",
-    "zos": "^1.4.0",
-    "zos-lib": "^1.4.0"
+    "zos": "1.4.0",
+    "zos-lib": "1.4.0"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.1",
