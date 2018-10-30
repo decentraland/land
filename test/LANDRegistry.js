@@ -387,6 +387,17 @@ contract('LANDRegistry', accounts => {
         await land.initialize(hacker, { from: hacker })
         await assertRevert(land.forbidDeploy(hacker, { from: hacker }))
       })
+
+      it('throw if user tries to assign LAND and it not deployer', async function() {
+        await assertRevert(land.assignNewParcel(1, 0, anotherUser, sentByUser))
+      })
+
+      it('deployer must be able to assign new LAND', async function() {
+        await land.authorizeDeploy(user, sentByCreator)
+        await land.assignNewParcel(1, 0, anotherUser, sentByUser)
+        const owner = await land.ownerOfLand(1, 0)
+        owner.should.be.equal(anotherUser)
+      })
     })
 
     describe('forbidDeploy', function() {

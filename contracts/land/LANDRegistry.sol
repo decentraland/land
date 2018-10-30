@@ -30,9 +30,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
-  //
-  // LAND Create and destroy
-  //
+  modifier onlyDeployer() {
+    require(msg.sender == proxyOwner || authorizedDeploy[msg.sender], "This function can only be called by an authorized deployer");
+    _;
+  }
 
   modifier onlyOwnerOf(uint256 assetId) {
     require(
@@ -50,6 +51,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
+  //
+  // LAND Create and destroy
+  //
+
   function isUpdateAuthorized(address operator, uint256 assetId) external view returns (bool) {
     return _isUpdateAuthorized(operator, assetId);
   }
@@ -66,11 +71,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     authorizedDeploy[beneficiary] = false;
   }
 
-  function assignNewParcel(int x, int y, address beneficiary) external onlyProxyOwner {
+  function assignNewParcel(int x, int y, address beneficiary) external onlyDeployer {
     _generate(_encodeTokenId(x, y), beneficiary);
   }
 
-  function assignMultipleParcels(int[] x, int[] y, address beneficiary) external onlyProxyOwner {
+  function assignMultipleParcels(int[] x, int[] y, address beneficiary) external onlyDeployer {
     for (uint i = 0; i < x.length; i++) {
       _generate(_encodeTokenId(x[i], y[i]), beneficiary);
     }
