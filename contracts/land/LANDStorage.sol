@@ -10,7 +10,7 @@ contract LANDStorage {
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
   uint256 constant factor = 0x100000000000000000000000000000000;
 
-  mapping (address => bool) internal _deprecated1;
+  mapping (address => bool) internal _deprecated_authorizedDeploy;
 
   mapping (uint256 => address) public updateOperator;
 
