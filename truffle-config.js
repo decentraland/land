@@ -2,11 +2,15 @@ require('babel-register')
 require('babel-polyfill')
 
 const HDWalletProvider = require('truffle-hdwallet-provider')
-const mnemonic = '' // 12 word mnemonic
 
-const createWalletProvider = (mnemonic, network = 'mainnet') => {
-  return new HDWalletProvider(mnemonic, `https://${network}.infura.io/`)
-}
+const createWalletProvider = (mnemonic, rpcEndpoint) =>
+  new HDWalletProvider(mnemonic, rpcEndpoint)
+
+const createInfuraProvider = (network = 'mainnet') =>
+  createWalletProvider(
+    process.env.MNEMONIC || '',
+    `https://${network}.infura.io/${process.env.INFURA_API_KEY}`
+  )
 
 module.exports = {
   solc: {
@@ -35,12 +39,12 @@ module.exports = {
       gas: 30000000
     },
     infura_mainnet: {
-      provider: () => createWalletProvider(mnemonic, 'mainnet'),
+      provider: () => createInfuraProvider('mainnet'),
       network_id: 1,
       gas: 30000000
     },
     infura_ropsten: {
-      provider: () => createWalletProvider(mnemonic, 'ropsten'),
+      provider: () => createInfuraProvider('ropsten'),
       network_id: 3,
       gas: 30000000
     }
