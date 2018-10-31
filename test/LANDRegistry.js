@@ -364,18 +364,18 @@ contract('LANDRegistry', accounts => {
       })
 
       it('authorizes an address twice without reverting', async function() {
-        await land.authorizeDeploy(user)
-        await land.authorizeDeploy(user)
+        await land.authorizeDeploy(user, sentByCreator)
+        await land.authorizeDeploy(user, sentByCreator)
         const isAuthorized = await land.isDeploymentAuthorized(user)
         isAuthorized.should.be.true
       })
 
-      it('reverts if the sender is not the owner', async function() {
-        await assertRevert(land.authorizeDeploy(user, sentByUser))
+      it('reverts if authorizing invalid address', async function() {
+        await assertRevert(land.authorizeDeploy(NONE, sentByCreator))
       })
 
-      it('throws if provided with an invalid address', async function() {
-        await assertRevert(land.authorizeDeploy(NONE)).should.be.rejected
+      it('reverts if the sender is not the owner', async function() {
+        await assertRevert(land.authorizeDeploy(user, sentByUser))
       })
 
       it('should use proxy owner to validate deploy call', async function() {
@@ -388,7 +388,7 @@ contract('LANDRegistry', accounts => {
         await assertRevert(land.forbidDeploy(hacker, { from: hacker }))
       })
 
-      it('throw if user tries to assign LAND and it not deployer', async function() {
+      it('reverts if user tries to assign LAND and it not deployer', async function() {
         await assertRevert(land.assignNewParcel(1, 0, anotherUser, sentByUser))
       })
 
@@ -428,8 +428,8 @@ contract('LANDRegistry', accounts => {
         await assertRevert(land.forbidDeploy(user, sentByUser))
       })
 
-      it('throws if provided with an invalid address', async function() {
-        await assertRevert(land.forbidDeploy(NONE)).should.be.rejected
+      it('reverts if deauthorize invalid address', async function() {
+        await assertRevert(land.forbidDeploy(NONE, sentByCreator))
       })
     })
   })

@@ -52,7 +52,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   //
-  // LAND Create and destroy
+  // Authorization
   //
 
   function isUpdateAuthorized(address operator, uint256 assetId) external view returns (bool) {
@@ -64,12 +64,18 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
+    require(beneficiary != address(0), "invalid address");
     authorizedDeploy[beneficiary] = true;
   }
 
   function forbidDeploy(address beneficiary) external onlyProxyOwner {
+    require(beneficiary != address(0), "invalid address");
     authorizedDeploy[beneficiary] = false;
   }
+
+  //
+  // LAND Create
+  //
 
   function assignNewParcel(int x, int y, address beneficiary) external onlyDeployer {
     _generate(_encodeTokenId(x, y), beneficiary);
