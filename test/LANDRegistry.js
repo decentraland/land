@@ -375,11 +375,9 @@ contract('LANDRegistry', accounts => {
         isAuthorized.should.be.false
       })
 
-      it('authorizes an address twice without reverting', async function() {
+      it('reverts if address is already authorized ', async function() {
         await land.authorizeDeploy(user, sentByCreator)
-        await land.authorizeDeploy(user, sentByCreator)
-        const isAuthorized = await land.isDeploymentAuthorized(user)
-        isAuthorized.should.be.true
+        await assertRevert(land.authorizeDeploy(user, sentByCreator))
       })
 
       it('reverts if authorizing invalid address', async function() {
@@ -419,17 +417,8 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('forbidDeploy', function() {
-      it('forbids the deployment for an specific address', async function() {
-        await land.forbidDeploy(user)
-        const isAuthorized = await land.isDeploymentAuthorized(user)
-        isAuthorized.should.be.false
-      })
-
-      it('forbids the deployment for an specific address twice without reverting', async function() {
-        await land.forbidDeploy(user)
-        await land.forbidDeploy(user)
-        const isAuthorized = await land.isDeploymentAuthorized(user)
-        isAuthorized.should.be.false
+      it('reverts if address is already forbidden', async function() {
+        await assertRevert(land.forbidDeploy(user, sentByCreator))
       })
 
       it('forbids the deployment for an specific address after authorization', async function() {
