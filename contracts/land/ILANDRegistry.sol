@@ -39,4 +39,14 @@ interface ILANDRegistry {
     uint256 indexed assetId,
     address indexed operator
   );
+
+  event DeployAuthorized(
+    address indexed _caller,
+    address indexed _deployer
+  );
+
+  event DeployForbidden(
+    address indexed _caller,
+    address indexed _deployer
+  );
 }
