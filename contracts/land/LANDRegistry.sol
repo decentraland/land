@@ -66,11 +66,13 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
     require(beneficiary != address(0), "invalid address");
     authorizedDeploy[beneficiary] = true;
+    emit DeployAuthorized(msg.sender, beneficiary);
   }
 
   function forbidDeploy(address beneficiary) external onlyProxyOwner {
     require(beneficiary != address(0), "invalid address");
     authorizedDeploy[beneficiary] = false;
+    emit DeployForbidden(msg.sender, beneficiary);
   }
 
   //

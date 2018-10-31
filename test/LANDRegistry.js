@@ -14,6 +14,18 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should()
 
+function checkDeployAuthorizedLog(log, caller, deployer) {
+  log.event.should.be.eq('DeployAuthorized')
+  log.args._caller.should.be.equal(caller)
+  log.args._deployer.should.be.equal(deployer)
+}
+
+function checkDeployForbiddenLog(log, caller, deployer) {
+  log.event.should.be.eq('DeployForbidden')
+  log.args._caller.should.be.equal(caller)
+  log.args._deployer.should.be.equal(deployer)
+}
+
 contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
 
@@ -398,6 +410,12 @@ contract('LANDRegistry', accounts => {
         const owner = await land.ownerOfLand(1, 0)
         owner.should.be.equal(anotherUser)
       })
+
+      it('emits DeployAuthorized event', async function() {
+        const { logs } = await land.authorizeDeploy(user, sentByCreator)
+        logs.length.should.be.equal(1)
+        checkDeployAuthorizedLog(logs[0], creator, user)
+      })
     })
 
     describe('forbidDeploy', function() {
@@ -430,6 +448,13 @@ contract('LANDRegistry', accounts => {
 
       it('reverts if deauthorize invalid address', async function() {
         await assertRevert(land.forbidDeploy(NONE, sentByCreator))
+      })
+
+      it('emits DeployForbidden event', async function() {
+        await land.authorizeDeploy(user, sentByCreator)
+        const { logs } = await land.forbidDeploy(user, sentByCreator)
+        logs.length.should.be.equal(1)
+        checkDeployForbiddenLog(logs[0], creator, user)
       })
     })
   })
