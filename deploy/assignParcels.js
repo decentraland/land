@@ -175,10 +175,14 @@ truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123
   }
 }
 
+// This enables the script to be executed by a node binary
+// The `.slice(2)` removes the path to node itself and the file name from the argvs
 if (require.main === module) {
   main(process.argv.slice(2))
 }
 
+// This enables the script to be executed by `truffle exec`
+// The `.slice(4)` removes the path to node itself, the file name and both 'truffle' and 'exec'
 module.exports = async function(callback) {
   try {
     await main(process.argv.slice(4))
