@@ -7,7 +7,7 @@ class LANDRegistryDecorator {
   constructor(contract, account, txConfig) {
     this.contract = contract
     this.account = account
-    this.txConfig = txConfig || { gasPrice: GAS_PRICE, gasLimit: GAS_LIMIT }
+    this.txConfig = txConfig || { gasPrice: GAS_PRICE, gas: GAS_LIMIT }
   }
 
   async getCurrentOwner(parcel) {
