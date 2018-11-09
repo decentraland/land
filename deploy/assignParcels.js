@@ -5,7 +5,8 @@ const {
   parseArgs,
   getConfiguration,
   readJSON,
-  getFailedTransactions,
+  isEmptyObject,
+  waitForFailedTransactions,
   isEmptyAddress
 } = require('./utils')
 
@@ -91,8 +92,14 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
     pendingTransactions[hash] = parcelsToAssign
   }
 
-  log.info('Wating for all transactions to end')
-  const failedTransactions = await getFailedTransactions(
+  if (isEmptyObject(pendingTransactions)) {
+    log.info('Nothing else to do')
+    return
+  } else {
+    log.info('Waiting for transactions to end')
+  }
+
+  const failedTransactions = await waitForFailedTransactions(
     pendingTransactions,
     web3
   )
@@ -108,6 +115,8 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
     )
     return await assignParcels(parcels, landRegistry, newOwner, options)
   }
+
+  log.info('All done!')
 }
 
 async function run(args) {

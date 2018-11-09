@@ -71,30 +71,49 @@ function requestJSON(url) {
   })
 }
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+function sleep(ms) {
+  log.debug(`Sleeping for ${ms / 1000} seconds`)
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
-async function getFailedTransactions(allPendingTransactions, web3) {
+function isEmptyObject(obj) {
+  return Object.keys(obj).length === 0
+}
+
+async function waitForFailedTransactions(allPendingTransactions, web3) {
   const pendingTransactions = { ...allPendingTransactions }
   const failedTransactions = {}
 
-  while (Object.keys(pendingTransactions).length > 0) {
+  while (!isEmptyObject(pendingTransactions)) {
     for (const hash in pendingTransactions) {
       const tx = await web3.eth.getTransaction(hash)
-      log.debug(`Getting status of tx ${hash}, got`, tx)
+      log.debug(
+        `Getting status of tx ${hash}, got:\n`,
+        JSON.stringify({ ...tx, input: '(...)' }, null, 2)
+      )
 
-      if (!tx.blockNumber) continue
-      await sleep(1000)
+      if (!tx.blockNumber) {
+        log.debug('Block number undefined, still pending')
+        continue
+      }
+      await sleep(2000)
 
       const receipt = await web3.eth.getTransactionReceipt(hash)
-      log.debug(`Getting receipt of tx ${hash}, got`, receipt)
+      log.debug(
+        `Getting receipt of tx ${hash}, got:\n`,
+        JSON.stringify({ ...receipt, logsBloom: '(...)' }, null, 2)
+      )
 
       if (receipt == null || receipt.status === '0x0') {
+        log.debug(`Receipt undefined for tx ${hash}, marked as failed`)
         failedTransactions[hash] = pendingTransactions[hash]
+      } else {
+        log.debug(`Tx ${hash} successfull!`)
       }
       delete pendingTransactions[hash]
     }
 
-    await sleep(5000)
+    await sleep(8000)
   }
 
   return failedTransactions
@@ -115,6 +134,7 @@ module.exports = {
   readJSON,
   requestJSON,
   sleep,
-  getFailedTransactions,
+  isEmptyObject,
+  waitForFailedTransactions,
   isEmptyAddress
 }
