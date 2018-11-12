@@ -115,7 +115,7 @@ async function waitForTransactions(allPendingTransactions, web3) {
         JSON.stringify({ ...receipt, logsBloom: '(...)' }, null, 2)
       )
 
-      const completedTransaction = { transaction }
+      const completedTransaction = { ...transaction }
 
       if (receipt == null || receipt.status === '0x0') {
         log.info(`Receipt undefined for tx ${hash}, marked as failed`)
@@ -124,7 +124,7 @@ async function waitForTransactions(allPendingTransactions, web3) {
         log.info(`Tx ${hash} confirmed!`)
         completedTransaction.status = 'confirmed'
       }
-      completedTransactions.push(transaction)
+      completedTransactions.push(completedTransaction)
       pendingTransactions = pendingTransactions.filter(ptx => ptx.hash !== hash)
     }
 
