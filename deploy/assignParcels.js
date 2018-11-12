@@ -1,49 +1,26 @@
 const {
   log,
   setLogLevel,
-  expandPath,
+  checkRequiredArgs,
   parseArgs,
   getConfiguration,
+  expandPath,
   readJSON,
-  isEmptyObject,
+  checkWeb3Account,
   waitForTransactions,
   isEmptyAddress
 } = require('./utils')
 
 const LANDRegistryArtifact = artifacts.require('LANDRegistry')
-const LANDRegistryDecorator = require('./LANDRegistryDecorator')
+const { LANDRegistryDecorator } = require('./ContractDecorators')
+let landRegistry
 
 const LANDS_PER_ASSIGN = 50
 const BATCH_SIZE = 1
 const IGNORE_FAILED_TXS = true
 const REQUIRED_ARGS = ['parcels', 'account', 'owner']
 
-function checkRequiredArgs(args) {
-  const hasRequiredArgs = REQUIRED_ARGS.every(argName => args[argName] != null)
-
-  if (!hasRequiredArgs) {
-    const argNames = Object.keys(args)
-    throw new Error(
-      `Missing required arguments. Supplied ${argNames}, required ${REQUIRED_ARGS}`
-    )
-  }
-}
-
-function checkWeb3Account(account) {
-  if (web3 === 'undefined') {
-    throw new Error('web3 object is not defined')
-  }
-  if (!web3.eth.accounts || web3.eth.accounts.length === 0) {
-    throw new Error('Empty web3 accounts')
-  }
-  if (!web3.eth.accounts.find(ethAccount => ethAccount === account)) {
-    throw new Error(
-      `Couldn't find account ${account} in:\n${web3.eth.accounts.join('\n')}`
-    )
-  }
-}
-
-async function assignParcels(parcels, landRegistry, newOwner, options) {
+async function assignParcels(parcels, newOwner, options) {
   /* TX = { hash, data, status } */
   const {
     batchSize = BATCH_SIZE,
@@ -76,11 +53,7 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
     parcelsToAssign.push(parcel)
 
     if (parcelsToAssign.length >= landsPerAssign) {
-      const transaction = await assignMultipleParcels(
-        landRegistry,
-        parcelsToAssign,
-        newOwner
-      )
+      const transaction = await assignMultipleParcels(parcelsToAssign, newOwner)
       runningTransactions.push(transaction)
       parcelsToAssign = []
     }
@@ -94,11 +67,7 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
   }
 
   if (parcelsToAssign.length > 0) {
-    const transaction = await assignMultipleParcels(
-      landRegistry,
-      parcelsToAssign,
-      newOwner
-    )
+    const transaction = await assignMultipleParcels(parcelsToAssign, newOwner)
     runningTransactions.push(transaction)
     failedTransactions = failedTransactions.concat(
       await getFailedTransactions(runningTransactions)
@@ -115,18 +84,19 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
   log.info(`Found ${failedTransactions.length} failed transactions`)
 
   if (failedTransactions.length > 0 && ignoreFailedTxs !== false) {
+    log.info('-------------------------------')
     log.info(`Retrying ${failedTransactions.length} failed transactions`)
     const failedParcels = failedTransactions.reduce(
       (allParcels, tx) => allParcels.concat(tx.data),
       []
     )
-    return await assignParcels(parcels, landRegistry, newOwner, options)
+    return await assignParcels(parcels, newOwner, options)
   }
 
   log.info('All done!')
 }
 
-async function assignMultipleParcels(landRegistry, parcelsToAssign, newOwner) {
+async function assignMultipleParcels(parcelsToAssign, newOwner) {
   const hash = await landRegistry.assignMultipleParcels(
     parcelsToAssign,
     newOwner
@@ -144,8 +114,8 @@ async function getFailedTransactions(transactions) {
 }
 
 async function run(args) {
-  checkRequiredArgs(args)
-  checkWeb3Account(args.account)
+  checkRequiredArgs(args, REQUIRED_ARGS)
+  checkWeb3Account(web3, args.account)
 
   setLogLevel(args.logLevel)
   log.info('Using args', JSON.stringify(args, null, 2))
@@ -165,13 +135,13 @@ async function run(args) {
   const landRegistryContract = await LANDRegistryArtifact.at(
     contractAddresses.LANDRegistry
   )
-  const landRegistry = new LANDRegistryDecorator(
+  landRegistry = new LANDRegistryDecorator(
     landRegistryContract,
     account,
     txConfig
   )
 
-  await assignParcels(parcelsToDeploy, landRegistry, owner, {
+  await assignParcels(parcelsToDeploy, owner, {
     batchSize: Number(batchSize),
     landsPerAssign: Number(landsPerAssign),
     ignoreFailedTxs

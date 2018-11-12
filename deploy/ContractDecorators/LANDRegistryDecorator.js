@@ -1,13 +1,16 @@
-const { log } = require('./utils')
-
-const GAS_PRICE = 27000000000
-const GAS_LIMIT = 1000000
+const { GAS_PRICE, GAS_LIMIT } = require('./txParams')
+const { log } = require('../utils')
 
 class LANDRegistryDecorator {
-  constructor(contract, account, txConfig) {
+  constructor(contract, account, txConfig = {}) {
     this.contract = contract
     this.account = account
-    this.txConfig = txConfig || { gasPrice: GAS_PRICE, gas: GAS_LIMIT }
+    this.txConfig = {
+      gasPrice: GAS_PRICE,
+      gas: GAS_LIMIT,
+      from: account,
+      ...txConfig
+    }
   }
 
   async getCurrentOwner(parcel) {
@@ -21,8 +24,22 @@ class LANDRegistryDecorator {
       xs,
       ys,
       newOwner,
-      { ...this.txConfig, from: this.account }
+      this.txConfig
     )
+  }
+
+  async createEstate(parcels, owner, data = '') {
+    const { xs, ys } = this.getXYPairs(parcels)
+
+    return data
+      ? this.contract.createEstateWithMetadata.sendTransaction(
+          xs,
+          ys,
+          owner,
+          data,
+          this.txConfig
+        )
+      : this.contract.createEstate.sendTransaction(xs, ys, owner, this.txConfig)
   }
 
   getXYPairs(parcels) {
