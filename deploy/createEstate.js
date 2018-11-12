@@ -19,7 +19,7 @@ async function createEstate(parcels, owner, data, options) {
       `Got ${parcels.length} parcels but the max per tx is ${MAX_LAND_PER_TX}`
     )
     log.warn(
-      `This script will deploy only the first ${MAX_LAND_PER_TX} parcels`
+      `This script WILL DEPLOY ONLY the first ${MAX_LAND_PER_TX} parcels`
     )
     parcels = parcels.slice(0, MAX_LAND_PER_TX)
   }
