@@ -72,7 +72,7 @@ function requestJSON(url) {
 }
 
 function sleep(ms) {
-  log.debug(`Sleeping for ${ms / 1000} seconds`)
+  log.info(`Sleeping for ${ms / 1000} seconds`)
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
@@ -80,17 +80,28 @@ function isEmptyObject(obj) {
   return Object.keys(obj).length === 0
 }
 
-async function waitForFailedTransactions(allPendingTransactions, web3) {
-  const pendingTransactions = { ...allPendingTransactions }
-  const failedTransactions = {}
+async function waitForTransaction(transaction, web3) {
+  const completedTransactions = await waitForTransactions([transaction], web3)
+  return completedTransactions[0]
+}
 
-  while (!isEmptyObject(pendingTransactions)) {
-    for (const hash in pendingTransactions) {
+async function waitForTransactions(allPendingTransactions, web3) {
+  const completedTransactions = []
+  let pendingTransactions = [...allPendingTransactions]
+
+  while (pendingTransactions.length > 0) {
+    for (const transaction of pendingTransactions) {
+      const hash = transaction.hash
       const tx = await web3.eth.getTransaction(hash)
       log.debug(
         `Getting status of tx ${hash}, got:\n`,
         JSON.stringify({ ...tx, input: '(...)' }, null, 2)
       )
+
+      if (!tx) {
+        log.debug('tx not found, still pending')
+        continue
+      }
 
       if (!tx.blockNumber) {
         log.debug('Block number undefined, still pending')
@@ -104,19 +115,23 @@ async function waitForFailedTransactions(allPendingTransactions, web3) {
         JSON.stringify({ ...receipt, logsBloom: '(...)' }, null, 2)
       )
 
+      const completedTransaction = { ...transaction }
+
       if (receipt == null || receipt.status === '0x0') {
-        log.debug(`Receipt undefined for tx ${hash}, marked as failed`)
-        failedTransactions[hash] = pendingTransactions[hash]
+        log.info(`Receipt undefined for tx ${hash}, marked as failed`)
+        completedTransaction.status = 'failed'
       } else {
-        log.debug(`Tx ${hash} successfull!`)
+        log.info(`Tx ${hash} confirmed!`)
+        completedTransaction.status = 'confirmed'
       }
-      delete pendingTransactions[hash]
+      completedTransactions.push(completedTransaction)
+      pendingTransactions = pendingTransactions.filter(ptx => ptx.hash !== hash)
     }
 
-    await sleep(8000)
+    await sleep(6000)
   }
 
-  return failedTransactions
+  return completedTransactions
 }
 
 function isEmptyAddress(address) {
@@ -135,6 +150,7 @@ module.exports = {
   requestJSON,
   sleep,
   isEmptyObject,
-  waitForFailedTransactions,
+  waitForTransaction,
+  waitForTransactions,
   isEmptyAddress
 }
