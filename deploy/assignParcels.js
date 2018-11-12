@@ -6,14 +6,15 @@ const {
   getConfiguration,
   readJSON,
   isEmptyObject,
-  waitForTransaction,
+  waitForTransactions,
   isEmptyAddress
 } = require('./utils')
 
 const LANDRegistryArtifact = artifacts.require('LANDRegistry')
 const LANDRegistryDecorator = require('./LANDRegistryDecorator')
 
-const BATCH_SIZE = 50
+const LANDS_PER_ASSIGN = 50
+const BATCH_SIZE = 1
 const IGNORE_FAILED_TXS = true
 const REQUIRED_ARGS = ['parcels', 'account', 'password', 'owner']
 
@@ -43,13 +44,14 @@ function checkWeb3Account(account) {
 }
 
 async function assignParcels(parcels, landRegistry, newOwner, options) {
+  /* TX = { hash, data, status } */
   const {
     batchSize = BATCH_SIZE,
+    landsPerAssign = LANDS_PER_ASSIGN,
     ignoreFailedTxs = IGNORE_FAILED_TXS
   } = options
-  const failedTransactions = [
-    /* { hash, data, status } */
-  ]
+  let runningTransactions = []
+  let failedTransactions = []
   let parcelsToAssign = []
 
   log.debug(`Setting the owner of ${parcels.length} parcels as ${newOwner}`)
@@ -73,24 +75,34 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
 
     parcelsToAssign.push(parcel)
 
-    if (parcelsToAssign.length >= batchSize) {
-      const status = await assignMultipleParcels(
+    if (parcelsToAssign.length >= landsPerAssign) {
+      const transaction = await assignMultipleParcels(
         landRegistry,
         parcelsToAssign,
         newOwner
       )
-      if (status === 'failed') failedTransactions.push(transaction)
+      runningTransactions.push(transaction)
       parcelsToAssign = []
+    }
+
+    if (runningTransactions.length >= batchSize) {
+      failedTransactions = failedTransactions.concat(
+        await getFailedTransactions(runningTransactions)
+      )
+      runningTransactions = []
     }
   }
 
   if (parcelsToAssign.length > 0) {
-    const status = await assignMultipleParcels(
+    const transaction = await assignMultipleParcels(
       landRegistry,
       parcelsToAssign,
       newOwner
     )
-    if (status === 'failed') failedTransactions.push(transaction)
+    runningTransactions.push(transaction)
+    failedTransactions = failedTransactions.concat(
+      await getFailedTransactions(runningTransactions)
+    )
   }
 
   if (failedTransactions.length === 0) {
@@ -120,11 +132,15 @@ async function assignMultipleParcels(landRegistry, parcelsToAssign, newOwner) {
     newOwner
   )
   log.info(
-    `Setting ${newOwner} as owner for ${parcelsToAssign.length}: ${hash}`
+    `Setting ${newOwner} owner for ${parcelsToAssign.length} parcels: ${hash}`
   )
-  const transaction = { hash, data: parcelsToAssign, status: 'pending' }
-  const { status } = await waitForTransaction(transaction, web3)
-  return status
+  return { hash, data: parcelsToAssign, status: 'pending' }
+}
+
+async function getFailedTransactions(transactions) {
+  log.info(`Waiting for ${transactions.length} transactions`)
+  const completedTransactions = await waitForTransactions(transactions, web3)
+  return completedTransactions.filter(tx => tx.status === 'failed')
 }
 
 async function run(args) {
@@ -132,12 +148,13 @@ async function run(args) {
   checkWeb3Account(args.account)
 
   setLogLevel(args.logLevel)
-  log.debug('Using args', JSON.stringify(args, null, 2))
+  log.info('Using args', JSON.stringify(args, null, 2))
 
   const configuration = getConfiguration()
   const parcelsToDeploy = readJSON(expandPath(args.parcels))
 
-  const { account, password, owner, batchSize, ignoreFailedTxs } = args
+  const { account, password, owner } = args
+  const { batchSize, landsPerAssign, ignoreFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
 
   if (password) {
@@ -155,7 +172,8 @@ async function run(args) {
   )
 
   await assignParcels(parcelsToDeploy, landRegistry, owner, {
-    batchSize,
+    batchSize: Number(batchSize),
+    landsPerAssign: Number(landsPerAssign),
     ignoreFailedTxs
   })
 }
@@ -165,13 +183,14 @@ async function main(argv) {
     if (argv.length < REQUIRED_ARGS.length || argv[0] === 'help') {
       console.log(`Deploy (set an owner for) a list of unowned parcels. To run, use:
 
-truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123 --batch 50 --owner 0x --logLevel debug --network (...)
+truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123 --owner 0x --network ropsten (...)
 
---parcels genesis.json - List of parcels to deploy. Required
+--parcels genesis.json   - List of parcels to deploy. Required
 --account 0xdeadbeef     - Which account to use to deploy. Required
 --password S0m3P4ss      - Password for the account.
 --owner 0xdeadbeef       - The new owner to be used. Required
---batchSize 50           - Parcels per transaction. Default ${BATCH_SIZE}
+--batchSize 50           - Simultaneous transactions. Default ${BATCH_SIZE}
+--landsPerAssign 50      - Parcels per assign transaction. Default ${LANDS_PER_ASSIGN}
 --ignoreFailedTxs        - If this flag is present, the script will *not* try to re-send failed transactions
 --logLevel debug         - Log level to use. Possible values: info, debug. Default: info
 

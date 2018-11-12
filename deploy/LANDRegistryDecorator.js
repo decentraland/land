@@ -11,7 +11,7 @@ class LANDRegistryDecorator {
   }
 
   async getCurrentOwner(parcel) {
-    return await this.contract.ownerOfLand(parcel.x, parcel.y)
+    return await this.contract.ownerOfLand(parcel.x, parcel.y, this.txConfig)
   }
 
   async assignMultipleParcels(parcels, newOwner) {

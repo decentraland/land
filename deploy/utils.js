@@ -72,7 +72,7 @@ function requestJSON(url) {
 }
 
 function sleep(ms) {
-  log.debug(`Sleeping for ${ms / 1000} seconds`)
+  log.info(`Sleeping for ${ms / 1000} seconds`)
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
@@ -113,17 +113,17 @@ async function waitForTransactions(allPendingTransactions, web3) {
       const completedTransaction = { transaction }
 
       if (receipt == null || receipt.status === '0x0') {
-        log.debug(`Receipt undefined for tx ${hash}, marked as failed`)
+        log.info(`Receipt undefined for tx ${hash}, marked as failed`)
         completedTransaction.status = 'failed'
       } else {
-        log.debug(`Tx ${hash} confirmed!`)
+        log.info(`Tx ${hash} confirmed!`)
         completedTransaction.status = 'confirmed'
       }
       completedTransactions.push(transaction)
       pendingTransactions = pendingTransactions.filter(ptx => ptx.hash !== hash)
     }
 
-    await sleep(5000)
+    await sleep(6000)
   }
 
   return completedTransactions
