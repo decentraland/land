@@ -16,7 +16,7 @@ const LANDRegistryDecorator = require('./LANDRegistryDecorator')
 const LANDS_PER_ASSIGN = 50
 const BATCH_SIZE = 1
 const IGNORE_FAILED_TXS = true
-const REQUIRED_ARGS = ['parcels', 'account', 'password', 'owner']
+const REQUIRED_ARGS = ['parcels', 'account', 'owner']
 
 function checkRequiredArgs(args) {
   const hasRequiredArgs = REQUIRED_ARGS.every(argName => args[argName] != null)
