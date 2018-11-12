@@ -98,6 +98,11 @@ async function waitForTransactions(allPendingTransactions, web3) {
         JSON.stringify({ ...tx, input: '(...)' }, null, 2)
       )
 
+      if (!tx) {
+        log.debug('tx not found, still pending')
+        continue
+      }
+
       if (!tx.blockNumber) {
         log.debug('Block number undefined, still pending')
         continue
