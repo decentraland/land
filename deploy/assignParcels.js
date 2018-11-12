@@ -1,22 +1,19 @@
 const ScriptRunner = require('./ScriptRunner')
-const { log, waitForTransactions, isEmptyAddress } = require('./utils')
-
-const LANDRegistryArtifact = artifacts.require('LANDRegistry')
-const { LANDRegistryDecorator } = require('./ContractDecorators')
-let landRegistry
+const { log, getFailedTransactions, isEmptyAddress } = require('./utils')
+const { LANDRegistry } = require('./contractHelpers')
 
 const LANDS_PER_ASSIGN = 50
 const BATCH_SIZE = 1
-const IGNORE_FAILED_TXS = true
 const REQUIRED_ARGS = ['parcels', 'account', 'owner']
 
-async function assignParcels(parcels, newOwner, options) {
-  /* TX = { hash, data, status } */
+/* TX = { hash, data, status } */
+async function assignParcels(parcels, newOwner, options, contracts) {
   const {
     batchSize = BATCH_SIZE,
     landsPerAssign = LANDS_PER_ASSIGN,
-    ignoreFailedTxs = IGNORE_FAILED_TXS
+    retryFailedTxs
   } = options
+  const { landRegistry } = contracts
   let runningTransactions = []
   let failedTransactions = []
   let parcelsToAssign = []
@@ -49,9 +46,10 @@ async function assignParcels(parcels, newOwner, options) {
     }
 
     if (runningTransactions.length >= batchSize) {
-      failedTransactions = failedTransactions.concat(
-        await getFailedTransactions(runningTransactions)
-      )
+      failedTransactions = [
+        ...failedTransactions,
+        await getFailedTransactions(runningTransactions, web3)
+      ]
       runningTransactions = []
     }
   }
@@ -59,9 +57,10 @@ async function assignParcels(parcels, newOwner, options) {
   if (parcelsToAssign.length > 0) {
     const transaction = await assignMultipleParcels(parcelsToAssign, newOwner)
     runningTransactions.push(transaction)
-    failedTransactions = failedTransactions.concat(
-      await getFailedTransactions(runningTransactions)
-    )
+    failedTransactions = [
+      ...failedTransactions,
+      await getFailedTransactions(runningTransactions, web3)
+    ]
   }
 
   if (failedTransactions.length === 0) {
@@ -72,18 +71,18 @@ async function assignParcels(parcels, newOwner, options) {
   }
 
   log.info(`Found ${failedTransactions.length} failed transactions`)
+  log.info('-------------------------------')
 
-  if (failedTransactions.length > 0 && ignoreFailedTxs !== false) {
-    log.info('-------------------------------')
+  if (failedTransactions.length > 0 && retryFailedTxs != null) {
     log.info(`Retrying ${failedTransactions.length} failed transactions`)
     const failedParcels = failedTransactions.reduce(
       (allParcels, tx) => allParcels.concat(tx.data),
       []
     )
-    return await assignParcels(parcels, newOwner, options)
+    return await assignParcels(parcels, newOwner, options, contracts)
+  } else {
+    log.info(`Failed transactions: ${failedTransactions.map(t => t.hash)}`)
   }
-
-  log.info('All done!')
 }
 
 async function assignMultipleParcels(parcelsToAssign, newOwner) {
@@ -97,31 +96,20 @@ async function assignMultipleParcels(parcelsToAssign, newOwner) {
   return { hash, data: parcelsToAssign, status: 'pending' }
 }
 
-async function getFailedTransactions(transactions) {
-  log.info(`Waiting for ${transactions.length} transactions`)
-  const completedTransactions = await waitForTransactions(transactions, web3)
-  return completedTransactions.filter(tx => tx.status === 'failed')
-}
-
 async function run(args, configuration) {
   const { account, password, owner, parcels } = args
-  const { batchSize, landsPerAssign, ignoreFailedTxs } = args
+  const { batchSize, landsPerAssign, retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
 
-  const landRegistryContract = await LANDRegistryArtifact.at(
-    contractAddresses.LANDRegistry
-  )
-  landRegistry = new LANDRegistryDecorator(
-    landRegistryContract,
-    account,
-    txConfig
-  )
+  const landRegistry = new LANDRegistry(account, txConfig)
+  await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
 
-  await assignParcels(parcels, owner, {
-    batchSize: Number(batchSize),
-    landsPerAssign: Number(landsPerAssign),
-    ignoreFailedTxs
-  })
+  await assignParcels(
+    parcels,
+    owner,
+    { batchSize: +batchSize, landsPerAssign: +landsPerAssign, retryFailedTxs },
+    { landRegistry }
+  )
 }
 
 const scriptRunner = new ScriptRunner(web3, {
@@ -136,7 +124,7 @@ truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123
 --owner 0xdeadbeef       - The new owner to be used. Required
 --batchSize 50           - Simultaneous transactions. Default ${BATCH_SIZE}
 --landsPerAssign 50      - Parcels per assign transaction. Default ${LANDS_PER_ASSIGN}
---ignoreFailedTxs        - If this flag is present, the script will *not* try to re-send failed transactions
+--retryFailedTxs         - If this flag is present, the script will try to retry failed transactions
 --logLevel debug         - Log level to use. Possible values: info, debug. Default: info
 
 `),
@@ -149,4 +137,6 @@ if (require.main === module) {
 }
 
 // This enables the script to be executed by `truffle exec`
-module.exports = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
+const runner = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
+runner.assignParcels = assignParcels
+module.exports = runner

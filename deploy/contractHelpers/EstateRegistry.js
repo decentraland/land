@@ -1,9 +1,9 @@
 const { GAS_PRICE, GAS_LIMIT } = require('./txParams')
 const { log } = require('../utils')
 
-class EstateRegistryDecorator {
+class EstateRegistry {
   constructor(contract, account, txConfig) {
-    this.contract = contract
+    this.contract = null
     this.account = account
     this.txConfig = {
       gasPrice: GAS_PRICE,
@@ -11,6 +11,12 @@ class EstateRegistryDecorator {
       from: account,
       ...txConfig
     }
+  }
+
+  async setContract(artifacts, address) {
+    artifact = artifacts.require('EstateRegistry')
+    this.contract = await artifact.at(address)
+    return this
   }
 
   async getOwnerLastTokenId(owner) {
@@ -24,4 +30,4 @@ class EstateRegistryDecorator {
   }
 }
 
-module.exports = EstateRegistryDecorator
+module.exports = EstateRegistry

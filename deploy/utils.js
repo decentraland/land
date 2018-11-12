@@ -90,12 +90,19 @@ function checkWeb3Account(web3, account) {
   }
 }
 
+async function getFailedTransactions(transactions, web3) {
+  const completedTransactions = await waitForTransactions(transactions, web3)
+  return completedTransactions.filter(tx => tx.status === 'failed')
+}
+
 async function waitForTransaction(transaction, web3) {
   const completedTransactions = await waitForTransactions([transaction], web3)
   return completedTransactions[0]
 }
 
 async function waitForTransactions(allPendingTransactions, web3) {
+  log.info(`Waiting for ${allPendingTransactions.length} transactions`)
+
   const completedTransactions = []
   let pendingTransactions = [...allPendingTransactions]
 
