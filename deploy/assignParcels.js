@@ -6,7 +6,7 @@ const {
   getConfiguration,
   readJSON,
   isEmptyObject,
-  waitForFailedTransactions,
+  waitForTransaction,
   isEmptyAddress
 } = require('./utils')
 
@@ -47,7 +47,9 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
     batchSize = BATCH_SIZE,
     ignoreFailedTxs = IGNORE_FAILED_TXS
   } = options
-  const pendingTransactions = {}
+  const failedTransactions = [
+    /* { hash, data, status } */
+  ]
   let parcelsToAssign = []
 
   log.debug(`Setting the owner of ${parcels.length} parcels as ${newOwner}`)
@@ -72,51 +74,57 @@ async function assignParcels(parcels, landRegistry, newOwner, options) {
     parcelsToAssign.push(parcel)
 
     if (parcelsToAssign.length >= batchSize) {
-      const hash = await landRegistry.assignMultipleParcels(
+      const status = await assignMultipleParcels(
+        landRegistry,
         parcelsToAssign,
         newOwner
       )
-      log.info(
-        `Setting ${newOwner} as owner for ${parcelsToAssign.length}: ${hash}`
-      )
-      pendingTransactions[hash] = parcelsToAssign
+      if (status === 'failed') failedTransactions.push(transaction)
       parcelsToAssign = []
     }
   }
 
   if (parcelsToAssign.length > 0) {
-    const hash = await landRegistry.assignMultipleParcels(
+    const status = await assignMultipleParcels(
+      landRegistry,
       parcelsToAssign,
       newOwner
     )
-    pendingTransactions[hash] = parcelsToAssign
+    if (status === 'failed') failedTransactions.push(transaction)
   }
 
-  if (isEmptyObject(pendingTransactions)) {
+  if (failedTransactions.length === 0) {
     log.info('Nothing else to do')
     return
   } else {
     log.info('Waiting for transactions to end')
   }
 
-  const failedTransactions = await waitForFailedTransactions(
-    pendingTransactions,
-    web3
-  )
-  const failedTransactionsCount = Object.keys(failedTransactions).length
+  log.info(`Found ${failedTransactions.length} failed transactions`)
 
-  if (failedTransactionsCount > 0 && ignoreFailedTxs !== false) {
-    log.info(
-      `Found ${failedTransactionsCount} failed transactions, retrying those`
-    )
-    const failedParcels = Object.values(failedTransactions).reduce(
-      (allParcels, parcels) => allParcels.concat(parcels),
+  if (failedTransactions.length > 0 && ignoreFailedTxs !== false) {
+    log.info(`Retrying ${failedTransactions.length} failed transactions`)
+    const failedParcels = failedTransactions.reduce(
+      (allParcels, tx) => allParcels.concat(tx.data),
       []
     )
     return await assignParcels(parcels, landRegistry, newOwner, options)
   }
 
   log.info('All done!')
+}
+
+async function assignMultipleParcels(landRegistry, parcelsToAssign, newOwner) {
+  const hash = await landRegistry.assignMultipleParcels(
+    parcelsToAssign,
+    newOwner
+  )
+  log.info(
+    `Setting ${newOwner} as owner for ${parcelsToAssign.length}: ${hash}`
+  )
+  const transaction = { hash, data: parcelsToAssign, status: 'pending' }
+  const { status } = await waitForTransaction(transaction, web3)
+  return status
 }
 
 async function run(args) {
@@ -132,8 +140,10 @@ async function run(args) {
   const { account, password, owner, batchSize, ignoreFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
 
-  log.debug(`Unlocking account ${account}`)
-  await this.web3.personal.unlockAccount(account, password, 10000)
+  if (password) {
+    log.debug(`Unlocking account ${account}`)
+    await this.web3.personal.unlockAccount(account, password, 10000)
+  }
 
   const landRegistryContract = await LANDRegistryArtifact.at(
     contractAddresses.LANDRegistry
@@ -159,7 +169,7 @@ truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123
 
 --parcels genesis.json - List of parcels to deploy. Required
 --account 0xdeadbeef     - Which account to use to deploy. Required
---password S0m3P4ss      - Password for the account. Required
+--password S0m3P4ss      - Password for the account.
 --owner 0xdeadbeef       - The new owner to be used. Required
 --batchSize 50           - Parcels per transaction. Default ${BATCH_SIZE}
 --ignoreFailedTxs        - If this flag is present, the script will *not* try to re-send failed transactions

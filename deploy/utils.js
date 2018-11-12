@@ -80,12 +80,18 @@ function isEmptyObject(obj) {
   return Object.keys(obj).length === 0
 }
 
-async function waitForFailedTransactions(allPendingTransactions, web3) {
-  const pendingTransactions = { ...allPendingTransactions }
-  const failedTransactions = {}
+async function waitForTransaction(transaction, web3) {
+  const completedTransactions = await waitForTransactions([transaction], web3)
+  return completedTransactions[0]
+}
 
-  while (!isEmptyObject(pendingTransactions)) {
-    for (const hash in pendingTransactions) {
+async function waitForTransactions(allPendingTransactions, web3) {
+  const completedTransactions = []
+  let pendingTransactions = [...allPendingTransactions]
+
+  while (pendingTransactions.length > 0) {
+    for (const transaction of pendingTransactions) {
+      const hash = transaction.hash
       const tx = await web3.eth.getTransaction(hash)
       log.debug(
         `Getting status of tx ${hash}, got:\n`,
@@ -104,19 +110,23 @@ async function waitForFailedTransactions(allPendingTransactions, web3) {
         JSON.stringify({ ...receipt, logsBloom: '(...)' }, null, 2)
       )
 
+      const completedTransaction = { transaction }
+
       if (receipt == null || receipt.status === '0x0') {
         log.debug(`Receipt undefined for tx ${hash}, marked as failed`)
-        failedTransactions[hash] = pendingTransactions[hash]
+        completedTransaction.status = 'failed'
       } else {
-        log.debug(`Tx ${hash} successfull!`)
+        log.debug(`Tx ${hash} confirmed!`)
+        completedTransaction.status = 'confirmed'
       }
-      delete pendingTransactions[hash]
+      completedTransactions.push(transaction)
+      pendingTransactions = pendingTransactions.filter(ptx => ptx.hash !== hash)
     }
 
-    await sleep(8000)
+    await sleep(5000)
   }
 
-  return failedTransactions
+  return completedTransactions
 }
 
 function isEmptyAddress(address) {
@@ -135,6 +145,7 @@ module.exports = {
   requestJSON,
   sleep,
   isEmptyObject,
-  waitForFailedTransactions,
+  waitForTransaction,
+  waitForTransactions,
   isEmptyAddress
 }
