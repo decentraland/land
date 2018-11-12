@@ -1,15 +1,5 @@
-const {
-  log,
-  setLogLevel,
-  checkRequiredArgs,
-  parseArgs,
-  getConfiguration,
-  expandPath,
-  readJSON,
-  checkWeb3Account,
-  waitForTransactions,
-  isEmptyAddress
-} = require('./utils')
+const ScriptRunner = require('./ScriptRunner')
+const { log, waitForTransactions, isEmptyAddress } = require('./utils')
 
 const LANDRegistryArtifact = artifacts.require('LANDRegistry')
 const { LANDRegistryDecorator } = require('./ContractDecorators')
@@ -113,24 +103,10 @@ async function getFailedTransactions(transactions) {
   return completedTransactions.filter(tx => tx.status === 'failed')
 }
 
-async function run(args) {
-  checkRequiredArgs(args, REQUIRED_ARGS)
-  checkWeb3Account(web3, args.account)
-
-  setLogLevel(args.logLevel)
-  log.info('Using args', JSON.stringify(args, null, 2))
-
-  const configuration = getConfiguration()
-  const parcelsToDeploy = readJSON(expandPath(args.parcels))
-
-  const { account, password, owner } = args
+async function run(args, configuration) {
+  const { account, password, owner, parcels } = args
   const { batchSize, landsPerAssign, ignoreFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
-
-  if (password) {
-    log.debug(`Unlocking account ${account}`)
-    await this.web3.personal.unlockAccount(account, password, 10000)
-  }
 
   const landRegistryContract = await LANDRegistryArtifact.at(
     contractAddresses.LANDRegistry
@@ -141,17 +117,16 @@ async function run(args) {
     txConfig
   )
 
-  await assignParcels(parcelsToDeploy, owner, {
+  await assignParcels(parcels, owner, {
     batchSize: Number(batchSize),
     landsPerAssign: Number(landsPerAssign),
     ignoreFailedTxs
   })
 }
 
-async function main(argv) {
-  try {
-    if (argv.length < REQUIRED_ARGS.length || argv[0] === 'help') {
-      console.log(`Deploy (set an owner for) a list of unowned parcels. To run, use:
+const scriptRunner = new ScriptRunner(web3, {
+  onHelp: () =>
+    console.log(`Deploy (set an owner for) a list of unowned parcels. To run, use:
 
 truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123 --owner 0x --network ropsten (...)
 
@@ -164,28 +139,14 @@ truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123
 --ignoreFailedTxs        - If this flag is present, the script will *not* try to re-send failed transactions
 --logLevel debug         - Log level to use. Possible values: info, debug. Default: info
 
-`)
-    } else {
-      await run(parseArgs(argv))
-    }
-  } catch (error) {
-    log.error(error)
-    throw new Error(error)
-  }
-}
+`),
+  onRun: run
+})
 
 // This enables the script to be executed by a node binary
-// The `.slice(2)` removes the path to node itself and the file name from the argvs
 if (require.main === module) {
-  main(process.argv.slice(2))
+  scriptRunner.getRunner('console', process.argv, REQUIRED_ARGS)()
 }
 
 // This enables the script to be executed by `truffle exec`
-// The `.slice(4)` removes the path to node itself, the file name and both 'truffle' and 'exec'
-module.exports = async function(callback) {
-  try {
-    await main(process.argv.slice(4))
-  } finally {
-    callback()
-  }
-}
+module.exports = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
