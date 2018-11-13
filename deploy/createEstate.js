@@ -28,16 +28,24 @@ async function createEstate(parcels, owner, data, options, contracts) {
     web3
   )
 
-  if (transaction.status === 'failed' && retryFailedTxs != null) {
-    log.info('Estate creation failed, retrying\n\n')
-    return await createEstate(parcels, owner, data, options, contracts)
+  if (transaction.status === 'failed') {
+    if (retryFailedTxs != null) {
+      log.info('Estate creation failed, retrying\n\n')
+      return await createEstate(parcels, owner, data, options, contracts)
+    } else {
+      log.info('Estate creation failed')
+      return
+    }
   }
 
   const estateId = await estateRegistry.getOwnerLastTokenId(owner)
-
-  const restParcelBatch = parcels.slice(MAX_LAND_PER_TX)
-  await addLandToEstate(restParcelBatch, estateId, {}, { landRegistry })
   log.info(`Estate ${estateId} created with ${parcels.length} parcels`)
+
+  if (parcels.length > MAX_LAND_PER_TX) {
+    log.info(`Adding the other ${parcels.length - MAX_LAND_PER_TX} parcles`)
+    const restParcelBatch = parcels.slice(MAX_LAND_PER_TX)
+    await addLandToEstate(restParcelBatch, estateId, {}, { landRegistry })
+  }
 }
 
 async function run(args, configuration) {
