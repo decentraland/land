@@ -171,6 +171,7 @@ module.exports = {
   sleep,
 
   checkWeb3Account,
+  getFailedTransactions,
   waitForTransaction,
   waitForTransactions,
   isEmptyAddress

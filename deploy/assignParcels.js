@@ -39,12 +39,18 @@ async function assignParcels(parcels, newOwner, options, contracts) {
 
     parcelsToAssign.push(parcel)
 
+    // Assign `landsPerAssign` parcels
     if (parcelsToAssign.length >= landsPerAssign) {
-      const transaction = await assignMultipleParcels(parcelsToAssign, newOwner)
+      const transaction = await assignMultipleParcels(
+        parcelsToAssign,
+        newOwner,
+        landRegistry
+      )
       runningTransactions.push(transaction)
       parcelsToAssign = []
     }
 
+    // Wait for `batchSize` transactions
     if (runningTransactions.length >= batchSize) {
       failedTransactions = [
         ...failedTransactions,
@@ -54,8 +60,13 @@ async function assignParcels(parcels, newOwner, options, contracts) {
     }
   }
 
+  // Cleanup
   if (parcelsToAssign.length > 0) {
-    const transaction = await assignMultipleParcels(parcelsToAssign, newOwner)
+    const transaction = await assignMultipleParcels(
+      parcelsToAssign,
+      newOwner,
+      landRegistry
+    )
     runningTransactions.push(transaction)
     failedTransactions = [
       ...failedTransactions,
@@ -85,7 +96,7 @@ async function assignParcels(parcels, newOwner, options, contracts) {
   }
 }
 
-async function assignMultipleParcels(parcelsToAssign, newOwner) {
+async function assignMultipleParcels(parcelsToAssign, newOwner, landRegistry) {
   const hash = await landRegistry.assignMultipleParcels(
     parcelsToAssign,
     newOwner
