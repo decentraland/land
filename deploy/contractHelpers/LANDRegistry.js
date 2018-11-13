@@ -2,8 +2,8 @@ const { GAS_PRICE, GAS_LIMIT } = require('./txParams')
 const { log } = require('../utils')
 
 class LANDRegistry {
-  constructor(account, txConfig = {}) {
-    this.contract = null
+  constructor(account, address, txConfig = {}) {
+    this.address = address
     this.account = account
     this.txConfig = {
       gasPrice: GAS_PRICE,
@@ -11,11 +11,13 @@ class LANDRegistry {
       from: account,
       ...txConfig
     }
+
+    this.contract = null
   }
 
-  async setContract(artifacts, address) {
+  async setContract(artifacts) {
     const artifact = artifacts.require('LANDRegistry')
-    this.contract = await artifact.at(address)
+    this.contract = await artifact.at(this.address)
     return this
   }
 
@@ -26,6 +28,7 @@ class LANDRegistry {
   async assignMultipleParcels(parcels, newOwner) {
     const { xs, ys } = this.getXYPairs(parcels)
 
+    log.debug('Sending assignMultipleParcels\n', { xs, ys, newOwner })
     return await this.contract.assignMultipleParcels.sendTransaction(
       xs,
       ys,
@@ -37,20 +40,36 @@ class LANDRegistry {
   async createEstate(parcels, owner, data = '') {
     const { xs, ys } = this.getXYPairs(parcels)
 
-    return data
-      ? this.contract.createEstateWithMetadata.sendTransaction(
-          xs,
-          ys,
-          owner,
-          data,
-          this.txConfig
-        )
-      : this.contract.createEstate.sendTransaction(xs, ys, owner, this.txConfig)
+    if (data) {
+      log.debug('Sending createEstateWithMetadata\n', { xs, ys, owner, data })
+      return this.contract.createEstateWithMetadata.sendTransaction(
+        xs,
+        ys,
+        owner,
+        data,
+        this.txConfig
+      )
+    } else {
+      log.debug('Sending createEstate\n', { xs, ys, owner })
+      return this.contract.createEstate.sendTransaction(
+        xs,
+        ys,
+        owner,
+        this.txConfig
+      )
+    }
   }
 
   async transferManyLandToEstate(parcels, estateId) {
     const { xs, ys } = this.getXYPairs(parcels)
-    return await landRegistry.transferManyLandToEstate(xs, ys, estateId)
+
+    log.debug('Sending transferManyLandToEstate\n', { xs, ys, estateId })
+    return await this.contract.transferManyLandToEstate(
+      xs,
+      ys,
+      estateId,
+      this.txConfig
+    )
   }
 
   getXYPairs(parcels) {

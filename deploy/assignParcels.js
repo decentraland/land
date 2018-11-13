@@ -113,9 +113,10 @@ async function run(args, configuration) {
   const { account, password, owner, parcels } = args
   const { batchSize, landsPerAssign, retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
+  const { LANDRegistry: landRegistryAddress } = contractAddresses
 
-  const landRegistry = new LANDRegistry(account, txConfig)
-  await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
+  const landRegistry = new LANDRegistry(account, landRegistryAddress, txConfig)
+  await landRegistry.setContract(artifacts)
 
   await unlockWeb3Account(web3, account, password)
 

@@ -44,7 +44,12 @@ async function createEstate(parcels, owner, data, options, contracts) {
   if (parcels.length > MAX_LAND_PER_TX) {
     log.info(`Adding the other ${parcels.length - MAX_LAND_PER_TX} parcles`)
     const restParcelBatch = parcels.slice(MAX_LAND_PER_TX)
-    await addLandToEstate(restParcelBatch, estateId, {}, { landRegistry })
+    await addLandToEstate(
+      restParcelBatch,
+      estateId,
+      {},
+      { landRegistry, estateRegistry }
+    )
   }
 }
 
@@ -52,12 +57,16 @@ async function run(args, configuration) {
   const { account, password, owner, data, parcels } = args
   const { retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
+  const {
+    LANDRegistry: landRegistryAddress,
+    EstateRegistry: estateRegistryAddress
+  } = contractAddresses
 
-  landRegistry = new LANDRegistry(account, txConfig)
-  await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
+  landRegistry = new LANDRegistry(account, landRegistryAddress, txConfig)
+  await landRegistry.setContract(artifacts)
 
-  estateRegistry = new EstateRegistry(account, txConfig)
-  await estateRegistry.setContract(artifacts, contractAddresses.EstateRegistry)
+  estateRegistry = new EstateRegistry(account, estateRegistryAddress, txConfig)
+  await estateRegistry.setContract(artifacts)
 
   await unlockWeb3Account(web3, account, password)
 

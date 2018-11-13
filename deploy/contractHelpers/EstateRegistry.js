@@ -2,21 +2,27 @@ const { GAS_PRICE, GAS_LIMIT } = require('./txParams')
 const { log } = require('../utils')
 
 class EstateRegistry {
-  constructor(contract, account, txConfig) {
-    this.contract = null
+  constructor(account, address, txConfig) {
     this.account = account
+    this.address = address
     this.txConfig = {
       gasPrice: GAS_PRICE,
       gas: GAS_LIMIT,
       from: account,
       ...txConfig
     }
+
+    this.contract = null
   }
 
-  async setContract(artifacts, address) {
+  async setContract(artifacts) {
     const artifact = artifacts.require('EstateRegistry')
-    this.contract = await artifact.at(address)
+    this.contract = await artifact.at(this.address)
     return this
+  }
+
+  async getCurrentOwner(estateId) {
+    return await this.contract.ownerOf(estateId, this.txConfig)
   }
 
   async getOwnerLastTokenId(owner) {
