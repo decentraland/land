@@ -134,6 +134,8 @@ const scriptRunner = new ScriptRunner({
 
 truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123 --owner 0x --network ropsten (...)
 
+Available flags:
+
 --parcels genesis.json   - List of parcels to deploy. Required
 --account 0xdeadbeef     - Which account to use to deploy. Required
 --password S0m3P4ss      - Password for the account.

@@ -7,7 +7,7 @@ const MAX_LAND_PER_TX = 10
 const REQUIRED_ARGS = ['account']
 
 async function createEstate(parcels, owner, data, options, contracts) {
-  const { retryFailedTxs } = options
+  const { batchSize, retryFailedTxs } = options
   const { landRegistry, estateRegistry, web3 } = contracts
 
   if (parcels.length > MAX_LAND_PER_TX) {
@@ -47,7 +47,7 @@ async function createEstate(parcels, owner, data, options, contracts) {
     await addLandToEstate(
       restParcelBatch,
       estateId,
-      {},
+      { batchSize },
       { landRegistry, estateRegistry }
     )
   }
@@ -55,7 +55,7 @@ async function createEstate(parcels, owner, data, options, contracts) {
 
 async function run(args, configuration) {
   const { account, password, owner, data, parcels } = args
-  const { retryFailedTxs } = args
+  const { batchSize, retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
   const {
     LANDRegistry: landRegistryAddress,
@@ -74,7 +74,7 @@ async function run(args, configuration) {
     parcels,
     owner || account,
     data,
-    { retryFailedTxs },
+    { batchSize, retryFailedTxs },
     { landRegistry, estateRegistry, web3 }
   )
 }
@@ -85,11 +85,14 @@ const scriptRunner = new ScriptRunner({
 
 truffle exec createEstate.js --parcels genesis.json --account 0x --password 123 --owner 0x --network ropsten (...)
 
+Available flags:
+
 --parcels genesis.json          - List of parcels to add to the estate.
 --account 0xdeadbeef            - Which account to use to deploy. Required
 --password S0m3P4ss             - Password for the account.
 --owner 0xdeadbeef              - The owner of the estate. If undefined, the account will be used
 --data 'version,name,desc,ipns' - Estate metadata
+--batchSize 50                  - Simultaneous land transactions. Default ${BATCH_SIZE}
 --retryFailedTxs                - If this flag is present, the script will try to retry failed transactions
 --logLevel debug                - Log level to use. Possible values: info, debug. Default: info
 

@@ -136,10 +136,13 @@ const scriptRunner = new ScriptRunner({
 
 truffle exec addLandToEstate.js --estateId 22 --parcels genesis.json --account 0x --password 123 --network ropsten (...)
 
+Available flags:
+
 --estateId 22            - Blockchain estate id. Required
 --parcels genesis.json   - List of parcels to add to the estate. It'll be truncated if it's longer than ${MAX_LAND_PER_TX}
 --account 0xdeadbeef     - Which account to use to deploy. Required
 --password S0m3P4ss      - Password for the account.
+--batchSize 50           - Simultaneous transactions. Default ${BATCH_SIZE}
 --retryFailedTxs         - If this flag is present, the script will try to retry failed transactions
 --logLevel debug         - Log level to use. Possible values: info, debug. Default: info
 
