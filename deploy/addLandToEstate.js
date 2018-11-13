@@ -29,10 +29,9 @@ async function addLandToEstate(parcels, estateId, options, contracts) {
     runningTransactions.push({ hash, data: parcelsToAdd, status: 'pending' })
 
     if (runningTransactions.length >= batchSize) {
-      failedTransactions = [
-        ...failedTransactions,
+      failedTransactions = failedTransactions.concat(
         await getFailedTransactions(runningTransactions, web3)
-      ]
+      )
       runningTransactions = []
     }
 
@@ -40,10 +39,9 @@ async function addLandToEstate(parcels, estateId, options, contracts) {
   }
 
   if (runningTransactions.length > 0) {
-    failedTransactions = [
-      ...failedTransactions,
+    failedTransactions = failedTransactions.concat(
       await getFailedTransactions(runningTransactions, web3)
-    ]
+    )
   }
 
   if (failedTransactions.length === 0) {
@@ -54,10 +52,9 @@ async function addLandToEstate(parcels, estateId, options, contracts) {
   }
 
   log.info(`Found ${failedTransactions.length} failed transactions`)
-  log.info('-------------------------------')
 
   if (failedTransactions.length > 0 && retryFailedTxs != null) {
-    log.info(`Retrying ${failedTransactions.length} failed transactions`)
+    log.info(`Retrying ${failedTransactions.length} failed transactions\n\n`)
     const failedParcels = failedTransactions.reduce(
       (allParcels, tx) => allParcels.concat(tx.data),
       []

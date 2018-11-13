@@ -28,10 +28,8 @@ async function createEstate(parcels, owner, data, options, contracts) {
     web3
   )
 
-  log.info('--------------------------------')
-
   if (transaction.status === 'failed' && retryFailedTxs != null) {
-    log.info('Estate creation failed, retrying')
+    log.info('Estate creation failed, retrying\n\n')
     return await createEstate(parcels, owner, data, options, contracts)
   }
 
