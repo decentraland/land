@@ -1,5 +1,5 @@
 const ScriptRunner = require('./ScriptRunner')
-const { log, waitForTransaction } = require('./utils')
+const { log, unlockWeb3Account, waitForTransaction } = require('./utils')
 const { LANDRegistry } = require('./contractHelpers')
 
 const MAX_LAND_PER_TX = 12
@@ -8,7 +8,7 @@ const REQUIRED_ARGS = ['account', 'estateId', 'parcels']
 
 async function addLandToEstate(parcels, estateId, options, contracts) {
   const { batchSize = BATCH_SIZE, retryFailedTxs } = options
-  const { landRegistry } = contracts
+  const { landRegistry, web3 } = contracts
   let parcelsAdded = 0
   let runningTransactions = []
   let failedTransactions = []
@@ -65,7 +65,7 @@ async function addLandToEstate(parcels, estateId, options, contracts) {
   }
 }
 
-async function run(args) {
+async function run(args, configuration) {
   const { account, password, estateId, parcels } = args
   const { batchSize, retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
@@ -73,15 +73,17 @@ async function run(args) {
   const landRegistry = new LANDRegistry(account, txConfig)
   await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
 
+  await unlockWeb3Account(web3, account, password)
+
   await addLandToEstate(
     estateId,
     parcels,
     { batchSize: +batchSize, retryFailedTxs },
-    { landRegistry }
+    { landRegistry, web3 }
   )
 }
 
-const scriptRunner = new ScriptRunner(web3, {
+const scriptRunner = new ScriptRunner({
   onHelp: () =>
     console.log(`Add LAND to an already created Estate. To run, use:
 
@@ -98,12 +100,7 @@ truffle exec addLandToEstate.js --estateId 22 --parcels genesis.json --account 0
   onRun: run
 })
 
-// This enables the script to be executed by a node binary
-if (require.main === module) {
-  scriptRunner.getRunner('console', process.argv, REQUIRED_ARGS)()
-}
-
-// This enables the script to be executed by `truffle exec`
-const runner = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
+// This enables the script to be executed by `truffle exec` and to be exported
+const runner = scriptRunner.getRunner(process.argv, REQUIRED_ARGS)
 runner.addLandToEstate = addLandToEstate
 module.exports = runner

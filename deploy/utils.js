@@ -76,7 +76,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function checkWeb3Account(web3, account) {
+async function unlockWeb3Account(web3, account, password) {
   if (web3 === 'undefined') {
     throw new Error('web3 object is not defined')
   }
@@ -87,6 +87,11 @@ function checkWeb3Account(web3, account) {
     throw new Error(
       `Couldn't find account ${account} in:\n${web3.eth.accounts.join('\n')}`
     )
+  }
+
+  if (password) {
+    log.debug(`Unlocking account ${account}`)
+    await web3.personal.unlockAccount(account, password, 10000)
   }
 }
 
@@ -170,7 +175,7 @@ module.exports = {
 
   sleep,
 
-  checkWeb3Account,
+  unlockWeb3Account,
   getFailedTransactions,
   waitForTransaction,
   waitForTransactions,

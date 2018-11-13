@@ -1,5 +1,5 @@
 const ScriptRunner = require('./ScriptRunner')
-const { log, waitForTransaction } = require('./utils')
+const { log, unlockWeb3Account, waitForTransaction } = require('./utils')
 const { LANDRegistry, EstateRegistry } = require('./contractHelpers')
 const addLandToEstate = require('./addLandToEstate').addLandToEstate
 
@@ -8,7 +8,7 @@ const REQUIRED_ARGS = ['account']
 
 async function createEstate(parcels, owner, data, options, contracts) {
   const { retryFailedTxs } = options
-  const { landRegistry, estateRegistry } = contracts
+  const { landRegistry, estateRegistry, web3 } = contracts
 
   if (parcels.length > MAX_LAND_PER_TX) {
     log.warn(
@@ -40,7 +40,7 @@ async function createEstate(parcels, owner, data, options, contracts) {
   log.info(`Estate ${estateId} created with ${parcels.length} parcels`)
 }
 
-async function run(args) {
+async function run(args, configuration) {
   const { account, password, owner, data, parcels } = args
   const { retryFailedTxs } = args
   const { txConfig, contractAddresses } = configuration
@@ -51,16 +51,18 @@ async function run(args) {
   estateRegistry = new EstateRegistry(account, txConfig)
   await estateRegistry.setContract(artifacts, contractAddresses.EstateRegistry)
 
+  await unlockWeb3Account(web3, account, password)
+
   await createEstate(
     parcels,
     owner || account,
     data,
     { retryFailedTxs },
-    { landRegistry, estateRegistry }
+    { landRegistry, estateRegistry, web3 }
   )
 }
 
-const scriptRunner = new ScriptRunner(web3, {
+const scriptRunner = new ScriptRunner({
   onHelp: () =>
     console.log(`Create a new Estate. To run, use:
 
@@ -78,12 +80,7 @@ truffle exec createEstate.js --parcels genesis.json --account 0x --password 123 
   onRun: run
 })
 
-// This enables the script to be executed by a node binary
-if (require.main === module) {
-  scriptRunner.getRunner('console', process.argv, REQUIRED_ARGS)()
-}
-
-// This enables the script to be executed by `truffle exec`
-const runner = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
+// This enables the script to be executed by `truffle exec` and to be exported
+const runner = scriptRunner.getRunner(process.argv, REQUIRED_ARGS)
 runner.createEstate = createEstate
 module.exports = runner

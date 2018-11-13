@@ -14,7 +14,7 @@ class EstateRegistry {
   }
 
   async setContract(artifacts, address) {
-    artifact = artifacts.require('EstateRegistry')
+    const artifact = artifacts.require('EstateRegistry')
     this.contract = await artifact.at(address)
     return this
   }

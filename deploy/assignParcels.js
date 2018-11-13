@@ -1,5 +1,10 @@
 const ScriptRunner = require('./ScriptRunner')
-const { log, getFailedTransactions, isEmptyAddress } = require('./utils')
+const {
+  log,
+  unlockWeb3Account,
+  getFailedTransactions,
+  isEmptyAddress
+} = require('./utils')
 const { LANDRegistry } = require('./contractHelpers')
 
 const LANDS_PER_ASSIGN = 50
@@ -13,7 +18,7 @@ async function assignParcels(parcels, newOwner, options, contracts) {
     landsPerAssign = LANDS_PER_ASSIGN,
     retryFailedTxs
   } = options
-  const { landRegistry } = contracts
+  const { landRegistry, web3 } = contracts
   let runningTransactions = []
   let failedTransactions = []
   let parcelsToAssign = []
@@ -112,15 +117,17 @@ async function run(args, configuration) {
   const landRegistry = new LANDRegistry(account, txConfig)
   await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
 
+  await unlockWeb3Account(web3, account, password)
+
   await assignParcels(
     parcels,
     owner,
     { batchSize: +batchSize, landsPerAssign: +landsPerAssign, retryFailedTxs },
-    { landRegistry }
+    { landRegistry, web3 }
   )
 }
 
-const scriptRunner = new ScriptRunner(web3, {
+const scriptRunner = new ScriptRunner({
   onHelp: () =>
     console.log(`Deploy (set an owner for) a list of unowned parcels. To run, use:
 
@@ -139,12 +146,7 @@ truffle exec assignParcels.js --parcels genesis.json --account 0x --password 123
   onRun: run
 })
 
-// This enables the script to be executed by a node binary
-if (require.main === module) {
-  scriptRunner.getRunner('console', process.argv, REQUIRED_ARGS)()
-}
-
-// This enables the script to be executed by `truffle exec`
-const runner = scriptRunner.getRunner('truffle', process.argv, REQUIRED_ARGS)
+// This enables the script to be executed by `truffle exec` and to be exported
+const runner = scriptRunner.getRunner(process.argv, REQUIRED_ARGS)
 runner.assignParcels = assignParcels
 module.exports = runner
