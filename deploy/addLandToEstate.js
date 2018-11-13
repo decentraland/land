@@ -1,18 +1,26 @@
 const ScriptRunner = require('./ScriptRunner')
-const { log, unlockWeb3Account, waitForTransaction } = require('./utils')
+const {
+  log,
+  unlockWeb3Account,
+  getFailedTransactions,
+  waitForTransaction
+} = require('./utils')
 const { LANDRegistry, EstateRegistry } = require('./contractHelpers')
 
-const MAX_LAND_PER_TX = 12
+const MAX_LAND_PER_TX = 10
 const BATCH_SIZE = 1
 const REQUIRED_ARGS = ['account', 'estateId', 'parcels']
 
 async function addLandToEstate(allParcels, estateId, options, contracts) {
-  const { batchSize = BATCH_SIZE, retryFailedTxs } = options
+  let { batchSize, retryFailedTxs } = options
   const { landRegistry, estateRegistry, web3 } = contracts
+
   const parcels = []
   let parcelsAdded = 0
   let runningTransactions = []
   let failedTransactions = []
+
+  batchSize = batchSize || BATCH_SIZE
 
   log.info(`Checking the owner of the estate ${estateId}`)
   const estateOwner = await estateRegistry.getCurrentOwner(estateId)

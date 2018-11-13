@@ -64,7 +64,7 @@ class LANDRegistry {
     const { xs, ys } = this.getXYPairs(parcels)
 
     log.debug('Sending transferManyLandToEstate\n', { xs, ys, estateId })
-    return await this.contract.transferManyLandToEstate(
+    return await this.contract.transferManyLandToEstate.sendTransaction(
       xs,
       ys,
       estateId,

@@ -3,7 +3,7 @@ const { log, unlockWeb3Account, waitForTransaction } = require('./utils')
 const { LANDRegistry, EstateRegistry } = require('./contractHelpers')
 const addLandToEstate = require('./addLandToEstate').addLandToEstate
 
-const MAX_LAND_PER_TX = 12
+const MAX_LAND_PER_TX = 10
 const REQUIRED_ARGS = ['account']
 
 async function createEstate(parcels, owner, data, options, contracts) {

@@ -13,15 +13,15 @@ const REQUIRED_ARGS = ['parcels', 'account', 'owner']
 
 /* TX = { hash, data, status } */
 async function assignParcels(parcels, newOwner, options, contracts) {
-  const {
-    batchSize = BATCH_SIZE,
-    landsPerAssign = LANDS_PER_ASSIGN,
-    retryFailedTxs
-  } = options
+  let { batchSize, landsPerAssign, retryFailedTxs } = options
   const { landRegistry, web3 } = contracts
+
   let runningTransactions = []
   let failedTransactions = []
   let parcelsToAssign = []
+
+  batchSize = batchSize || BATCH_SIZE
+  landsPerAssign = landsPerAssign || LANDS_PER_ASSIGN
 
   log.debug(`Setting the owner of ${parcels.length} parcels as ${newOwner}`)
 

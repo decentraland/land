@@ -91,7 +91,7 @@ async function unlockWeb3Account(web3, account, password) {
 
   if (password) {
     log.debug(`Unlocking account ${account}`)
-    await web3.personal.unlockAccount(account, password, 10000)
+    await web3.personal.unlockAccount(account, password)
   }
 }
 
@@ -117,7 +117,7 @@ async function waitForTransactions(allPendingTransactions, web3) {
       const tx = await web3.eth.getTransaction(hash)
       log.debug(
         `Getting status of tx ${hash}, got:\n`,
-        JSON.stringify({ ...tx, input: '(...)' }, null, 2)
+        JSON.stringify({ ...tx, raw: '(...)', input: '(...)' }, null, 2)
       )
 
       if (!tx) {
