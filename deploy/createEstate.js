@@ -54,7 +54,7 @@ async function run(args, configuration) {
   const { txConfig, contractAddresses } = configuration
 
   landRegistry = new LANDRegistry(account, txConfig)
-  await landRegistry.setContract(artifacts, contractAddresses.EstateRegistry)
+  await landRegistry.setContract(artifacts, contractAddresses.LANDRegistry)
 
   estateRegistry = new EstateRegistry(account, txConfig)
   await estateRegistry.setContract(artifacts, contractAddresses.EstateRegistry)
