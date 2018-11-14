@@ -1,6 +1,7 @@
 {
   "contractAddresses": {
-    "LANDRegistry": "0x7a73483784ab79257bb11b96fd62a2c3ae4fb75b"
+    "LANDRegistry": "0x7...",
+    "EstateRegistry": "0x1..."
   },
   "txConfig": {
     "gasPrice": 27000000000,

@@ -22,10 +22,6 @@ function setLogLevel(logLevel = 'info') {
   }
 }
 
-function expandPath(path) {
-  return ['.', '/'].includes(path[0]) ? path : `${__dirname}/${path}`
-}
-
 function parseArgs(args) {
   const parsedArgs = {}
   let lastArgName = ''
@@ -39,6 +35,22 @@ function parseArgs(args) {
   }
 
   return parsedArgs
+}
+
+function checkRequiredArgs(args, requiredArgs) {
+  const hasRequiredArgs = requiredArgs.every(argName => args[argName] != null)
+
+  if (!hasRequiredArgs) {
+    const argNames = Object.keys(args)
+    throw new Error(
+      `Missing required arguments. Supplied ${argNames}, required ${requiredArgs}`
+    )
+  }
+}
+
+function expandPath(path) {
+  if (!path) throw new Error(`Invalid path ${path}`)
+  return ['.', '/'].includes(path[0]) ? path : `${__dirname}/${path}`
 }
 
 function getConfiguration(filepath = `${__dirname}/configuration.json`) {
@@ -59,25 +71,33 @@ function readJSON(filepath) {
   return json
 }
 
-function requestJSON(url) {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, resp => {
-        let data = ''
-        resp.on('data', chunk => (data += chunk))
-        resp.on('end', () => resolve(JSON.parse(data)))
-      })
-      .on('error', err => reject('Error: ' + err.message))
-  })
-}
-
 function sleep(ms) {
   log.info(`Sleeping for ${ms / 1000} seconds`)
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function isEmptyObject(obj) {
-  return Object.keys(obj).length === 0
+async function unlockWeb3Account(web3, account, password) {
+  if (web3 === 'undefined') {
+    throw new Error('web3 object is not defined')
+  }
+  if (!web3.eth.accounts || web3.eth.accounts.length === 0) {
+    throw new Error('Empty web3 accounts')
+  }
+  if (!web3.eth.accounts.find(ethAccount => ethAccount === account)) {
+    throw new Error(
+      `Couldn't find account ${account} in:\n${web3.eth.accounts.join('\n')}`
+    )
+  }
+
+  if (password) {
+    log.debug(`Unlocking account ${account}`)
+    await web3.personal.unlockAccount(account, password)
+  }
+}
+
+async function getFailedTransactions(transactions, web3) {
+  const completedTransactions = await waitForTransactions(transactions, web3)
+  return completedTransactions.filter(tx => tx.status === 'failed')
 }
 
 async function waitForTransaction(transaction, web3) {
@@ -86,6 +106,8 @@ async function waitForTransaction(transaction, web3) {
 }
 
 async function waitForTransactions(allPendingTransactions, web3) {
+  log.info(`Waiting for ${allPendingTransactions.length} transactions`)
+
   const completedTransactions = []
   let pendingTransactions = [...allPendingTransactions]
 
@@ -95,7 +117,7 @@ async function waitForTransactions(allPendingTransactions, web3) {
       const tx = await web3.eth.getTransaction(hash)
       log.debug(
         `Getting status of tx ${hash}, got:\n`,
-        JSON.stringify({ ...tx, input: '(...)' }, null, 2)
+        JSON.stringify({ ...tx, raw: '(...)', input: '(...)' }, null, 2)
       )
 
       if (!tx) {
@@ -143,13 +165,18 @@ function isEmptyAddress(address) {
 module.exports = {
   log,
   setLogLevel,
-  expandPath,
+
+  checkRequiredArgs,
   parseArgs,
   getConfiguration,
+
+  expandPath,
   readJSON,
-  requestJSON,
+
   sleep,
-  isEmptyObject,
+
+  unlockWeb3Account,
+  getFailedTransactions,
   waitForTransaction,
   waitForTransactions,
   isEmptyAddress
