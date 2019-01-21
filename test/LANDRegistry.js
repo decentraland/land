@@ -316,11 +316,29 @@ contract('LANDRegistry', accounts => {
     })
 
     describe('updateLandData', function() {
-      it('updates the parcel data if authorized', async function() {
-        await land.setUpdateOperator(1, user, sentByUser)
+      it('updates the parcel data if authorized :: operator', async function() {
+        await land.approve(operator, 1, sentByUser)
         const originalData = await land.landData(0, 1, sentByUser)
         originalData.should.be.equal('')
-        await land.updateLandData(0, 1, 'test_data', sentByUser)
+        await land.updateLandData(0, 1, 'test_data', sentByOperator)
+        const data = await land.landData(0, 1, sentByUser)
+        data.should.be.equal('test_data')
+      })
+
+      it('updates the parcel data if authorized :: approve for all', async function() {
+        await land.setApprovalForAll(operator, true, sentByUser)
+        const originalData = await land.landData(0, 1, sentByUser)
+        originalData.should.be.equal('')
+        await land.updateLandData(0, 1, 'test_data', sentByOperator)
+        const data = await land.landData(0, 1, sentByUser)
+        data.should.be.equal('test_data')
+      })
+
+      it('updates the parcel data if authorized :: update operator', async function() {
+        await land.setUpdateOperator(1, operator, sentByUser)
+        const originalData = await land.landData(0, 1, sentByUser)
+        originalData.should.be.equal('')
+        await land.updateLandData(0, 1, 'test_data', sentByOperator)
         const data = await land.landData(0, 1, sentByUser)
         data.should.be.equal('test_data')
       })
