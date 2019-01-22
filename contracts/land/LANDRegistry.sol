@@ -374,7 +374,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     string data
   )
     external
-    // onlyUpdateAuthorized(_encodeTokenId(x, y))
   {
     return _updateLandData(x, y, data);
   }
