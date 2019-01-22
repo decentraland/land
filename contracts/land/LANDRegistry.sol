@@ -45,7 +45,9 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   modifier onlyUpdateAuthorized(uint256 tokenId) {
     require(
-      msg.sender == _ownerOf(tokenId) || _isUpdateAuthorized(msg.sender, tokenId),
+      msg.sender == _ownerOf(tokenId) || 
+      _isAuthorized(msg.sender, tokenId) ||
+      _isUpdateAuthorized(msg.sender, tokenId),
       "msg.sender is not authorized to update"
     );
     _;
@@ -372,7 +374,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     string data
   )
     external
-    onlyUpdateAuthorized(_encodeTokenId(x, y))
   {
     return _updateLandData(x, y, data);
   }

@@ -139,13 +139,13 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return estateData[estateId];
   }
 
-  function setUpdateOperator(uint256 estateId, address operator) external canTransfer(estateId) {
-    updateOperator[estateId] = operator;
-    emit UpdateOperator(estateId, operator);
-  }
-
   function isUpdateAuthorized(address operator, uint256 estateId) external view returns (bool) {
     return _isUpdateAuthorized(operator, estateId);
+  }
+
+  function setUpdateOperator(uint256 estateId, address operator) public canTransfer(estateId) {
+    updateOperator[estateId] = operator;
+    emit UpdateOperator(estateId, operator);
   }
 
   function initialize(
@@ -283,6 +283,37 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     for (uint i = 0; i < length; i++) {
       _updateLandData(estateId, landIds[i], data);
     }
+  }
+
+  function transferFrom(address _from, address _to, uint256 _tokenId) 
+  public 
+  {
+    setUpdateOperator(_tokenId, address(0));
+    super.transferFrom(_from, _to, _tokenId);
+  }
+
+  function safeTransferFrom(address _from, address _to, uint256 _tokenId) 
+  public 
+  {
+    setUpdateOperator(_tokenId, address(0));
+    super.safeTransferFrom(_from, _to, _tokenId);
+  }
+
+  function safeTransferFrom(
+    address _from,
+    address _to,
+    uint256 _tokenId,
+    bytes _data
+  )
+  public
+  {
+    setUpdateOperator(_tokenId, address(0));
+    super.safeTransferFrom(
+      _from, 
+      _to,
+      _tokenId, 
+      _data
+    );
   }
 
   // check the supported interfaces via ERC165

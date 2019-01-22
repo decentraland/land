@@ -308,9 +308,30 @@ contract('EstateRegistry', accounts => {
   })
 
   describe('update metadata and update operator', function() {
-    it('update works correctly', async function() {
+    it('update works correctly :: holder', async function() {
       const estateId = await createUserEstateWithToken1()
       await estate.updateMetadata(estateId, newMetadata, sentByUser)
+      await assertMetadata(estateId, newMetadata)
+    })
+
+    it('update works correctly :: updateOperator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await estate.updateMetadata(estateId, newMetadata, sentByAnotherUser)
+      await assertMetadata(estateId, newMetadata)
+    })
+
+    it('update works correctly :: operator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.updateMetadata(estateId, newMetadata, sentByAnotherUser)
+      await assertMetadata(estateId, newMetadata)
+    })
+
+    it('update works correctly :: approved for all', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.updateMetadata(estateId, newMetadata, sentByAnotherUser)
       await assertMetadata(estateId, newMetadata)
     })
 
@@ -803,6 +824,32 @@ contract('EstateRegistry', accounts => {
     it('should not support not defined interface', async function() {
       const isSupported = await estate.supportsInterface('123456')
       expect(isSupported).be.false
+    })
+  })
+
+  describe('Update Operator', function() {
+    it('should clean update operator after transfer the Estate :: safeTransferFrom', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      let updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+      await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
+      updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
+    })
+
+    it('should clean update operator after transfer the Estate :: transferFrom', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      let updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+      await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+      updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
     })
   })
 })
