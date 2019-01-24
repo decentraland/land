@@ -41,6 +41,8 @@ contract('LANDRegistry', accounts => {
   const sentByUser = { ...creationParams, from: user }
   const sentByCreator = { ...creationParams, from: creator }
   const sentByOperator = { ...creationParams, from: operator }
+  const sentByAnotherUser = { ...creationParams, from: anotherUser }
+  const sentByHacker = { ...creationParams, from: hacker }
 
   async function createEstate(xs, ys, owner, sendParams) {
     return createEstateFull(contracts, xs, ys, owner, '', sendParams)
@@ -720,6 +722,31 @@ contract('LANDRegistry', accounts => {
       log.event.should.be.eq('UpdateOperator')
       log.args.assetId.should.be.bignumber.equal(assetId)
       log.args.operator.should.be.equal(operator)
+    })
+
+    it('should set an update operator by an operator', async function() {
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      await land.approve(operator, 1, sentByUser)
+      await land.setUpdateOperator(1, anotherUser, sentByOperator)
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set an update operator by an operator approved for all', async function() {
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      await land.setApprovalForAll(operator, true, sentByUser)
+      await land.setUpdateOperator(1, anotherUser, sentByOperator)
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('reverts if not owner want to update the update operator', async function() {
+      await assertRevert(
+        land.setUpdateOperator(1, anotherUser, sentByAnotherUser)
+      )
+      await assertRevert(land.setUpdateOperator(1, anotherUser, sentByHacker))
     })
   })
 })
