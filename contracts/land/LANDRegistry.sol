@@ -294,7 +294,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  function setUpdateOperator(uint256 assetId, address operator) external onlyOwnerOf(assetId) {
+  function setUpdateOperator(uint256 assetId, address operator) external onlyAuthorized(assetId) {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
   }
