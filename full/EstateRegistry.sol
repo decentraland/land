@@ -994,9 +994,11 @@ contract IEstateRegistry {
 contract LANDRegistry {
   function decodeTokenId(uint value) external pure returns (int, int);
   function updateLandData(int x, int y, string data) external;
+  function setUpdateOperator(uint256 assetId, address operator) external;
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
   function safeTransferFrom(address, address, uint256) public;
+  function updateOperator(uint256 landId) public returns (address);
 }
 
 
@@ -1047,6 +1049,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   modifier onlyUpdateAuthorized(uint256 estateId) {
     require(_isUpdateAuthorized(msg.sender, estateId), "Unauthorized user");
+    _;
+  }
+
+  modifier onlyLandUpdateAuthorized(uint256 estateId, uint256 landId) {
+    require(_isLandUpdateAuthorized(msg.sender, estateId, landId), "unauthorized user");
     _;
   }
 
@@ -1162,6 +1169,18 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function setUpdateOperator(uint256 estateId, address operator) public canTransfer(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
+  }
+
+  function setLandUpdateOperator(
+    uint256 estateId, 
+    uint256 landId, 
+    address operator
+  ) 
+    public 
+    canTransfer(estateId)
+  {
+    require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
+    registry.setUpdateOperator(landId, operator);
   }
 
   function initialize(
@@ -1459,6 +1478,16 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator;
   }
 
+  function _isLandUpdateAuthorized(
+    address operator, 
+    uint256 estateId, 
+    uint256 landId
+  ) 
+    internal returns (bool) 
+  {
+    return _isUpdateAuthorized(operator, estateId) || registry.updateOperator(landId) == operator;
+  }
+
   function _bytesToUint(bytes b) internal pure returns (uint256) {
     return uint256(_bytesToBytes32(b));
   }
@@ -1479,7 +1508,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     string data
   )
     internal
-    onlyUpdateAuthorized(estateId)
+    onlyLandUpdateAuthorized(estateId, landId)
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     int x;
