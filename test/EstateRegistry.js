@@ -882,6 +882,41 @@ contract('EstateRegistry', accounts => {
       updateOperator.should.be.equal(yetAnotherUser)
     })
 
+    it('should clean LAND updateOperator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByUser
+      )
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+
+      await estate.setLandUpdateOperator(estateId, 1, EMPTY_ADDRESS, sentByUser)
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByAnotherUser
+      )
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        EMPTY_ADDRESS,
+        sentByAnotherUser
+      )
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(EMPTY_ADDRESS)
+    })
+
     it('reverts when updating LAND updateOperator by estate updateOperator', async function() {
       const estateId = await createUserEstateWithToken1()
       await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
