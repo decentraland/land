@@ -1308,30 +1308,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     super.transferFrom(_from, _to, _tokenId);
   }
 
-  function safeTransferFrom(address _from, address _to, uint256 _tokenId) 
-  public 
-  {
-    setUpdateOperator(_tokenId, address(0));
-    super.safeTransferFrom(_from, _to, _tokenId);
-  }
-
-  function safeTransferFrom(
-    address _from,
-    address _to,
-    uint256 _tokenId,
-    bytes _data
-  )
-  public
-  {
-    setUpdateOperator(_tokenId, address(0));
-    super.safeTransferFrom(
-      _from, 
-      _to,
-      _tokenId, 
-      _data
-    );
-  }
-
   // check the supported interfaces via ERC165
   function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
     // solium-disable-next-line operator-whitespace

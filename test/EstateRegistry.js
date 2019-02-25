@@ -834,6 +834,28 @@ contract('EstateRegistry', accounts => {
       let updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(anotherUser)
       await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(1)
+      updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
+    })
+
+    it('should clean update operator after transfer the Estate :: safeTransferFrom with bytes', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      let updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+      await estate.safeTransferFromWithBytes(
+        user,
+        anotherUser,
+        estateId,
+        '0x',
+        sentByUser
+      )
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(1)
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
@@ -846,6 +868,8 @@ contract('EstateRegistry', accounts => {
       let updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(anotherUser)
       await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(1)
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
