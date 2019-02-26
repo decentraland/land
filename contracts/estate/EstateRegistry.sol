@@ -288,7 +288,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function transferFrom(address _from, address _to, uint256 _tokenId) 
   public 
   {
-    setUpdateOperator(_tokenId, address(0));
+    updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
   }
 

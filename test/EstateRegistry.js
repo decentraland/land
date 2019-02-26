@@ -835,7 +835,7 @@ contract('EstateRegistry', accounts => {
       expect(updateOperator).be.equal(anotherUser)
       await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
       let logs = await getEstateEvents('UpdateOperator')
-      expect(logs.length).be.equal(1)
+      expect(logs.length).be.equal(0)
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
@@ -855,7 +855,7 @@ contract('EstateRegistry', accounts => {
         sentByUser
       )
       let logs = await getEstateEvents('UpdateOperator')
-      expect(logs.length).be.equal(1)
+      expect(logs.length).be.equal(0)
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
@@ -869,7 +869,7 @@ contract('EstateRegistry', accounts => {
       expect(updateOperator).be.equal(anotherUser)
       await estate.transferFrom(user, anotherUser, estateId, sentByUser)
       let logs = await getEstateEvents('UpdateOperator')
-      expect(logs.length).be.equal(1)
+      expect(logs.length).be.equal(0)
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
