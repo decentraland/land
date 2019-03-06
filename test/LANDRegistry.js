@@ -748,5 +748,156 @@ contract('LANDRegistry', accounts => {
       )
       await assertRevert(land.setUpdateOperator(1, anotherUser, sentByHacker))
     })
+
+    it('should be clear on transfer :: transferFrom', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let owner = await land.ownerOf(landId)
+      owner.should.be.equal(user)
+
+      await land.setUpdateOperator(landId, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(operator)
+
+      await land.transferFrom(user, anotherUser, landId, sentByUser)
+
+      updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(landId)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should be clear on transfer :: safeTransferFrom', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let owner = await land.ownerOf(landId)
+      owner.should.be.equal(user)
+
+      await land.setUpdateOperator(landId, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(operator)
+
+      await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
+
+      updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(landId)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should be clear on transfer :: transferLand', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let owner = await land.ownerOf(landId)
+      owner.should.be.equal(user)
+
+      await land.setUpdateOperator(landId, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(operator)
+
+      await land.transferLand(0, 1, anotherUser, sentByUser)
+
+      updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(landId)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should be clear on transfer :: transferManyLand', async function() {
+      const [xUser, yUser] = await getLandOfUser()
+
+      let owner = await land.ownerOf(1)
+      owner.should.be.equal(user)
+
+      owner = await land.ownerOf(2)
+      owner.should.be.equal(user)
+
+      await land.setUpdateOperator(1, operator, sentByUser)
+      await land.setUpdateOperator(2, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(operator)
+
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(operator)
+
+      await land.transferManyLand(xUser, yUser, anotherUser, sentByUser)
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(1)
+      owner.should.be.equal(anotherUser)
+
+      owner = await land.ownerOf(2)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should be clear on transfer :: transferLandToEstate', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let owner = await land.ownerOf(landId)
+      owner.should.be.equal(user)
+
+      await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+      const estateId = await createEstate([3], [3], user, sentByCreator)
+
+      await land.setUpdateOperator(landId, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(operator)
+
+      await land.transferLandToEstate(0, 1, estateId, sentByUser)
+
+      updateOperator = await land.updateOperator(landId)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(landId)
+      owner.should.be.equal(estate.address)
+    })
+
+    it('should be clear on transfer :: transferManyLandToEstate', async function() {
+      let owner = await land.ownerOf(1)
+      owner.should.be.equal(user)
+
+      owner = await land.ownerOf(2)
+      owner.should.be.equal(user)
+
+      await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+      const estateId = await createEstate([3], [3], user, sentByCreator)
+
+      const [xUser, yUser] = await getLandOfUser()
+
+      await land.setUpdateOperator(1, operator, sentByUser)
+      await land.setUpdateOperator(2, operator, sentByUser)
+
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(operator)
+
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(operator)
+
+      await land.transferManyLandToEstate(xUser, yUser, estateId, sentByUser)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      owner = await land.ownerOf(1)
+      owner.should.be.equal(estate.address)
+
+      owner = await land.ownerOf(2)
+      owner.should.be.equal(estate.address)
+    })
   })
 })
