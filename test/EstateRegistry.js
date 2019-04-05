@@ -838,26 +838,133 @@ contract('EstateRegistry', accounts => {
   describe('Update Operator', function() {
     it('should clean update operator after transfer the Estate :: safeTransferFrom', async function() {
       const estateId = await createUserEstateWithToken1()
+
+      let owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(user)
+
       await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
       let updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(anotherUser)
+
       await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
+
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(0)
+      logs = await getEstateEvents('Transfer')
+      expect(logs.length).be.equal(1)
+
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
       )
+
+      owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should clean update operator after transfer the Estate :: safeTransferFrom with bytes', async function() {
+      const estateId = await createUserEstateWithToken1()
+
+      let owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(user)
+
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      let updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+
+      await estate.safeTransferFromWithBytes(
+        user,
+        anotherUser,
+        estateId,
+        '0x',
+        sentByUser
+      )
+
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(0)
+      logs = await getEstateEvents('Transfer')
+      expect(logs.length).be.equal(1)
+
+      updateOperator = await estate.updateOperator(estateId, sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
+
+      owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(anotherUser)
     })
 
     it('should clean update operator after transfer the Estate :: transferFrom', async function() {
       const estateId = await createUserEstateWithToken1()
+
+      let owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(user)
+
       await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
       let updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(anotherUser)
+
       await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(0)
+
+      logs = await getEstateEvents('Transfer')
+      expect(logs.length).be.equal(1)
+
       updateOperator = await estate.updateOperator(estateId, sentByUser)
       expect(updateOperator).be.equal(
         '0x0000000000000000000000000000000000000000'
       )
+
+      owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(anotherUser)
+    })
+
+    it('should clean update operator after transfer the Estate :: safeTransferManyFrom', async function() {
+      const estateIds = await createTwoEstates(user, sentByUser)
+
+      let owner = await estate.ownerOf(estateIds[0])
+      owner.should.be.equal(user)
+
+      owner = await estate.ownerOf(estateIds[1])
+      owner.should.be.equal(user)
+
+      await estate.setUpdateOperator(estateIds[0], anotherUser, sentByUser)
+      let updateOperator = await estate.updateOperator(estateIds[0], sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+
+      await estate.setUpdateOperator(estateIds[1], anotherUser, sentByUser)
+      updateOperator = await estate.updateOperator(estateIds[1], sentByUser)
+      expect(updateOperator).be.equal(anotherUser)
+
+      await estate.safeTransferManyFrom(
+        user,
+        anotherUser,
+        estateIds,
+        sentByUser
+      )
+
+      let logs = await getEstateEvents('UpdateOperator')
+      expect(logs.length).be.equal(0)
+
+      logs = await getEstateEvents('Transfer')
+      expect(logs.length).be.equal(2)
+
+      updateOperator = await estate.updateOperator(estateIds[0], sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
+      updateOperator = await estate.updateOperator(estateIds[1], sentByUser)
+      expect(updateOperator).be.equal(
+        '0x0000000000000000000000000000000000000000'
+      )
+
+      owner = await estate.ownerOf(estateIds[0])
+      owner.should.be.equal(anotherUser)
+
+      owner = await estate.ownerOf(estateIds[1])
+      owner.should.be.equal(anotherUser)
     })
   })
 
