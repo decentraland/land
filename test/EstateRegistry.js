@@ -680,6 +680,14 @@ contract('EstateRegistry', accounts => {
       data.should.be.equal('newValue')
     })
 
+    it('should allow a LAND updateOperator to update LAND data', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setLandUpdateOperator(estateId, 1, anotherUser, sentByUser)
+      await estate.updateLandData(estateId, 1, 'newValue', sentByAnotherUser)
+      const data = await land.landData(0, 1, sentByUser)
+      data.should.be.equal('newValue')
+    })
+
     it('should not allow owner an Estate to update LAND data of an Estate which is not the owner', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       const estateIdByUser = await createEstate([0], [1], user, sentByUser)
@@ -690,7 +698,7 @@ contract('EstateRegistry', accounts => {
       )
     })
 
-    it('should not allow neither operator, nor owner nor updateOperator of an Estate to update LAND data', async function() {
+    it('should not allow neither operator, nor owner nor updateOperator nor LAND updateOperator of an Estate to update LAND data', async function() {
       await land.assignMultipleParcels([0], [1], user, sentByCreator)
       const estateId = await createEstate([0], [1], user, sentByUser)
       await assertRevert(
@@ -957,6 +965,103 @@ contract('EstateRegistry', accounts => {
 
       owner = await estate.ownerOf(estateIds[1])
       owner.should.be.equal(anotherUser)
+    })
+  })
+
+  describe('Update LAND Update Operator', function() {
+    it('should update LAND updateOperator by estate owner', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setLandUpdateOperator(estateId, 1, anotherUser, sentByUser)
+      const updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should update LAND updateOperator by estate operator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByAnotherUser
+      )
+      const updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+    })
+
+    it('should clean LAND updateOperator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByUser
+      )
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+
+      await estate.setLandUpdateOperator(estateId, 1, EMPTY_ADDRESS, sentByUser)
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByAnotherUser
+      )
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        EMPTY_ADDRESS,
+        sentByAnotherUser
+      )
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(EMPTY_ADDRESS)
+    })
+
+    it('reverts when updating LAND updateOperator by estate updateOperator', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await assertRevert(
+        estate.setLandUpdateOperator(
+          estateId,
+          2,
+          yetAnotherUser,
+          sentByAnotherUser
+        )
+      )
+    })
+
+    it('reverts when updating LAND updateOperator for a LAND outside the estate', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.setLandUpdateOperator(estateId, 2, anotherUser, sentByUser)
+      )
+    })
+
+    it('reverts when updating LAND updateOperator for a LAND from another estate', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await createUserEstateWithToken2()
+      await assertRevert(
+        estate.setLandUpdateOperator(estateId, 2, anotherUser, sentByUser)
+      )
+    })
+
+    it('reverts when updating LAND updateOperator by hacker', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await assertRevert(
+        estate.setLandUpdateOperator(
+          estateId,
+          1,
+          anotherUser,
+          sentByAnotherUser
+        )
+      )
     })
   })
 })
