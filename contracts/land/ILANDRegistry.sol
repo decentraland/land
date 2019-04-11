@@ -25,6 +25,9 @@ interface ILANDRegistry {
   // Update LAND
   function updateLandData(int x, int y, string data) external;
   function updateManyLandData(int[] x, int[] y, string data) external;
+  
+  // Authorize an updateAgent to deploy on any parcel
+  function setUpdateAgent(address parcelOwner, address updateAgent) external;
 
   // Events
 
@@ -48,5 +51,11 @@ interface ILANDRegistry {
   event DeployForbidden(
     address indexed _caller,
     address indexed _deployer
+  );
+
+  event UpdateAgent(
+    address indexed _owner,
+    address indexed _agent,
+    address indexed _caller
   );
 }
