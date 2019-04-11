@@ -62,7 +62,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function _isUpdateAuthorized(address operator, uint256 assetId) internal view returns (bool) {
-    return operator == _ownerOf(assetId) || updateOperator[assetId] == operator;
+    address parcelOwner = _ownerOf(assetId);
+    return operator == parcelOwner
+      || _operators[parcelOwner][operator]
+      || updateOperator[assetId] == operator
+      || updateAgent[parcelOwner] == operator;
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
@@ -297,6 +301,13 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function setUpdateOperator(uint256 assetId, address operator) external onlyAuthorized(assetId) {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
+  }
+
+  function setUpdateAgent(address owner, address operator) external {
+    require(msg.sender == owner || _operators[owner][msg.sender]);
+
+    updateAgent[owner] = operator;
+    emit UpdateAgent(owner, operator, msg.sender);
   }
 
   //
