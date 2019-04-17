@@ -34,4 +34,8 @@ contract EstateStorage {
 
   // Operator of the Estate
   mapping (uint256 => address) public updateOperator;
+
+  // From account to mapping of operator to bool whether is allowed to update content or not
+  mapping(address => mapping(address => bool)) public updateOperatorForAll;
+
 }

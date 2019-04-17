@@ -148,10 +148,34 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return _isUpdateAuthorized(operator, estateId);
   }
 
+  /**
+  * @dev Set an updateOperatorForAll for an account
+  * @param _owner - address of the account to set the updateOperatorForAll
+  * @param _operator - address of the account to be set as the updateOperatorForAll
+  * @param _approved - bool whether the address will be approved or not
+  */
+  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
+    require(_operator != msg.sender, "The operator should be different from owner");
+    require(
+      _owner == msg.sender ||
+      operatorApprovals[msg.sender][_operator],
+      "Unauthorized user"
+    );
+
+    updateOperatorForAll[_owner][_operator] = _approved;
+
+    emit UpdateOperatorForAll(
+      _owner, 
+      _operator,
+      msg.sender,
+      _approved
+    );
+  } 
+
   function setUpdateOperator(uint256 estateId, address operator) public canTransfer(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
-  }
+  }  
 
   function setLandUpdateOperator(
     uint256 estateId, 
@@ -433,7 +457,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
-    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator;
+    address owner = ownerOf(estateId);
+
+    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator ||
+      updateOperatorForAll[owner][operator];
   }
 
   function _isLandUpdateAuthorized(

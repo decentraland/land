@@ -984,6 +984,13 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
+  event UpdateOperatorForAll(
+    address indexed _owner,
+    address indexed _operator,
+    address indexed _caller,
+    bool _approved
+  );
+
   event SetLANDRegistry(
     address indexed _registry
   );
@@ -1024,6 +1031,10 @@ contract EstateStorage {
 
   // Operator of the Estate
   mapping (uint256 => address) public updateOperator;
+
+  // From account to mapping of operator to bool whether is allowed to update content or not
+  mapping(address => mapping(address => bool)) internal updateOperatorForAll;
+
 }
 
 // File: contracts/estate/EstateRegistry.sol
@@ -1166,10 +1177,34 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return _isUpdateAuthorized(operator, estateId);
   }
 
+  /**
+  * @dev Set an updateOperatorForAll for an account
+  * @param _owner - address of the account to set the updateOperatorForAll
+  * @param _operator - address of the account to be set as the updateOperatorForAll
+  * @param _approved - bool whether the address will be approved or not
+  */
+  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
+    require(_operator != msg.sender, "The operator should be different from owner");
+    require(
+      _owner == msg.sender ||
+      operatorApprovals[msg.sender][_operator],
+      "Unauthorized user"
+    );
+
+    updateOperatorForAll[_owner][_operator] = _approved;
+
+    emit UpdateOperatorForAll(
+      _owner, 
+      _operator,
+      msg.sender,
+      _approved
+    );
+  } 
+
   function setUpdateOperator(uint256 estateId, address operator) public canTransfer(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
-  }
+  }  
 
   function setLandUpdateOperator(
     uint256 estateId, 

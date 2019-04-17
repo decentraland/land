@@ -105,6 +105,13 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
+  event UpdateOperatorForAll(
+    address indexed _owner,
+    address indexed _operator,
+    address indexed _caller,
+    bool _approved
+  );
+
   event SetLANDRegistry(
     address indexed _registry
   );
@@ -126,6 +133,8 @@ contract LANDStorage {
   IEstateRegistry public estateRegistry;
 
   mapping (address => bool) public authorizedDeploy;
+
+  mapping(address => mapping(address => bool)) internal updateOperatorForAll;
 }
 
 // File: contracts/Storage.sol
@@ -858,6 +867,9 @@ interface ILANDRegistry {
   function updateLandData(int x, int y, string data) external;
   function updateManyLandData(int[] x, int[] y, string data) external;
 
+  // Authorize an updateOperatorForAll to update data on any parcel
+  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external;
+
   // Events
 
   event Update(
@@ -870,6 +882,13 @@ interface ILANDRegistry {
   event UpdateOperator(
     uint256 indexed assetId,
     address indexed operator
+  );
+
+  event UpdateOperatorForAll(
+    address indexed _owner,
+    address indexed _operator,
+    address indexed _caller,
+    bool _approved
   );
 
   event DeployAuthorized(
@@ -938,7 +957,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function _isUpdateAuthorized(address operator, uint256 assetId) internal view returns (bool) {
-    return operator == _ownerOf(assetId) || updateOperator[assetId] == operator;
+    address owner = _ownerOf(assetId);
+
+    return owner == operator  || 
+      updateOperator[assetId] == operator ||
+      updateOperatorForAll[owner] == operator;
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
@@ -1174,6 +1197,30 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
   }
+
+  /**
+  * @dev Set an updateOperatorForAll for an account
+  * @param _owner - address of the account to set the updateOperatorForAll
+  * @param _operator - address of the account to be set as the updateOperatorForAll
+  * @param _approved - bool whether the address will be approved or not
+  */
+  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
+    require(_operator != msg.sender, "The operator should be different from owner");
+    require(
+      _owner == msg.sender ||
+      _isApprovedForAll(_owner, msg.sender),
+      "Unauthorized user"
+    );
+
+    updateOperatorForAll[_owner][_operator] = _approved;
+
+    emit UpdateOperatorForAll(
+      _owner, 
+      _operator,
+      msg.sender,
+      _approved
+    );
+  } 
 
   //
   // Estate generation

@@ -105,6 +105,13 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
+  event UpdateOperatorForAll(
+    address indexed _owner,
+    address indexed _operator,
+    address indexed _caller,
+    bool _approved
+  );
+
   event SetLANDRegistry(
     address indexed _registry
   );
@@ -126,6 +133,8 @@ contract LANDStorage {
   IEstateRegistry public estateRegistry;
 
   mapping (address => bool) public authorizedDeploy;
+
+  mapping(address => mapping(address => bool)) internal updateOperatorForAll;
 }
 
 // File: contracts/Storage.sol
