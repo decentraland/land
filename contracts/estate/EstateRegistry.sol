@@ -158,7 +158,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     require(_operator != msg.sender, "The operator should be different from owner");
     require(
       _owner == msg.sender ||
-      operatorApprovals[msg.sender][_operator],
+      operatorApprovals[_owner][msg.sender],
       "Unauthorized user"
     );
 

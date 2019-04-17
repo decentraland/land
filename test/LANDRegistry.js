@@ -919,11 +919,15 @@ contract('LANDRegistry', accounts => {
       log.args._caller.should.be.equal(user)
       log.args._approved.should.be.equal(true)
 
-      const isUpdateOperatorForAll = await land.updateOperatorForAll(
+      let isUpdateOperatorForAll = await land.updateOperatorForAll(
         user,
         operator
       )
       isUpdateOperatorForAll.should.be.equal(true)
+
+      await land.setUpdateOperatorForAll(user, operator, false, sentByUser)
+      isUpdateOperatorForAll = await land.updateOperatorForAll(user, operator)
+      isUpdateOperatorForAll.should.be.equal(false)
     })
 
     it('should set updateOperatorForAll by approvedForAll', async function() {
@@ -1017,7 +1021,7 @@ contract('LANDRegistry', accounts => {
       isUpdateOperatorForAll.should.be.equal(true)
     })
 
-    it('reverts when updateOperatorForAll trying to change content of no owned by owner LAND', async function() {
+    it('reverts when updateOperatorForAll trying to change content of no owned by the owner LAND', async function() {
       await land.setUpdateOperatorForAll(user, operator, true, sentByUser)
 
       await land.transferLand(0, 1, anotherUser, sentByUser)

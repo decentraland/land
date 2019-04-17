@@ -1033,7 +1033,7 @@ contract EstateStorage {
   mapping (uint256 => address) public updateOperator;
 
   // From account to mapping of operator to bool whether is allowed to update content or not
-  mapping(address => mapping(address => bool)) internal updateOperatorForAll;
+  mapping(address => mapping(address => bool)) public updateOperatorForAll;
 
 }
 
@@ -1187,7 +1187,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     require(_operator != msg.sender, "The operator should be different from owner");
     require(
       _owner == msg.sender ||
-      operatorApprovals[msg.sender][_operator],
+      operatorApprovals[_owner][msg.sender],
       "Unauthorized user"
     );
 
@@ -1486,7 +1486,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
-    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator;
+    address owner = ownerOf(estateId);
+
+    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator ||
+      updateOperatorForAll[owner][operator];
   }
 
   function _isLandUpdateAuthorized(

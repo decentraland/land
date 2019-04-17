@@ -134,7 +134,7 @@ contract LANDStorage {
 
   mapping (address => bool) public authorizedDeploy;
 
-  mapping(address => mapping(address => bool)) internal updateOperatorForAll;
+  mapping(address => mapping(address => bool)) public updateOperatorForAll;
 }
 
 // File: contracts/Storage.sol
@@ -961,7 +961,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
     return owner == operator  || 
       updateOperator[assetId] == operator ||
-      updateOperatorForAll[owner] == operator;
+      updateOperatorForAll[owner][operator];
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {

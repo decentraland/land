@@ -24,7 +24,14 @@ require('chai')
  *   This is because encoding a pair like `(0, 1)` returns `1`, `(0, 2)` returns `2`, and so on.
  */
 contract('EstateRegistry', accounts => {
-  const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
+  const [
+    creator,
+    user,
+    anotherUser,
+    yetAnotherUser,
+    hacker,
+    operator
+  ] = accounts
 
   let contracts = null
   let land = null
@@ -38,6 +45,8 @@ contract('EstateRegistry', accounts => {
   const sentByUser = { ...creationParams, from: user }
   const sentByAnotherUser = { ...creationParams, from: anotherUser }
   const sentByCreator = { ...creationParams, from: creator }
+  const sentByOperator = { ...creationParams, from: operator }
+  const sentByHacker = { ...creationParams, from: hacker }
 
   const fiveX = [0, 0, 0, 0, 0]
   const fiveY = [1, 2, 3, 4, 5]
@@ -1062,6 +1071,200 @@ contract('EstateRegistry', accounts => {
           sentByAnotherUser
         )
       )
+    })
+  })
+
+  describe('UpdateOperatorForAll', function() {
+    beforeEach(async function() {
+      await createTwoEstates(user, sentByUser)
+    })
+
+    it('should set updateOperatorForAll by owner', async function() {
+      const { logs } = await estate.setUpdateOperatorForAll(
+        user,
+        operator,
+        true,
+        sentByUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateOperatorForAll')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(user)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateOperatorForAll = await estate.updateOperatorForAll(
+        user,
+        operator
+      )
+      isUpdateOperatorForAll.should.be.equal(true)
+
+      await estate.setUpdateOperatorForAll(user, operator, false, sentByUser)
+      isUpdateOperatorForAll = await estate.updateOperatorForAll(user, operator)
+      isUpdateOperatorForAll.should.be.equal(false)
+    })
+
+    it('should set updateOperatorForAll by approvedForAll', async function() {
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+
+      const { logs } = await estate.setUpdateOperatorForAll(
+        user,
+        operator,
+        true,
+        sentByAnotherUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateOperatorForAll')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(anotherUser)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateOperatorForAll = await estate.updateOperatorForAll(
+        user,
+        operator
+      )
+      isUpdateOperatorForAll.should.be.equal(true)
+
+      await estate.setUpdateOperatorForAll(
+        user,
+        operator,
+        false,
+        sentByAnotherUser
+      )
+      isUpdateOperatorForAll = await estate.updateOperatorForAll(user, operator)
+      isUpdateOperatorForAll.should.be.equal(false)
+    })
+
+    it('should allow updateOperatorForAll to update content', async function() {
+      await assertMetadata(1, '')
+      await assertMetadata(2, '')
+
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await estate.updateMetadata(1, 'newValue', sentByOperator)
+      await estate.updateMetadata(2, 'newValue', sentByOperator)
+
+      await assertMetadata(1, 'newValue')
+      await assertMetadata(2, 'newValue')
+    })
+
+    it('should allow updateOperatorForAll to update content on new Estate', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await land.assignMultipleParcels([0, 0], [3, 4], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [3, 4], user, sentByUser)
+
+      await assertMetadata(estateId, '')
+
+      await estate.updateMetadata(estateId, 'newValue', sentByOperator)
+
+      await assertMetadata(estateId, 'newValue')
+    })
+
+    it('should allow updateOperatorForAll to update content on LANDs as part of the Estate', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      let data = await land.landData(0, 1)
+      data.should.be.equal('')
+
+      await estate.updateLandData(1, 1, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
+    })
+
+    it('should has false as default value for updateOperatorForAll', async function() {
+      const isUpdateOperatorForAll = await estate.updateOperatorForAll(
+        user,
+        operator
+      )
+      isUpdateOperatorForAll.should.be.equal(false)
+    })
+
+    it('should set multiple updateOperatorForAll', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+      await estate.setUpdateOperatorForAll(user, anotherUser, true, sentByUser)
+
+      let isUpdateOperatorForAll = await estate.updateOperatorForAll(
+        user,
+        operator
+      )
+      isUpdateOperatorForAll.should.be.equal(true)
+
+      isUpdateOperatorForAll = await estate.updateOperatorForAll(
+        user,
+        anotherUser
+      )
+      isUpdateOperatorForAll.should.be.equal(true)
+    })
+
+    it('reverts when updateOperatorForAll trying to change content of no owned by the owner Estate', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await estate.transferFrom(user, anotherUser, 1, sentByUser)
+
+      await assertMetadata(2, '', sentByOperator)
+
+      await estate.updateMetadata(2, 'newValue', sentByOperator)
+
+      await assertMetadata(2, 'newValue', sentByOperator)
+
+      await assertRevert(estate.updateMetadata(1, 'newValue', sentByOperator))
+    })
+
+    it('reverts if owner set himself as updateOperatorForAll', async function() {
+      await assertRevert(
+        estate.setUpdateOperatorForAll(user, user, true, sentByUser)
+      )
+    })
+
+    it('reverts if not owner or approvedForAll set updateOperatorForAll', async function() {
+      await assertRevert(
+        estate.setUpdateOperatorForAll(user, operator, true, sentByAnotherUser)
+      )
+
+      await assertRevert(
+        estate.setUpdateOperatorForAll(user, operator, true, sentByHacker)
+      )
+    })
+
+    it('reverts when updateOperatorForAll trying to transfer', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+      await assertRevert(
+        estate.transferFrom(user, anotherUser, 1, sentByOperator)
+      )
+    })
+
+    it('reverts when updateOperatorForAll trying to set updateOperatorForAll', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+      await assertRevert(
+        estate.setUpdateOperatorForAll(user, anotherUser, 1, sentByOperator)
+      )
+    })
+
+    it('reverts when updateOperatorForAll trying to set operator', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+      await assertRevert(estate.approve(anotherUser, 1, sentByOperator))
+    })
+
+    it('reverts when updateOperatorForAll trying to set UpdateOperator', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+      await assertRevert(
+        estate.setUpdateOperator(1, anotherUser, sentByOperator)
+      )
+    })
+
+    it('reverts when updateOperatorForAll trying move LANDs from Estate', async function() {
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await assertRevert(estate.transferLand(1, 1, anotherUser, sentByOperator))
     })
   })
 })
