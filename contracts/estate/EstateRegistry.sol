@@ -157,8 +157,8 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
     require(_operator != msg.sender, "The operator should be different from owner");
     require(
-      _owner == msg.sender ||
-      operatorApprovals[_owner][msg.sender],
+      _owner == msg.sender
+      || operatorApprovals[_owner][msg.sender],
       "Unauthorized user"
     );
 
@@ -336,9 +336,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   // check the supported interfaces via ERC165
   function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
     // solium-disable-next-line operator-whitespace
-    return super._supportsInterface(_interfaceId) ||
-      _interfaceId == InterfaceId_GetMetadata ||
-      _interfaceId == InterfaceId_VerifyFingerprint;
+    return super._supportsInterface(_interfaceId)
+      || _interfaceId == InterfaceId_GetMetadata
+      || _interfaceId == InterfaceId_VerifyFingerprint;
   }
 
   /**
@@ -459,8 +459,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     address owner = ownerOf(estateId);
 
-    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator ||
-      updateOperatorForAll[owner][operator];
+    return isApprovedOrOwner(operator, estateId)
+      || updateOperator[estateId] == operator
+      || updateOperatorForAll[owner][operator];
   }
 
   function _isLandUpdateAuthorized(
