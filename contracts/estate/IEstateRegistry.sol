@@ -36,7 +36,7 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
-  event UpdateOperatorForAll(
+  event UpdateManager(
     address indexed _owner,
     address indexed _operator,
     address indexed _caller,

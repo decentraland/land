@@ -26,8 +26,8 @@ interface ILANDRegistry {
   function updateLandData(int x, int y, string data) external;
   function updateManyLandData(int[] x, int[] y, string data) external;
 
-  // Authorize an updateOperatorForAll to update data on any parcel
-  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external;
+  // Authorize an updateManager to update data on any parcel
+  function setUpdateManager(address _owner, address _operator, bool _approved) external;
 
   // Events
 
@@ -43,7 +43,7 @@ interface ILANDRegistry {
     address indexed operator
   );
 
-  event UpdateOperatorForAll(
+  event UpdateManager(
     address indexed _owner,
     address indexed _operator,
     address indexed _caller,

@@ -31,7 +31,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   modifier onlyDeployer() {
-    require(msg.sender == proxyOwner || authorizedDeploy[msg.sender], "This function can only be called by an authorized deployer");
+    require(
+      msg.sender == proxyOwner || authorizedDeploy[msg.sender], 
+      "This function can only be called by an authorized deployer"
+    );
     _;
   }
 
@@ -53,6 +56,15 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
+  modifier onlyManager(uint256 tokenId) {
+    address owner = _ownerOf(tokenId);
+    require(
+      _isAuthorized(msg.sender, tokenId) || updateManager[owner][msg.sender], 
+      "unauthorized user"
+    );
+    _;
+  }
+
   //
   // Authorization
   //
@@ -66,7 +78,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
     return owner == operator  || 
       updateOperator[assetId] == operator ||
-      updateOperatorForAll[owner][operator];
+      updateManager[owner][operator];
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
@@ -298,18 +310,18 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  function setUpdateOperator(uint256 assetId, address operator) external onlyAuthorized(assetId) {
+  function setUpdateOperator(uint256 assetId, address operator) external onlyManager(assetId) {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
   }
 
   /**
-  * @dev Set an updateOperatorForAll for an account
-  * @param _owner - address of the account to set the updateOperatorForAll
-  * @param _operator - address of the account to be set as the updateOperatorForAll
+  * @dev Set an updateManager for an account
+  * @param _owner - address of the account to set the updateManager
+  * @param _operator - address of the account to be set as the updateManager
   * @param _approved - bool whether the address will be approved or not
   */
-  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
+  function setUpdateManager(address _owner, address _operator, bool _approved) external {
     require(_operator != msg.sender, "The operator should be different from owner");
     require(
       _owner == msg.sender ||
@@ -317,9 +329,9 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       "Unauthorized user"
     );
 
-    updateOperatorForAll[_owner][_operator] = _approved;
+    updateManager[_owner][_operator] = _approved;
 
-    emit UpdateOperatorForAll(
+    emit UpdateManager(
       _owner, 
       _operator,
       msg.sender,

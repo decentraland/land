@@ -105,7 +105,7 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
-  event UpdateOperatorForAll(
+  event UpdateManager(
     address indexed _owner,
     address indexed _operator,
     address indexed _caller,
@@ -134,7 +134,7 @@ contract LANDStorage {
 
   mapping (address => bool) public authorizedDeploy;
 
-  mapping(address => mapping(address => bool)) public updateOperatorForAll;
+  mapping(address => mapping(address => bool)) public updateManager;
 }
 
 // File: contracts/Storage.sol

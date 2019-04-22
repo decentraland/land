@@ -125,7 +125,7 @@ contract ERC721Receiver {
    * @notice Handle the receipt of an NFT
    * @dev The ERC721 smart contract calls this function on the recipient
    * after a `safetransfer`. This function MAY throw to revert and reject the
-   * transfer. Return of other than the magic value MUST result in the
+   * transfer. Return of other than the magic value MUST result in the 
    * transaction being reverted.
    * Note: the contract address is always the message sender.
    * @param _operator The address which called `safeTransferFrom` function
@@ -237,7 +237,7 @@ contract ERC165Support is ERC165 {
   function supportsInterface(bytes4 _interfaceId)
     external
     view
-    returns (bool)
+    returns (bool) 
   {
     return _supportsInterface(_interfaceId);
   }
@@ -245,7 +245,7 @@ contract ERC165Support is ERC165 {
   function _supportsInterface(bytes4 _interfaceId)
     internal
     view
-    returns (bool)
+    returns (bool) 
   {
     return _interfaceId == InterfaceId_ERC165;
   }
@@ -321,7 +321,7 @@ contract ERC721BasicToken is ERC165Support, ERC721Basic {
     view
     returns (bool)
   {
-    return super._supportsInterface(_interfaceId) ||
+    return super._supportsInterface(_interfaceId) || 
       _interfaceId == InterfaceId_ERC721 || _interfaceId == InterfaceId_ERC721Exists;
   }
 
@@ -751,7 +751,7 @@ contract ERC721Token is Migratable, ERC165Support, ERC721BasicToken, ERC721 {
     view
     returns (bool)
   {
-    return super._supportsInterface(_interfaceId) ||
+    return super._supportsInterface(_interfaceId) || 
       _interfaceId == InterfaceId_ERC721Enumerable || _interfaceId == InterfaceId_ERC721Metadata;
   }
 
@@ -984,7 +984,7 @@ contract IEstateRegistry {
     address indexed _operator
   );
 
-  event UpdateOperatorForAll(
+  event UpdateManager(
     address indexed _owner,
     address indexed _operator,
     address indexed _caller,
@@ -1033,7 +1033,7 @@ contract EstateStorage {
   mapping (uint256 => address) public updateOperator;
 
   // From account to mapping of operator to bool whether is allowed to update content or not
-  mapping(address => mapping(address => bool)) public updateOperatorForAll;
+  mapping(address => mapping(address => bool)) public updateManager;
 
 }
 
@@ -1065,6 +1065,15 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   modifier onlyLandUpdateAuthorized(uint256 estateId, uint256 landId) {
     require(_isLandUpdateAuthorized(msg.sender, estateId, landId), "unauthorized user");
+    _;
+  }
+
+  modifier onlyManager(uint256 estateId) {
+    address owner = ownerOf(estateId);
+    require(
+      isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender], 
+      "unauthorized user"
+    );
     _;
   }
 
@@ -1178,41 +1187,41 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-  * @dev Set an updateOperatorForAll for an account
-  * @param _owner - address of the account to set the updateOperatorForAll
-  * @param _operator - address of the account to be set as the updateOperatorForAll
+  * @dev Set an updateManager for an account
+  * @param _owner - address of the account to set the updateManager
+  * @param _operator - address of the account to be set as the updateManager
   * @param _approved - bool whether the address will be approved or not
   */
-  function setUpdateOperatorForAll(address _owner, address _operator, bool _approved) external {
+  function setUpdateManager(address _owner, address _operator, bool _approved) external {
     require(_operator != msg.sender, "The operator should be different from owner");
     require(
-      _owner == msg.sender ||
-      operatorApprovals[_owner][msg.sender],
+      _owner == msg.sender
+      || operatorApprovals[_owner][msg.sender],
       "Unauthorized user"
     );
 
-    updateOperatorForAll[_owner][_operator] = _approved;
+    updateManager[_owner][_operator] = _approved;
 
-    emit UpdateOperatorForAll(
-      _owner,
+    emit UpdateManager(
+      _owner, 
       _operator,
       msg.sender,
       _approved
     );
-  }
+  } 
 
-  function setUpdateOperator(uint256 estateId, address operator) public canTransfer(estateId) {
+  function setUpdateOperator(uint256 estateId, address operator) public onlyManager(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
-  }
+  }  
 
   function setLandUpdateOperator(
-    uint256 estateId,
-    uint256 landId,
+    uint256 estateId, 
+    uint256 landId, 
     address operator
-  )
-    public
-    canTransfer(estateId)
+  ) 
+    public 
+    onlyManager(estateId)
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     registry.setUpdateOperator(landId, operator);
@@ -1355,8 +1364,8 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     }
   }
 
-  function transferFrom(address _from, address _to, uint256 _tokenId)
-  public
+  function transferFrom(address _from, address _to, uint256 _tokenId) 
+  public 
   {
     updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
@@ -1365,9 +1374,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   // check the supported interfaces via ERC165
   function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
     // solium-disable-next-line operator-whitespace
-    return super._supportsInterface(_interfaceId) ||
-      _interfaceId == InterfaceId_GetMetadata ||
-      _interfaceId == InterfaceId_VerifyFingerprint;
+    return super._supportsInterface(_interfaceId)
+      || _interfaceId == InterfaceId_GetMetadata
+      || _interfaceId == InterfaceId_VerifyFingerprint;
   }
 
   /**
@@ -1488,16 +1497,17 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function _isUpdateAuthorized(address operator, uint256 estateId) internal view returns (bool) {
     address owner = ownerOf(estateId);
 
-    return isApprovedOrOwner(operator, estateId) || updateOperator[estateId] == operator ||
-      updateOperatorForAll[owner][operator];
+    return isApprovedOrOwner(operator, estateId)
+      || updateOperator[estateId] == operator
+      || updateManager[owner][operator];
   }
 
   function _isLandUpdateAuthorized(
-    address operator,
-    uint256 estateId,
+    address operator, 
+    uint256 estateId, 
     uint256 landId
-  )
-    internal returns (bool)
+  ) 
+    internal returns (bool) 
   {
     return _isUpdateAuthorized(operator, estateId) || registry.updateOperator(landId) == operator;
   }

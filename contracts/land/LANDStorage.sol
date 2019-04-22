@@ -18,5 +18,5 @@ contract LANDStorage {
 
   mapping (address => bool) public authorizedDeploy;
 
-  mapping(address => mapping(address => bool)) public updateOperatorForAll;
+  mapping(address => mapping(address => bool)) public updateManager;
 }
