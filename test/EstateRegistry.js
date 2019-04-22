@@ -1205,6 +1205,20 @@ contract('EstateRegistry', accounts => {
       isUpdateOperatorForAll.should.be.equal(true)
     })
 
+    it('clears updateOperatorForAll correctly ', async function() {
+      await assertMetadata(1, '')
+
+      await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await estate.updateMetadata(1, 'newValue', sentByOperator)
+
+      await assertMetadata(1, 'newValue')
+
+      await estate.setUpdateOperatorForAll(user, operator, false, sentByUser)
+
+      await assertRevert(estate.updateMetadata(1, 'again', sentByOperator))
+    })
+
     it('reverts when updateOperatorForAll trying to change content of no owned by the owner Estate', async function() {
       await estate.setUpdateOperatorForAll(user, operator, true, sentByUser)
 

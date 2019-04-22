@@ -1021,6 +1021,22 @@ contract('LANDRegistry', accounts => {
       isUpdateOperatorForAll.should.be.equal(true)
     })
 
+    it('clears updateOperatorForAll correctly ', async function() {
+      let data = await land.landData(0, 1)
+      data.should.be.equal('')
+
+      await land.setUpdateOperatorForAll(user, operator, true, sentByUser)
+
+      await land.updateLandData(0, 1, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
+
+      await land.setUpdateOperatorForAll(user, operator, false, sentByUser)
+
+      await assertRevert(land.updateLandData(0, 1, 'again', sentByOperator))
+    })
+
     it('reverts when updateOperatorForAll trying to change content of no owned by the owner LAND', async function() {
       await land.setUpdateOperatorForAll(user, operator, true, sentByUser)
 
