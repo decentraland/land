@@ -26,7 +26,7 @@ interface ILANDRegistry {
   function updateLandData(int x, int y, string data) external;
   function updateManyLandData(int[] x, int[] y, string data) external;
 
-  // Authorize an updateManager to update data on any parcel
+  // Authorize an updateManager to manage parcel data
   function setUpdateManager(address _owner, address _operator, bool _approved) external;
 
   // Events
