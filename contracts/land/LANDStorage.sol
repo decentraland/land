@@ -17,4 +17,6 @@ contract LANDStorage {
   IEstateRegistry public estateRegistry;
 
   mapping (address => bool) public authorizedDeploy;
+
+  mapping(address => mapping(address => bool)) public updateManager;
 }

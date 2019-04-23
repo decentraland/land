@@ -24,7 +24,14 @@ require('chai')
  *   This is because encoding a pair like `(0, 1)` returns `1`, `(0, 2)` returns `2`, and so on.
  */
 contract('EstateRegistry', accounts => {
-  const [creator, user, anotherUser, yetAnotherUser, hacker] = accounts
+  const [
+    creator,
+    user,
+    anotherUser,
+    yetAnotherUser,
+    hacker,
+    operator
+  ] = accounts
 
   let contracts = null
   let land = null
@@ -38,6 +45,8 @@ contract('EstateRegistry', accounts => {
   const sentByUser = { ...creationParams, from: user }
   const sentByAnotherUser = { ...creationParams, from: anotherUser }
   const sentByCreator = { ...creationParams, from: creator }
+  const sentByOperator = { ...creationParams, from: operator }
+  const sentByHacker = { ...creationParams, from: hacker }
 
   const fiveX = [0, 0, 0, 0, 0]
   const fiveY = [1, 2, 3, 4, 5]
@@ -854,9 +863,7 @@ contract('EstateRegistry', accounts => {
       expect(logs.length).be.equal(1)
 
       updateOperator = await estate.updateOperator(estateId, sentByUser)
-      expect(updateOperator).be.equal(
-        '0x0000000000000000000000000000000000000000'
-      )
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
 
       owner = await estate.ownerOf(estateId)
       owner.should.be.equal(anotherUser)
@@ -886,9 +893,7 @@ contract('EstateRegistry', accounts => {
       expect(logs.length).be.equal(1)
 
       updateOperator = await estate.updateOperator(estateId, sentByUser)
-      expect(updateOperator).be.equal(
-        '0x0000000000000000000000000000000000000000'
-      )
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
 
       owner = await estate.ownerOf(estateId)
       owner.should.be.equal(anotherUser)
@@ -913,9 +918,7 @@ contract('EstateRegistry', accounts => {
       expect(logs.length).be.equal(1)
 
       updateOperator = await estate.updateOperator(estateId, sentByUser)
-      expect(updateOperator).be.equal(
-        '0x0000000000000000000000000000000000000000'
-      )
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
 
       owner = await estate.ownerOf(estateId)
       owner.should.be.equal(anotherUser)
@@ -952,19 +955,28 @@ contract('EstateRegistry', accounts => {
       expect(logs.length).be.equal(2)
 
       updateOperator = await estate.updateOperator(estateIds[0], sentByUser)
-      expect(updateOperator).be.equal(
-        '0x0000000000000000000000000000000000000000'
-      )
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
       updateOperator = await estate.updateOperator(estateIds[1], sentByUser)
-      expect(updateOperator).be.equal(
-        '0x0000000000000000000000000000000000000000'
-      )
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
 
       owner = await estate.ownerOf(estateIds[0])
       owner.should.be.equal(anotherUser)
 
       owner = await estate.ownerOf(estateIds[1])
       owner.should.be.equal(anotherUser)
+    })
+
+    it('should set an update operator by updateManager', async function() {
+      await createUserEstateWithToken1()
+
+      let updateOperator = await estate.updateOperator(1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+      await estate.setUpdateOperator(1, anotherUser, sentByOperator)
+
+      updateOperator = await estate.updateOperator(1)
+      expect(updateOperator).be.equal(anotherUser)
     })
   })
 
@@ -986,6 +998,25 @@ contract('EstateRegistry', accounts => {
         sentByAnotherUser
       )
       const updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(yetAnotherUser)
+    })
+
+    it('should update LAND updateOperator by updateManager', async function() {
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+
+      const estateId = await createUserEstateWithToken1()
+
+      await estate.setLandUpdateOperator(
+        estateId,
+        1,
+        yetAnotherUser,
+        sentByAnotherUser
+      )
+
+      updateOperator = await land.updateOperator(1)
       updateOperator.should.be.equal(yetAnotherUser)
     })
 
@@ -1062,6 +1093,199 @@ contract('EstateRegistry', accounts => {
           sentByAnotherUser
         )
       )
+    })
+  })
+
+  describe('UpdateManager', function() {
+    beforeEach(async function() {
+      await createTwoEstates(user, sentByUser)
+    })
+
+    it('should set updateManager by owner', async function() {
+      const { logs } = await estate.setUpdateManager(
+        user,
+        operator,
+        true,
+        sentByUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateManager')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(user)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      await estate.setUpdateManager(user, operator, false, sentByUser)
+      isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should set updateManager by approvedForAll', async function() {
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+
+      const { logs } = await estate.setUpdateManager(
+        user,
+        operator,
+        true,
+        sentByAnotherUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateManager')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(anotherUser)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      await estate.setUpdateManager(user, operator, false, sentByAnotherUser)
+      isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should allow updateManager to update content', async function() {
+      await assertMetadata(1, '')
+      await assertMetadata(2, '')
+
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      await estate.updateMetadata(1, 'newValue', sentByOperator)
+      await estate.updateMetadata(2, 'newValue', sentByOperator)
+
+      await assertMetadata(1, 'newValue')
+      await assertMetadata(2, 'newValue')
+    })
+
+    it('should allow updateManager to update content on new Estate', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      await land.assignMultipleParcels([0, 0], [3, 4], user, sentByCreator)
+      const estateId = await createEstate([0, 0], [3, 4], user, sentByUser)
+
+      await assertMetadata(estateId, '')
+
+      await estate.updateMetadata(estateId, 'newValue', sentByOperator)
+
+      await assertMetadata(estateId, 'newValue')
+    })
+
+    it('should allow updateManager to update content on LANDs as part of the Estate', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      let data = await land.landData(0, 1)
+      data.should.be.equal('')
+
+      await estate.updateLandData(1, 1, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
+    })
+
+    it('should has false as default value for updateManager', async function() {
+      const isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should set multiple updateManager', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+
+      let isUpdateManager = await estate.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      isUpdateManager = await estate.updateManager(user, anotherUser)
+      isUpdateManager.should.be.equal(true)
+    })
+
+    it('clears updateManager correctly ', async function() {
+      await assertMetadata(1, '')
+
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      await estate.updateMetadata(1, 'newValue', sentByOperator)
+
+      await assertMetadata(1, 'newValue')
+
+      await estate.setUpdateManager(user, operator, false, sentByUser)
+
+      await assertRevert(estate.updateMetadata(1, 'again', sentByOperator))
+    })
+
+    it('reverts when updateManager trying to change content of no owned by the owner Estate', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      await estate.transferFrom(user, anotherUser, 1, sentByUser)
+
+      await assertMetadata(2, '', sentByOperator)
+
+      await estate.updateMetadata(2, 'newValue', sentByOperator)
+
+      await assertMetadata(2, 'newValue', sentByOperator)
+
+      await assertRevert(estate.updateMetadata(1, 'newValue', sentByOperator))
+    })
+
+    it('reverts if owner set himself as updateManager', async function() {
+      await assertRevert(estate.setUpdateManager(user, user, true, sentByUser))
+    })
+
+    it('reverts if not owner or approvedForAll set updateManager', async function() {
+      // Not owner
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByAnotherUser)
+      )
+
+      // Hacker
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByHacker)
+      )
+
+      // Operator
+      await estate.approve(operator, 1, sentByUser)
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByOperator)
+      )
+
+      // Update Operator
+      await estate.setUpdateOperator(1, anotherUser, sentByUser)
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByAnotherUser)
+      )
+    })
+
+    it('reverts when updateManager trying to transfer', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(
+        estate.transferFrom(user, anotherUser, 1, sentByOperator)
+      )
+    })
+
+    it('reverts when updateManager trying to set updateManager', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(
+        estate.setUpdateManager(user, anotherUser, 1, sentByOperator)
+      )
+    })
+
+    it('reverts when updateManager trying to set operator', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(estate.approve(anotherUser, 1, sentByOperator))
+    })
+
+    it('reverts when updateManager trying move LANDs from Estate', async function() {
+      await estate.setUpdateManager(user, operator, true, sentByUser)
+
+      await assertRevert(estate.transferLand(1, 1, anotherUser, sentByOperator))
     })
   })
 })

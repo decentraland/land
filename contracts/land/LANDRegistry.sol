@@ -31,7 +31,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   modifier onlyDeployer() {
-    require(msg.sender == proxyOwner || authorizedDeploy[msg.sender], "This function can only be called by an authorized deployer");
+    require(
+      msg.sender == proxyOwner || authorizedDeploy[msg.sender],
+      "This function can only be called by an authorized deployer"
+    );
     _;
   }
 
@@ -45,10 +48,19 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   modifier onlyUpdateAuthorized(uint256 tokenId) {
     require(
-      msg.sender == _ownerOf(tokenId) || 
+      msg.sender == _ownerOf(tokenId) ||
       _isAuthorized(msg.sender, tokenId) ||
       _isUpdateAuthorized(msg.sender, tokenId),
       "msg.sender is not authorized to update"
+    );
+    _;
+  }
+
+  modifier canSetUpdateOperator(uint256 tokenId) {
+    address owner = _ownerOf(tokenId);
+    require(
+      _isAuthorized(msg.sender, tokenId) || updateManager[owner][msg.sender],
+      "unauthorized user"
     );
     _;
   }
@@ -62,7 +74,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function _isUpdateAuthorized(address operator, uint256 assetId) internal view returns (bool) {
-    return operator == _ownerOf(assetId) || updateOperator[assetId] == operator;
+    address owner = _ownerOf(assetId);
+
+    return owner == operator  ||
+      updateOperator[assetId] == operator ||
+      updateManager[owner][operator];
   }
 
   function authorizeDeploy(address beneficiary) external onlyProxyOwner {
@@ -76,7 +92,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function forbidDeploy(address beneficiary) external onlyProxyOwner {
     require(beneficiary != address(0), "invalid address");
     require(authorizedDeploy[beneficiary], "address is already forbidden");
-    
+
     authorizedDeploy[beneficiary] = false;
     emit DeployForbidden(msg.sender, beneficiary);
   }
@@ -294,9 +310,39 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  function setUpdateOperator(uint256 assetId, address operator) external onlyAuthorized(assetId) {
+  function setUpdateOperator(
+    uint256 assetId,
+    address operator
+  )
+    external
+    canSetUpdateOperator(assetId)
+  {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
+  }
+
+  /**
+  * @dev Set an updateManager for an account
+  * @param _owner - address of the account to set the updateManager
+  * @param _operator - address of the account to be set as the updateManager
+  * @param _approved - bool whether the address will be approved or not
+  */
+  function setUpdateManager(address _owner, address _operator, bool _approved) external {
+    require(_operator != msg.sender, "The operator should be different from owner");
+    require(
+      _owner == msg.sender ||
+      _isApprovedForAll(_owner, msg.sender),
+      "Unauthorized user"
+    );
+
+    updateManager[_owner][_operator] = _approved;
+
+    emit UpdateManager(
+      _owner,
+      _operator,
+      msg.sender,
+      _approved
+    );
   }
 
   //

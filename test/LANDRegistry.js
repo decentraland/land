@@ -742,6 +742,17 @@ contract('LANDRegistry', accounts => {
       updateOperator.should.be.equal(anotherUser)
     })
 
+    it('should set an update operator by updateManager', async function() {
+      let updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await land.setUpdateOperator(1, anotherUser, sentByOperator)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
     it('reverts if not owner want to update the update operator', async function() {
       await assertRevert(
         land.setUpdateOperator(1, anotherUser, sentByAnotherUser)
@@ -898,6 +909,193 @@ contract('LANDRegistry', accounts => {
 
       owner = await land.ownerOf(2)
       owner.should.be.equal(estate.address)
+    })
+  })
+
+  describe('UpdateManager', function() {
+    it('should set updateManager by owner', async function() {
+      const { logs } = await land.setUpdateManager(
+        user,
+        operator,
+        true,
+        sentByUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateManager')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(user)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      await land.setUpdateManager(user, operator, false, sentByUser)
+      isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should set updateManager by approvedForAll', async function() {
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+
+      const { logs } = await land.setUpdateManager(
+        user,
+        operator,
+        true,
+        sentByAnotherUser
+      )
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.eq('UpdateManager')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(operator)
+      log.args._caller.should.be.equal(anotherUser)
+      log.args._approved.should.be.equal(true)
+
+      let isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      await land.setUpdateManager(user, operator, false, sentByAnotherUser)
+      isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should allow updateManager to update content', async function() {
+      let data = await land.landData(0, 1)
+      data.should.be.equal('')
+      data = await land.landData(0, 2)
+      data.should.be.equal('')
+
+      await land.setUpdateManager(user, operator, true, sentByUser)
+
+      await land.updateLandData(0, 1, 'newValue', sentByOperator)
+      await land.updateLandData(0, 2, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
+      data = await land.landData(0, 2)
+      data.should.be.equal('newValue')
+    })
+
+    it('should allow updateManager to update content on new LANDs', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+
+      await land.assignNewParcel(0, 3, user, sentByCreator)
+
+      let data = await land.landData(0, 3)
+      data.should.be.equal('')
+
+      await land.updateLandData(0, 3, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 3)
+      data.should.be.equal('newValue')
+    })
+
+    it('should has false as default value for updateManager', async function() {
+      const isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(false)
+    })
+
+    it('should set multiple updateManager', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await land.setUpdateManager(user, anotherUser, true, sentByUser)
+
+      let isUpdateManager = await land.updateManager(user, operator)
+      isUpdateManager.should.be.equal(true)
+
+      isUpdateManager = await land.updateManager(user, anotherUser)
+      isUpdateManager.should.be.equal(true)
+    })
+
+    it('clears updateManager correctly ', async function() {
+      let data = await land.landData(0, 1)
+      data.should.be.equal('')
+
+      await land.setUpdateManager(user, operator, true, sentByUser)
+
+      await land.updateLandData(0, 1, 'newValue', sentByOperator)
+
+      data = await land.landData(0, 1)
+      data.should.be.equal('newValue')
+
+      await land.setUpdateManager(user, operator, false, sentByUser)
+
+      await assertRevert(land.updateLandData(0, 1, 'again', sentByOperator))
+    })
+
+    it('reverts when updateManager trying to change content of no owned by the owner LAND', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+
+      await land.transferLand(0, 1, anotherUser, sentByUser)
+
+      let data = await land.landData(0, 2)
+      data.should.be.equal('')
+
+      await land.updateLandData(0, 2, 'newValue', sentByOperator)
+      data = await land.landData(0, 2)
+      data.should.be.equal('newValue')
+
+      await assertRevert(land.updateLandData(0, 1, 'newValue', sentByOperator))
+    })
+
+    it('reverts if owner set himself as updateManager', async function() {
+      await assertRevert(land.setUpdateManager(user, user, true, sentByUser))
+    })
+
+    it('reverts if not owner or approvedForAll set updateManager', async function() {
+      // Not owner
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByAnotherUser)
+      )
+
+      // Hacker
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByHacker)
+      )
+
+      // Operator
+      await land.approve(operator, 1, sentByUser)
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByOperator)
+      )
+
+      // Update Operator
+      await land.setUpdateOperator(1, anotherUser, sentByUser)
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByAnotherUser)
+      )
+    })
+
+    it('reverts when updateManager trying to transfer', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(land.transferLand(0, 1, anotherUser, sentByOperator))
+    })
+
+    it('reverts when updateManager trying to set updateManager', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(
+        land.setUpdateManager(user, anotherUser, 1, sentByOperator)
+      )
+    })
+
+    it('reverts when updateManager trying to set operator', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(land.approve(anotherUser, 1, sentByOperator))
+    })
+
+    it('reverts when updateManager trying to set create an Estate', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(land.createEstate([0], [1], user, sentByOperator))
+    })
+
+    it('reverts when updateManager trying to assign LANDs', async function() {
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await assertRevert(land.assignNewParcel(0, 3, user, sentByOperator))
     })
   })
 })
