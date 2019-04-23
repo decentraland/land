@@ -1068,7 +1068,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     _;
   }
 
-  modifier onlyManager(uint256 estateId) {
+  modifier canSetUpdateOperator(uint256 estateId) {
     address owner = ownerOf(estateId);
     require(
       isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender], 
@@ -1210,7 +1210,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     );
   } 
 
-  function setUpdateOperator(uint256 estateId, address operator) public onlyManager(estateId) {
+  function setUpdateOperator(uint256 estateId, address operator) public canSetUpdateOperator(estateId) {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
   }  
@@ -1221,7 +1221,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address operator
   ) 
     public 
-    onlyManager(estateId)
+    canSetUpdateOperator(estateId)
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     registry.setUpdateOperator(landId, operator);

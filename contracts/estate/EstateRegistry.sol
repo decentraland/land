@@ -39,10 +39,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     _;
   }
 
-  modifier onlyManager(uint256 estateId) {
+  modifier canSetUpdateOperator(uint256 estateId) {
     address owner = ownerOf(estateId);
     require(
-      isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender], 
+      isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender],
       "unauthorized user"
     );
     _;
@@ -174,25 +174,31 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     updateManager[_owner][_operator] = _approved;
 
     emit UpdateManager(
-      _owner, 
+      _owner,
       _operator,
       msg.sender,
       _approved
     );
-  } 
+  }
 
-  function setUpdateOperator(uint256 estateId, address operator) public onlyManager(estateId) {
+  function setUpdateOperator(
+    uint256 estateId,
+    address operator
+  )
+    public
+    canSetUpdateOperator(estateId)
+  {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
-  }  
+  }
 
   function setLandUpdateOperator(
-    uint256 estateId, 
-    uint256 landId, 
+    uint256 estateId,
+    uint256 landId,
     address operator
-  ) 
-    public 
-    onlyManager(estateId)
+  )
+    public
+    canSetUpdateOperator(estateId)
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     registry.setUpdateOperator(landId, operator);
@@ -335,8 +341,8 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     }
   }
 
-  function transferFrom(address _from, address _to, uint256 _tokenId) 
-  public 
+  function transferFrom(address _from, address _to, uint256 _tokenId)
+  public
   {
     updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
@@ -474,11 +480,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   function _isLandUpdateAuthorized(
-    address operator, 
-    uint256 estateId, 
+    address operator,
+    uint256 estateId,
     uint256 landId
-  ) 
-    internal returns (bool) 
+  )
+    internal returns (bool)
   {
     return _isUpdateAuthorized(operator, estateId) || registry.updateOperator(landId) == operator;
   }

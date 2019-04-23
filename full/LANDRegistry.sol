@@ -867,7 +867,7 @@ interface ILANDRegistry {
   function updateLandData(int x, int y, string data) external;
   function updateManyLandData(int[] x, int[] y, string data) external;
 
-  // Authorize an updateManager to update data on any parcel
+  // Authorize an updateManager to manage parcel data
   function setUpdateManager(address _owner, address _operator, bool _approved) external;
 
   // Events
@@ -951,7 +951,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
-  modifier onlyManager(uint256 tokenId) {
+  modifier canSetUpdateOperator(uint256 tokenId) {
     address owner = _ownerOf(tokenId);
     require(
       _isAuthorized(msg.sender, tokenId) || updateManager[owner][msg.sender], 
@@ -1205,7 +1205,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  function setUpdateOperator(uint256 assetId, address operator) external onlyManager(assetId) {
+  function setUpdateOperator(uint256 assetId, address operator) external canSetUpdateOperator(assetId) {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
   }
