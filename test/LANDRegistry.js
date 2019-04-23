@@ -1048,12 +1048,26 @@ contract('LANDRegistry', accounts => {
     })
 
     it('reverts if not owner or approvedForAll set updateManager', async function() {
+      // Not owner
       await assertRevert(
         land.setUpdateManager(user, operator, true, sentByAnotherUser)
       )
 
+      // Hacker
       await assertRevert(
         land.setUpdateManager(user, operator, true, sentByHacker)
+      )
+
+      // Operator
+      await land.approve(operator, 1, sentByUser)
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByOperator)
+      )
+
+      // Update Operator
+      await land.setUpdateOperator(1, anotherUser, sentByUser)
+      await assertRevert(
+        land.setUpdateManager(user, operator, true, sentByAnotherUser)
       )
     })
 

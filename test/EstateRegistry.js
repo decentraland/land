@@ -1240,12 +1240,26 @@ contract('EstateRegistry', accounts => {
     })
 
     it('reverts if not owner or approvedForAll set updateManager', async function() {
+      // Not owner
       await assertRevert(
         estate.setUpdateManager(user, operator, true, sentByAnotherUser)
       )
 
+      // Hacker
       await assertRevert(
         estate.setUpdateManager(user, operator, true, sentByHacker)
+      )
+
+      // Operator
+      await estate.approve(operator, 1, sentByUser)
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByOperator)
+      )
+
+      // Update Operator
+      await estate.setUpdateOperator(1, anotherUser, sentByUser)
+      await assertRevert(
+        estate.setUpdateManager(user, operator, true, sentByAnotherUser)
       )
     })
 
