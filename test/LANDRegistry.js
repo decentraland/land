@@ -27,7 +27,14 @@ function checkDeployForbiddenLog(log, caller, deployer) {
 }
 
 contract('LANDRegistry', accounts => {
-  const [creator, user, anotherUser, operator, hacker] = accounts
+  const [
+    creator,
+    user,
+    anotherUser,
+    operator,
+    hacker,
+    reactivateAuthorized
+  ] = accounts
 
   let contracts = null
   let estate = null
@@ -1204,6 +1211,106 @@ contract('LANDRegistry', accounts => {
       await assertRevert(
         land.setManyUpdateOperator([1], anotherUser, sentByHacker)
       )
+    })
+  })
+
+  describe('ping', () => {
+    it('should set reactivate authorized', async () => {
+      let isReactiveAuthorized = await land.reactivateAuthorized(user)
+      isReactiveAuthorized.should.be.equal(false)
+      await land.setReactivateAuthorized(user, true, sentByCreator)
+      isReactiveAuthorized = await land.reactivateAuthorized(user)
+      isReactiveAuthorized.should.be.equal(true)
+    })
+
+    it('should set grace period', async () => {
+      let gracePeriod = await land.gracePeriod()
+      gracePeriod.should.be.equal(0)
+      await land.setGracePeriod(1, sentByCreator)
+      gracePeriod = await land.gracePeriod()
+      gracePeriod.should.be.equal(1)
+    })
+
+    it('should set deem period', async () => {
+      let deemPeriod = await land.deemPeriod()
+      deemPeriod.should.be.equal(0)
+      await land.setDeemPeriod(1, sentByCreator)
+      deemPeriod = await land.deemPeriod()
+      deemPeriod.should.be.equal(1)
+    })
+
+    it('should return true if decayed LAND', async () => {
+      await land.setGracePeriod(1, sentByCreator)
+      await land.setDeemPeriod(2, sentByCreator)
+      const decayed = await land.hasDecayed(1)
+      decayed.should.be.equal(true)
+    })
+
+    it('should return false if not decayed LAND', async () => {
+      const now = new Date().getMilliseconds()
+      await land.setGracePeriod(now, sentByCreator)
+      await land.setDeemPeriod(now + 1e8, sentByCreator)
+      const decayed = await land.hasDecayed(1)
+      decayed.should.be.equal(false)
+    })
+
+    it('should reactivate decayed LAND', async () => {
+      await land.setGracePeriod(1, sentByCreator)
+      await land.setDeemPeriod(2, sentByCreator)
+      let owner = await land.ownerOfLand(0, 1)
+      owner.should.be.equal(user)
+      await land.setReactivateAuthorized(creator, true, sentByCreator)
+      await land.reactivate(1, anotherUser, sentByUser)
+      owner = await land.ownerOfLand(0, 1)
+      owner.should.be.require(anotherUser)
+    })
+
+    it('should refresh lastActivity if reactivated LAND', async () => {
+      const lastActiveBefore = await land.lastActive(1)
+      await land.setGracePeriod(1, sentByCreator)
+      await land.setDeemPeriod(2, sentByCreator)
+      await land.setReactivateAuthorized(creator, true, sentByCreator)
+      await land.reactivate(1, user, sentByUser)
+      const lastActiveAfter = await land.lastActive(1)
+      lastActiveBefore.should.not.equal(lastActiveAfter)
+    })
+
+    it('should activate last active if pinged by updateOperator', async () => {
+      const lastActiveBefore = await land.lastActive(1)
+      await land.ping(user, sentByOperator)
+      const lastActiveAfter = await land.lastActive(1)
+      lastActiveBefore.should.not.equal(lastActiveAfter)
+    })
+
+    it('should activate last active if pinged by updateManager', async () => {
+      const lastActiveBefore = await land.lastActive(1)
+      await land.ping(operator, 1)
+      const lastActiveAfter = await land.lastActive(1)
+      lastActiveBefore.should.not.equal(lastActiveAfter)
+    })
+
+    it('should activate last active if pinged by operator', async () => {
+      const lastActiveBefore = await land.lastActive(1)
+      await land.ping(operator, 1)
+      const lastActiveAfter = await land.lastActive(1)
+      lastActiveBefore.should.not.equal(lastActiveAfter)
+    })
+
+    it('should activate last active if pinged by approvedForAll', async () => {
+      const lastActiveBefore = await land.lastActive(1)
+      await land.ping(operator, 1)
+      const lastActiveAfter = await land.lastActive(1)
+      lastActiveBefore.should.not.equal(lastActiveAfter)
+    })
+
+    it('reverts when not reactivate authorized', async () => {
+      let isReactiveAuthorized = await land.reactivateAuthorized(user)
+      isReactiveAuthorized.should.be.equal(false)
+      await assertRevert(land.reactivate(user, 1, true))
+    })
+
+    it('reverts if try to reactivate already active LAND', async () => {
+      await assertRevert(land.reactivate(reactivateAuthorized, 2, true))
     })
   })
 })
