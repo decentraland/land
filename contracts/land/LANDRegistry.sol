@@ -65,6 +65,14 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
+  modifier onlyReactivateAuthorized() {
+    require(
+      reactivateAuthorized[msg.sender] == true,
+      "This function can only be called by a reactivate authorized address"
+    );
+    _;
+  }
+
   //
   // Authorization
   //
@@ -500,4 +508,84 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     assembly { size := extcodesize(addr) }
     return size > 0;
   }
+
+  //
+  // LAND Ping
+  //
+
+  /**
+   * @dev Set date from when the LAND Ping feature should be enabled
+   * @param _gracePeriod
+   */
+  function setGracePeriod(uint _gracePeriod) external onlyOwner {
+    gracePeriod = _gracePeriod;
+  }
+
+  /**
+   * @dev Set amount of time that should pass for a LAND to be transferred to
+   * a new onwer
+   * @param _deemPeriod
+   */
+  function setDeemPeriod(uint _deemPeriod) external onlyOwner {
+    deemPeriod = _deemPeriod;
+  }
+
+  /**
+   * @dev Ping an address, keep all that address LAND "alive"
+   */
+  function ping(address _user) external {
+    _ping(_user);
+  }
+
+  /**
+   * @dev Ping myself, keep all my LAND "alive". This is only refresh owned assets, not operated/allowed ones
+   */
+  function ping() external {
+    // solium-disable-next-line security/no-block-members
+    _ping(msg.sender);
+  }
+
+  function _ping(address _user) private {
+    require(
+      _isApprovedForAll(msg.sender, owner) ||
+      updateManager[_user][msg.sender],
+      "This function can only be called by the operatorForAll or updateManager"
+    );
+    // solium-disable-next-line security/no-block-members
+    latestPing[_user] = block.timestamp;
+  }
+
+  /**
+   * @dev Check if LAND is still alive or not
+   */
+  function hasDecayed(uint256 _tokenId) private returns (bool) {
+    return _hasDecayed(_tokenId);
+  }
+
+  function _hasDecayed(uint256 _tokenId) private returns (bool) {
+    if (gracePeriod == 0) {
+      return false;
+    }
+
+    if (block.timestamp < gracePeriod) {
+      return false;
+    }
+
+    address owner = _ownerOf(tokenId);
+    return latestPing[owner] + deemPeriod < block.timestamp;
+  }
+
+  /**
+   * @dev Authorize address to manage decayed assets (Auction Contract)
+   */
+  function setReactivateAuthorized(address _address, bool _isAuthorized) external onlyOwner {
+    reactivateAuthorized[_address] = _isAuthorized;
+  }
+
+  function reactivate(uint256 _tokenId, address _newOwner) external onlyReactivateAuthorized {
+    require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
+    // TODO Function used by Auction Contract to Transfer LAND ?
+    return true;
+  }
+
 }
