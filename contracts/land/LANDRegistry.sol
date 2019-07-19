@@ -119,15 +119,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  //
-  // Inactive keys after 1 year lose ownership
-  //
-
-  function ping() external {
-    // solium-disable-next-line security/no-block-members
-    latestPing[msg.sender] = block.timestamp;
-  }
-
   function setLatestToNow(address user) external {
     require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
     // solium-disable-next-line security/no-block-members
@@ -515,18 +506,18 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Set date from when the LAND Ping feature should be enabled
-   * @param _gracePeriod
+   * @param _gracePeriod Desired amount of time in miliseconds to enable feature
    */
-  function setGracePeriod(uint _gracePeriod) external onlyOwner {
+  function setGracePeriod(uint _gracePeriod) external onlyDeployer {
     gracePeriod = _gracePeriod;
   }
 
   /**
    * @dev Set amount of time that should pass for a LAND to be transferred to
    * a new onwer
-   * @param _deemPeriod
+   * @param _deemPeriod Desired amount of time in miliseconds for a LAND to decay
    */
-  function setDeemPeriod(uint _deemPeriod) external onlyOwner {
+  function setDeemPeriod(uint _deemPeriod) external onlyDeployer {
     deemPeriod = _deemPeriod;
   }
 
@@ -567,25 +558,26 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       return false;
     }
 
+    // solium-disable-next-line security/no-block-members
     if (block.timestamp < gracePeriod) {
       return false;
     }
 
-    address owner = _ownerOf(tokenId);
+    address owner = _ownerOf(_tokenId);
+    // solium-disable-next-line security/no-block-members
     return latestPing[owner] + deemPeriod < block.timestamp;
   }
 
   /**
    * @dev Authorize address to manage decayed assets (Auction Contract)
    */
-  function setReactivateAuthorized(address _address, bool _isAuthorized) external onlyOwner {
+  function setReactivateAuthorized(address _address, bool _isAuthorized) external onlyDeployer {
     reactivateAuthorized[_address] = _isAuthorized;
   }
 
   function reactivate(uint256 _tokenId, address _newOwner) external onlyReactivateAuthorized {
     require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
     // TODO Function used by Auction Contract to Transfer LAND ?
-    return true;
   }
 
 }
