@@ -119,12 +119,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
-  function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
-    // solium-disable-next-line security/no-block-members
-    latestPing[user] = block.timestamp;
-  }
-
   //
   // LAND Getters
   //
@@ -525,6 +519,12 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @dev Ping an address, keep all that address LAND "alive"
    */
   function ping(address _user) external {
+    require(
+      _isApprovedForAll(_user, msg.sender) ||
+      updateManager[_user][msg.sender],
+      "This function can only be called by the operatorForAll or updateManager"
+    );
+    // solium-disable-next-line security/no-block-members
     _ping(_user);
   }
 
@@ -536,24 +536,18 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _ping(msg.sender);
   }
 
-  function _ping(address _user) private {
-    require(
-      _isApprovedForAll(msg.sender, owner) ||
-      updateManager[_user][msg.sender],
-      "This function can only be called by the operatorForAll or updateManager"
-    );
-    // solium-disable-next-line security/no-block-members
-    latestPing[_user] = block.timestamp;
+  function _ping(address _address) private {
+    latestPing[_address] = block.timestamp;
   }
 
   /**
    * @dev Check if LAND is still alive or not
    */
-  function hasDecayed(uint256 _tokenId) private returns (bool) {
+  function hasDecayed(uint256 _tokenId) external view returns (bool) {
     return _hasDecayed(_tokenId);
   }
 
-  function _hasDecayed(uint256 _tokenId) private returns (bool) {
+  function _hasDecayed(uint256 _tokenId) private view returns (bool) {
     if (gracePeriod == 0) {
       return false;
     }
@@ -577,7 +571,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function reactivate(uint256 _tokenId, address _newOwner) external onlyReactivateAuthorized {
     require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
+    _ping(_newOwner);
     // TODO Function used by Auction Contract to Transfer LAND ?
   }
-
 }

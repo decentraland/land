@@ -120,7 +120,7 @@ contract IEstateRegistry {
 // File: contracts/land/LANDStorage.sol
 
 contract LANDStorage {
-  mapping (address => uint) public latestPing;
+  mapping (address => uint256) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
@@ -135,6 +135,12 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping(address => mapping(address => bool)) public updateManager;
+
+  mapping (address => bool) public reactivateAuthorized;
+
+  uint256 public gracePeriod;
+
+  uint256 public deemPeriod;
 }
 
 // File: contracts/Storage.sol
@@ -847,9 +853,6 @@ interface ILANDRegistry {
   function assignNewParcel(int x, int y, address beneficiary) external;
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external;
 
-  // After one year, LAND can be claimed from an inactive public key
-  function ping() external;
-
   // LAND-centric getters
   function encodeTokenId(int x, int y) external pure returns (uint256);
   function decodeTokenId(uint value) external pure returns (int, int);
@@ -869,6 +872,16 @@ interface ILANDRegistry {
 
   // Authorize an updateManager to manage parcel data
   function setUpdateManager(address _owner, address _operator, bool _approved) external;
+
+  // LAND Ping
+  function ping() external;
+  function ping(address _user) external;
+  function setGracePeriod(uint _gracePeriod) external;
+  function setDeemPeriod(uint _deemPeriod) external;
+  function setReactivateAuthorized(address _address, bool _isAuthorized) external;
+  function hasDecayed(uint256 _tokenId) external view returns (bool);
+  function reactivate(uint256 _tokenId, address _newOwner) external;
+  function latestActivity(address _user) external view returns (uint256);
 
   // Events
 
@@ -960,6 +973,14 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
+  modifier onlyReactivateAuthorized() {
+    require(
+      reactivateAuthorized[msg.sender] == true,
+      "This function can only be called by a reactivate authorized address"
+    );
+    _;
+  }
+
   //
   // Authorization
   //
@@ -1004,21 +1025,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     for (uint i = 0; i < x.length; i++) {
       _generate(_encodeTokenId(x[i], y[i]), beneficiary);
     }
-  }
-
-  //
-  // Inactive keys after 1 year lose ownership
-  //
-
-  function ping() external {
-    // solium-disable-next-line security/no-block-members
-    latestPing[msg.sender] = block.timestamp;
-  }
-
-  function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
-    // solium-disable-next-line security/no-block-members
-    latestPing[user] = block.timestamp;
   }
 
   //
@@ -1394,5 +1400,93 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
+  }
+
+  //
+  // LAND Ping
+  //
+
+  /**
+   * @dev Set date from when the LAND Ping feature should be enabled
+   * @param _gracePeriod Desired amount of time in miliseconds to enable feature
+   */
+  function setGracePeriod(uint _gracePeriod) external onlyDeployer {
+    gracePeriod = _gracePeriod;
+  }
+
+  /**
+   * @dev Set amount of time that should pass for a LAND to be transferred to
+   * a new onwer
+   * @param _deemPeriod Desired amount of time in miliseconds for a LAND to decay
+   */
+  function setDeemPeriod(uint _deemPeriod) external onlyDeployer {
+    deemPeriod = _deemPeriod;
+  }
+
+  /**
+   * @dev Ping an address, keep all that address LAND "alive"
+   */
+  function ping(address _user) external {
+    require(
+      _isApprovedForAll(_user, msg.sender) ||
+      updateManager[_user][msg.sender],
+      "This function can only be called by the operatorForAll or updateManager"
+    );
+    // solium-disable-next-line security/no-block-members
+    _ping(_user);
+  }
+
+  /**
+   * @dev Ping myself, keep all my LAND "alive". This is only refresh owned assets, not operated/allowed ones
+   */
+  function ping() external {
+    // solium-disable-next-line security/no-block-members
+    _ping(msg.sender);
+  }
+
+  function _ping(address _address) private {
+    latestPing[_address] = block.timestamp;
+  }
+
+  /**
+   * @dev Check if LAND is still alive or not
+   */
+  function hasDecayed(uint256 _tokenId) external view returns (bool) {
+    return _hasDecayed(_tokenId);
+  }
+
+  function _hasDecayed(uint256 _tokenId) private view returns (bool) {
+    if (gracePeriod == 0) {
+      return false;
+    }
+
+    // solium-disable-next-line security/no-block-members
+    if (block.timestamp < gracePeriod) {
+      return false;
+    }
+
+    address owner = _ownerOf(_tokenId);
+    // solium-disable-next-line security/no-block-members
+    return latestPing[owner] + deemPeriod < block.timestamp;
+  }
+
+  /**
+   * @dev Authorize address to manage decayed assets (Auction Contract)
+   */
+  function setReactivateAuthorized(address _address, bool _isAuthorized) external onlyDeployer {
+    reactivateAuthorized[_address] = _isAuthorized;
+  }
+
+  function reactivate(uint256 _tokenId, address _newOwner) external onlyReactivateAuthorized {
+    require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
+    _ping(_newOwner);
+    // TODO Function used by Auction Contract to Transfer LAND ?
+  }
+
+  /**
+   * @dev Returns latest produced ping of `_user`
+   */
+  function latestActivity(address _user) external view returns (uint256) {
+    return latestPing[owner];
   }
 }

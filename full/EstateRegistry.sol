@@ -125,7 +125,7 @@ contract ERC721Receiver {
    * @notice Handle the receipt of an NFT
    * @dev The ERC721 smart contract calls this function on the recipient
    * after a `safetransfer`. This function MAY throw to revert and reject the
-   * transfer. Return of other than the magic value MUST result in the 
+   * transfer. Return of other than the magic value MUST result in the
    * transaction being reverted.
    * Note: the contract address is always the message sender.
    * @param _operator The address which called `safeTransferFrom` function
@@ -237,7 +237,7 @@ contract ERC165Support is ERC165 {
   function supportsInterface(bytes4 _interfaceId)
     external
     view
-    returns (bool) 
+    returns (bool)
   {
     return _supportsInterface(_interfaceId);
   }
@@ -245,7 +245,7 @@ contract ERC165Support is ERC165 {
   function _supportsInterface(bytes4 _interfaceId)
     internal
     view
-    returns (bool) 
+    returns (bool)
   {
     return _interfaceId == InterfaceId_ERC165;
   }
@@ -321,7 +321,7 @@ contract ERC721BasicToken is ERC165Support, ERC721Basic {
     view
     returns (bool)
   {
-    return super._supportsInterface(_interfaceId) || 
+    return super._supportsInterface(_interfaceId) ||
       _interfaceId == InterfaceId_ERC721 || _interfaceId == InterfaceId_ERC721Exists;
   }
 
@@ -751,7 +751,7 @@ contract ERC721Token is Migratable, ERC165Support, ERC721BasicToken, ERC721 {
     view
     returns (bool)
   {
-    return super._supportsInterface(_interfaceId) || 
+    return super._supportsInterface(_interfaceId) ||
       _interfaceId == InterfaceId_ERC721Enumerable || _interfaceId == InterfaceId_ERC721Metadata;
   }
 
