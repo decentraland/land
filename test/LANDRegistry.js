@@ -1295,7 +1295,7 @@ contract('LANDRegistry', accounts => {
     it('should refresh latestPing if pinged by owner', async () => {
       const assetId = await land.encodeTokenId(0, 1)
       const latestPingBefore = await land.latestPing(user)
-      await land.ping(sentByUser)
+      await land.pingMyself(sentByUser)
       const latestPingAfter = await land.latestPing(user)
       ;(latestPingBefore < latestPingAfter).should.be.true
     })

@@ -531,7 +531,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   /**
    * @dev Ping myself, keep all my LAND "alive". This is only refresh owned assets, not operated/allowed ones
    */
-  function ping() external {
+  function pingMyself() external {
     // solium-disable-next-line security/no-block-members
     _ping(msg.sender);
   }

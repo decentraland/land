@@ -32,7 +32,6 @@ contract('LANDRegistry', accounts => {
     land = await LANDRegistry.at(proxy.address)
     await land.initialize(creator, sentByCreator)
     await land.authorizeDeploy(creator, sentByCreator)
-    await land.ping(sentByUser)
   })
 
   async function assign({ to, asset, initialValue }) {

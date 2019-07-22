@@ -27,8 +27,8 @@ interface ILANDRegistry {
   function setUpdateManager(address _owner, address _operator, bool _approved) external;
 
   // LAND Ping
-  function ping() external;
   function ping(address _user) external;
+  function pingMyself() external;
   function setGracePeriod(uint _gracePeriod) external;
   function setDeemPeriod(uint _deemPeriod) external;
   function setReactivateAuthorized(address _address, bool _isAuthorized) external;
