@@ -243,9 +243,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address _operator
   )
     public
+    canSetUpdateOperator(_estateId)
   {
     for (uint i = 0; i < _landIds.length; i++) {
-      setLandUpdateOperator(_estateId, _landIds[i], _operator);
+      require(landIdEstate[_landIds[i]] == _estateId, "The LAND is not part of the Estate");
+      registry.setManyUpdateOperator(_landIds, _operator);
     }
   }
 

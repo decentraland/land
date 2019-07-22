@@ -1289,7 +1289,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('Update Many Operators', function() {
+  describe('setManyUpdateOperator', function() {
     let estateId1
     let estateId2
     beforeEach(async function() {
@@ -1425,7 +1425,7 @@ contract('EstateRegistry', accounts => {
     })
   })
 
-  describe('Update Many LAND Update Operator', function() {
+  describe('setManyLandUpdateOperator', function() {
     let estateId
     let updateOperator
     beforeEach(async function() {

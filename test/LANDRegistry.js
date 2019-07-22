@@ -1098,4 +1098,112 @@ contract('LANDRegistry', accounts => {
       await assertRevert(land.assignNewParcel(0, 3, user, sentByOperator))
     })
   })
+
+  describe('setManyUpdateOperator', function() {
+    let updateOperator
+
+    it('should set update operator', async function() {
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+
+      await land.setManyUpdateOperator([1], anotherUser, sentByUser)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set many update operator :: owner', async function() {
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      await land.setManyUpdateOperator([1, 2], anotherUser, sentByUser)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set many update operator :: approvedForAll', async function() {
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      await land.setApprovalForAll(operator, true, sentByUser)
+
+      await land.setManyUpdateOperator([1, 2], anotherUser, sentByOperator)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set many update operator :: operator', async function() {
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      await land.approve(operator, 1, sentByUser)
+      await land.approve(operator, 2, sentByUser)
+      await land.setManyUpdateOperator([1, 2], anotherUser, sentByOperator)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set many update operator :: updateManager', async function() {
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+
+      await land.setUpdateManager(user, operator, true, sentByUser)
+      await land.setManyUpdateOperator([1, 2], anotherUser, sentByOperator)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should clean many update operator', async function() {
+      await land.setManyUpdateOperator([1, 2], anotherUser, sentByUser)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(anotherUser)
+
+      await land.setManyUpdateOperator([1, 2], NONE, sentByUser)
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(NONE)
+      updateOperator = await land.updateOperator(2)
+      updateOperator.should.be.equal(NONE)
+    })
+
+    it('reverts when updateOperator try to set many update operator', async function() {
+      await land.setUpdateOperator(1, anotherUser, sentByUser)
+
+      await assertRevert(
+        land.setManyUpdateOperator([1], operator, sentByAnotherUser)
+      )
+    })
+
+    it('reverts if not owner want to update the update operator', async function() {
+      await assertRevert(
+        land.setManyUpdateOperator([1], anotherUser, sentByAnotherUser)
+      )
+      await assertRevert(
+        land.setManyUpdateOperator([1], anotherUser, sentByHacker)
+      )
+    })
+  })
 })
