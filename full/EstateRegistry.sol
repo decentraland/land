@@ -1002,6 +1002,7 @@ contract LANDRegistry {
   function decodeTokenId(uint value) external pure returns (int, int);
   function updateLandData(int x, int y, string data) external;
   function setUpdateOperator(uint256 assetId, address operator) external;
+  function setManyUpdateOperator(uint256[] landIds, address operator) external;
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
   function safeTransferFrom(address, address, uint256) public;
@@ -1071,7 +1072,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   modifier canSetUpdateOperator(uint256 estateId) {
     address owner = ownerOf(estateId);
     require(
-      isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender], 
+      isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender],
       "unauthorized user"
     );
     _;
@@ -1203,28 +1204,81 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     updateManager[_owner][_operator] = _approved;
 
     emit UpdateManager(
-      _owner, 
+      _owner,
       _operator,
       msg.sender,
       _approved
     );
-  } 
+  }
 
-  function setUpdateOperator(uint256 estateId, address operator) public canSetUpdateOperator(estateId) {
+  /**
+   * @notice Set estate updateOperator
+   * @param estateId - Estate id
+   * @param operator - address of the account to be set as the updateOperator
+   */
+  function setUpdateOperator(
+    uint256 estateId,
+    address operator
+  )
+    public
+    canSetUpdateOperator(estateId)
+  {
     updateOperator[estateId] = operator;
     emit UpdateOperator(estateId, operator);
-  }  
+  }
 
+  /**
+   * @notice Set estates updateOperator
+   * @param _estateIds - Estate ids
+   * @param _operator - address of the account to be set as the updateOperator
+   */
+  function setManyUpdateOperator(
+    uint256[] _estateIds,
+    address _operator
+  )
+    public
+  {
+    for (uint i = 0; i < _estateIds.length; i++) {
+      setUpdateOperator(_estateIds[i], _operator);
+    }
+  }
+
+  /**
+   * @notice Set many lands updateOperator
+   * @param estateId - Estate id
+   * @param landId - LAND to set the updateOperator
+   * @param operator - address of the account to be set as the updateOperator
+   */
   function setLandUpdateOperator(
-    uint256 estateId, 
-    uint256 landId, 
+    uint256 estateId,
+    uint256 landId,
     address operator
-  ) 
-    public 
+  )
+    public
     canSetUpdateOperator(estateId)
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     registry.setUpdateOperator(landId, operator);
+  }
+
+ /**
+   * @notice Set many land updateOperator
+   * @param _estateId - Estate id
+   * @param _landIds - LANDs to set the updateOperator
+   * @param _operator - address of the account to be set as the updateOperator
+   */
+  function setManyLandUpdateOperator(
+    uint256 _estateId,
+    uint256[] _landIds,
+    address _operator
+  )
+    public
+    canSetUpdateOperator(_estateId)
+  {
+    for (uint i = 0; i < _landIds.length; i++) {
+      require(landIdEstate[_landIds[i]] == _estateId, "The LAND is not part of the Estate");
+    }
+    registry.setManyUpdateOperator(_landIds, _operator);
   }
 
   function initialize(
@@ -1364,8 +1418,8 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     }
   }
 
-  function transferFrom(address _from, address _to, uint256 _tokenId) 
-  public 
+  function transferFrom(address _from, address _to, uint256 _tokenId)
+  public
   {
     updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
@@ -1503,11 +1557,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   function _isLandUpdateAuthorized(
-    address operator, 
-    uint256 estateId, 
+    address operator,
+    uint256 estateId,
     uint256 landId
-  ) 
-    internal returns (bool) 
+  )
+    internal returns (bool)
   {
     return _isUpdateAuthorized(operator, estateId) || registry.updateOperator(landId) == operator;
   }
