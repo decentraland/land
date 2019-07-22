@@ -27,13 +27,7 @@ function checkDeployForbiddenLog(log, caller, deployer) {
 }
 
 contract('LANDRegistry', accounts => {
-  const [
-    creator,
-    user,
-    anotherUser,
-    operator,
-    hacker
-  ] = accounts
+  const [creator, user, anotherUser, operator, hacker] = accounts
 
   let contracts = null
   let estate = null
@@ -1268,14 +1262,24 @@ contract('LANDRegistry', accounts => {
       decayed.should.be.false
     })
 
-    it('should reactivate decayed LAND', async () => {
+    it('should reactivate decayed LAND and emit reactivate event', async () => {
       await land.setGracePeriod(1, sentByCreator)
       await land.setDeemPeriod(2, sentByCreator)
       let owner = await land.ownerOfLand(0, 1)
       owner.should.be.equal(user)
       await land.setReactivateAuthorized(operator, true, sentByCreator)
       const assetId = await land.encodeTokenId(0, 1)
-      await land.reactivate(assetId, anotherUser, sentByOperator)
+      const { logs } = await land.reactivate(
+        assetId,
+        anotherUser,
+        sentByOperator
+      )
+
+      // Event
+      const log = logs[1]
+      log.event.should.be.eq('Reactivate')
+      log.args._assetId.should.be.bignumber.equal(assetId)
+      log.args._newOwner.should.be.equal(anotherUser)
       // TODO uncomment when reactivate implemented
       // owner = await land.ownerOfLand(0, 1)
       // owner.should.be.equal(anotherUser)
@@ -1293,7 +1297,6 @@ contract('LANDRegistry', accounts => {
     })
 
     it('should refresh latestPing if pinged by owner', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
       const latestPingBefore = await land.latestPing(user)
       await land.pingMyself(sentByUser)
       const latestPingAfter = await land.latestPing(user)
@@ -1301,7 +1304,6 @@ contract('LANDRegistry', accounts => {
     })
 
     it('should refresh latestPing if pinged by updateManager', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
       const latestPingBefore = await land.latestPing(user)
       await land.setUpdateManager(user, anotherUser, true, sentByUser)
       await land.ping(user, sentByAnotherUser)
@@ -1310,12 +1312,30 @@ contract('LANDRegistry', accounts => {
     })
 
     it('should refresh latestPing if pinged by approvedForAll', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
       const latestPingBefore = await land.latestPing(user)
       await land.setApprovalForAll(anotherUser, true, sentByUser)
       await land.ping(user, sentByAnotherUser)
       const latestPingAfter = await land.latestPing(user)
       ;(latestPingBefore < latestPingAfter).should.be.true
+    })
+
+    it('should emit Ping event when pingMyself', async () => {
+      const { logs } = await land.pingMyself(sentByUser)
+
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(user)
+      log.args._target.should.be.equal(user)
+    })
+
+    it('should emit Ping event when ping by other', async () => {
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      const { logs } = await land.ping(user, sentByAnotherUser)
+
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(anotherUser)
+      log.args._target.should.be.equal(user)
     })
 
     it('reverts when not reactivate authorized', async () => {

@@ -65,4 +65,15 @@ interface ILANDRegistry {
     address indexed _caller,
     address indexed _deployer
   );
+
+  event Ping(
+    address indexed _caller,
+    address indexed _target
+  );
+
+  event Reactivate(
+    uint256 indexed _assetId,
+    address indexed _newOwner
+  );
+
 }

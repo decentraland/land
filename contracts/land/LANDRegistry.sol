@@ -532,12 +532,13 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @dev Ping myself, keep all my LAND "alive". This is only refresh owned assets, not operated/allowed ones
    */
   function pingMyself() external {
-    // solium-disable-next-line security/no-block-members
     _ping(msg.sender);
   }
 
   function _ping(address _address) private {
+    // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
+    emit Ping(msg.sender, _address);
   }
 
   /**
@@ -573,5 +574,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
     _ping(_newOwner);
     // TODO Function used by Auction Contract to Transfer LAND ?
+    emit Reactivate(_tokenId, _newOwner);
   }
 }
