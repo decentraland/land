@@ -65,14 +65,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     _;
   }
 
-  modifier onlyReactivateAuthorized() {
-    require(
-      reactivateAuthorized[msg.sender] == true,
-      "This function can only be called by a reactivate authorized address"
-    );
-    _;
-  }
-
   //
   // Authorization
   //
@@ -500,23 +492,25 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Set date from when the LAND Ping feature should be enabled
-   * @param _gracePeriod Desired amount of time in miliseconds to enable feature
+   * @param _gracePeriod Desired amount of time in seconds from now to enable feature
    */
-  function setGracePeriod(uint _gracePeriod) external onlyDeployer {
-    gracePeriod = _gracePeriod;
+  function setGracePeriod(uint256 _gracePeriod) external onlyDeployer {
+    // solium-disable-next-line security/no-block-members
+    gracePeriod = block.timestamp + _gracePeriod;
   }
 
   /**
    * @dev Set amount of time that should pass for a LAND to be transferred to
    * a new onwer
-   * @param _deemPeriod Desired amount of time in miliseconds for a LAND to decay
+   * @param _deemPeriod Desired amount of time in seconds for a LAND to decay
    */
-  function setDeemPeriod(uint _deemPeriod) external onlyDeployer {
+  function setDeemPeriod(uint256 _deemPeriod) external onlyDeployer {
     deemPeriod = _deemPeriod;
   }
 
   /**
-   * @dev Ping an address, keep all that address LAND "alive"
+   * @dev Ping an address
+   * @param _user address of LAND holder to be pinged
    */
   function ping(address _user) external {
     require(
@@ -524,56 +518,45 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       updateManager[_user][msg.sender],
       "This function can only be called by the operatorForAll or updateManager"
     );
-    // solium-disable-next-line security/no-block-members
     _ping(_user);
   }
 
   /**
-   * @dev Ping myself, keep all my LAND "alive". This is only refresh owned assets, not operated/allowed ones
+   * @dev Ping myself. This is only refresh owned assets, not operated/allowed ones
    */
-  function pingMyself() external {
+  function ping() external {
     _ping(msg.sender);
   }
 
-  function _ping(address _address) private {
+  /**
+   * @dev Ping an address
+   * @param _address address of LAND holder to be pinged
+   */
+  function _ping(address _address) internal {
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);
   }
 
   /**
-   * @dev Check if LAND is still alive or not
+   * @dev Check if a LAND is still alive or not
+   * @param _assetId LAND encoded coordinates
    */
-  function hasDecayed(uint256 _tokenId) external view returns (bool) {
-    return _hasDecayed(_tokenId);
-  }
-
-  function _hasDecayed(uint256 _tokenId) private view returns (bool) {
+  function hasDecayed(uint256 _assetId) external view returns (bool) {
     if (gracePeriod == 0) {
       return false;
     }
 
     // solium-disable-next-line security/no-block-members
-    if (block.timestamp < gracePeriod) {
+    if (block.timestamp <= gracePeriod) {
       return false;
     }
 
-    address owner = _ownerOf(_tokenId);
+    address owner = _ownerOf(_assetId);
+    
+    uint256 expireTime = latestPing[owner] + deemPeriod;
+    require(expireTime >= deemPeriod, "Overflow");
     // solium-disable-next-line security/no-block-members
-    return latestPing[owner] + deemPeriod < block.timestamp;
-  }
-
-  /**
-   * @dev Authorize address to manage decayed assets (Auction Contract)
-   */
-  function setReactivateAuthorized(address _address, bool _isAuthorized) external onlyDeployer {
-    reactivateAuthorized[_address] = _isAuthorized;
-  }
-
-  function reactivate(uint256 _tokenId, address _newOwner) external onlyReactivateAuthorized {
-    require(_hasDecayed(_tokenId), "LAND has not decayed, can not reactivate");
-    _ping(_newOwner);
-    // TODO Function used by Auction Contract to Transfer LAND ?
-    emit Reactivate(_tokenId, _newOwner);
+    return expireTime <= block.timestamp;
   }
 }

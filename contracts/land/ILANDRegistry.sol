@@ -28,12 +28,10 @@ interface ILANDRegistry {
 
   // LAND Ping
   function ping(address _user) external;
-  function pingMyself() external;
+  function ping() external;
   function setGracePeriod(uint _gracePeriod) external;
   function setDeemPeriod(uint _deemPeriod) external;
-  function setReactivateAuthorized(address _address, bool _isAuthorized) external;
   function hasDecayed(uint256 _tokenId) external view returns (bool);
-  function reactivate(uint256 _tokenId, address _newOwner) external;
 
   // Events
 
@@ -68,12 +66,6 @@ interface ILANDRegistry {
 
   event Ping(
     address indexed _caller,
-    address indexed _target
+    address indexed _holder
   );
-
-  event Reactivate(
-    uint256 indexed _assetId,
-    address indexed _newOwner
-  );
-
 }

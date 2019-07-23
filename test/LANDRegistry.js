@@ -131,10 +131,11 @@ contract('LANDRegistry', accounts => {
         for (let i = 0; i < x.length; i++) {
           it(
             `works for ${x[i]},${y[i]}`,
-            (i => async () => {
-              const registeredId = await land.encodeTokenId(x[i], y[i])
-              registeredId.should.bignumber.equal(assetIds[i])
-            })(i)
+            (i =>
+              async function() {
+                const registeredId = await land.encodeTokenId(x[i], y[i])
+                registeredId.should.bignumber.equal(assetIds[i])
+              })(i)
           )
         }
       })
@@ -1206,149 +1207,100 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe('ping', () => {
-    it('should set reactivate authorized', async () => {
-      let isReactiveAuthorized = await land.reactivateAuthorized(user)
-      isReactiveAuthorized.should.be.false
-      await land.setReactivateAuthorized(user, true, sentByCreator)
-      isReactiveAuthorized = await land.reactivateAuthorized(user)
-      isReactiveAuthorized.should.be.true
+  describe.only('LAND ping', function() {
+    describe('setGracePeriod', function() {
+      it('should set grace period', async function() {
+        let gracePeriod = await land.gracePeriod()
+        gracePeriod.should.be.bignumber.equal(0)
+        await land.setGracePeriod(1, sentByCreator)
+        gracePeriod = await land.gracePeriod()
+        gracePeriod.should.be.bignumber.equal(1)
+      })
     })
 
-    it('should set grace period', async () => {
-      let gracePeriod = await land.gracePeriod()
-      gracePeriod.should.be.bignumber.equal(0)
-      await land.setGracePeriod(1, sentByCreator)
-      gracePeriod = await land.gracePeriod()
-      gracePeriod.should.be.bignumber.equal(1)
+    describe('setDeemPeriod', function() {
+      it('should set deem period', async function() {
+        let deemPeriod = await land.deemPeriod()
+        deemPeriod.should.be.bignumber.equal(0)
+        await land.setDeemPeriod(1, sentByCreator)
+        deemPeriod = await land.deemPeriod()
+        deemPeriod.should.be.bignumber.equal(1)
+      })
     })
 
-    it('should set deem period', async () => {
-      let deemPeriod = await land.deemPeriod()
-      deemPeriod.should.be.bignumber.equal(0)
-      await land.setDeemPeriod(1, sentByCreator)
-      deemPeriod = await land.deemPeriod()
-      deemPeriod.should.be.bignumber.equal(1)
+    describe('hasDecayed', function() {
+      it('should return true if a LAND is decayed', async function() {
+        const assetId = await land.encodeTokenId(0, 1)
+        await land.setGracePeriod(1, sentByCreator)
+        await land.setDeemPeriod(2, sentByCreator)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.true
+      })
+
+      it('should return false if no gracePeriod set', async function() {
+        const assetId = await land.encodeTokenId(0, 1)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
+
+      it('should return false if gracePeriod is bigger than today', async function() {
+        const assetId = await land.encodeTokenId(0, 1)
+        const now = new Date().getMilliseconds() / 1000
+        await land.setGracePeriod(now, sentByCreator)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
+
+      it('should return false if not decayed LAND', async function() {
+        const assetId = await land.encodeTokenId(0, 1)
+        const now = new Date().getMilliseconds() * 1000
+        await land.setGracePeriod(1, sentByCreator)
+        await land.setDeemPeriod(now * now, sentByCreator)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
     })
 
-    it('should return true if decayed LAND', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      await land.setGracePeriod(1, sentByCreator)
-      await land.setDeemPeriod(2, sentByCreator)
-      const decayed = await land.hasDecayed(assetId)
-      decayed.should.be.true
-    })
+    describe('ping', function() {
+      it('should refresh latestPing if pinged by owner', async function() {
+        const latestPingBefore = await land.latestPing(user)
+        await land.ping(sentByUser)
+        const latestPingAfter = await land.latestPing(user)
+        ;(latestPingBefore < latestPingAfter).should.be.true
+      })
 
-    it('should return false if no gracePeriod set', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      const decayed = await land.hasDecayed(assetId)
-      decayed.should.be.false
-    })
+      it('should refresh latestPing if pinged by updateManager', async function() {
+        const latestPingBefore = await land.latestPing(user)
+        await land.setUpdateManager(user, anotherUser, true, sentByUser)
+        await land.ping(user, sentByAnotherUser)
+        const latestPingAfter = await land.latestPing(user)
+        ;(latestPingBefore < latestPingAfter).should.be.true
+      })
 
-    it('should return false if gracePeriod is bigger than today', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      const now = new Date().getMilliseconds() / 1000
-      await land.setGracePeriod(now, sentByCreator)
-      const decayed = await land.hasDecayed(assetId)
-      decayed.should.be.false
-    })
+      it('should refresh latestPing if pinged by approvedForAll', async function() {
+        const latestPingBefore = await land.latestPing(user)
+        await land.setApprovalForAll(anotherUser, true, sentByUser)
+        await land.ping(user, sentByAnotherUser)
+        const latestPingAfter = await land.latestPing(user)
+        ;(latestPingBefore < latestPingAfter).should.be.true
+      })
 
-    it('should return false if not decayed LAND', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      const now = new Date().getMilliseconds() * 1000
-      await land.setGracePeriod(1, sentByCreator)
-      await land.setDeemPeriod(now * now, sentByCreator)
-      const decayed = await land.hasDecayed(assetId)
-      decayed.should.be.false
-    })
+      it('should emit Ping event when ping', async function() {
+        const { logs } = await land.ping(sentByUser)
+        const log = logs[0]
+        log.event.should.be.eq('Ping')
+        log.args._caller.should.be.bignumber.equal(user)
+        log.args._holder.should.be.equal(user)
+      })
 
-    it('should reactivate decayed LAND and emit reactivate event', async () => {
-      await land.setGracePeriod(1, sentByCreator)
-      await land.setDeemPeriod(2, sentByCreator)
-      let owner = await land.ownerOfLand(0, 1)
-      owner.should.be.equal(user)
-      await land.setReactivateAuthorized(operator, true, sentByCreator)
-      const assetId = await land.encodeTokenId(0, 1)
-      const { logs } = await land.reactivate(
-        assetId,
-        anotherUser,
-        sentByOperator
-      )
-
-      // Event
-      const log = logs[1]
-      log.event.should.be.eq('Reactivate')
-      log.args._assetId.should.be.bignumber.equal(assetId)
-      log.args._newOwner.should.be.equal(anotherUser)
-      // TODO uncomment when reactivate implemented
-      // owner = await land.ownerOfLand(0, 1)
-      // owner.should.be.equal(anotherUser)
-    })
-
-    it('should refresh latestPing if reactivated LAND', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      const latestPingBefore = await land.latestPing(anotherUser)
-      await land.setGracePeriod(1, sentByCreator)
-      await land.setDeemPeriod(2, sentByCreator)
-      await land.setReactivateAuthorized(operator, true, sentByCreator)
-      await land.reactivate(assetId, anotherUser, sentByOperator)
-      const latestPingAfter = await land.latestPing(anotherUser)
-      ;(latestPingBefore < latestPingAfter).should.be.true
-    })
-
-    it('should refresh latestPing if pinged by owner', async () => {
-      const latestPingBefore = await land.latestPing(user)
-      await land.pingMyself(sentByUser)
-      const latestPingAfter = await land.latestPing(user)
-      ;(latestPingBefore < latestPingAfter).should.be.true
-    })
-
-    it('should refresh latestPing if pinged by updateManager', async () => {
-      const latestPingBefore = await land.latestPing(user)
-      await land.setUpdateManager(user, anotherUser, true, sentByUser)
-      await land.ping(user, sentByAnotherUser)
-      const latestPingAfter = await land.latestPing(user)
-      ;(latestPingBefore < latestPingAfter).should.be.true
-    })
-
-    it('should refresh latestPing if pinged by approvedForAll', async () => {
-      const latestPingBefore = await land.latestPing(user)
-      await land.setApprovalForAll(anotherUser, true, sentByUser)
-      await land.ping(user, sentByAnotherUser)
-      const latestPingAfter = await land.latestPing(user)
-      ;(latestPingBefore < latestPingAfter).should.be.true
-    })
-
-    it('should emit Ping event when pingMyself', async () => {
-      const { logs } = await land.pingMyself(sentByUser)
-
-      const log = logs[0]
-      log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(user)
-      log.args._target.should.be.equal(user)
-    })
-
-    it('should emit Ping event when ping by other', async () => {
-      await land.setApprovalForAll(anotherUser, true, sentByUser)
-      const { logs } = await land.ping(user, sentByAnotherUser)
-
-      const log = logs[0]
-      log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(anotherUser)
-      log.args._target.should.be.equal(user)
-    })
-
-    it('reverts when not reactivate authorized', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      let isReactiveAuthorized = await land.reactivateAuthorized(user)
-      isReactiveAuthorized.should.be.false
-      await assertRevert(land.reactivate(assetId, user, sentByUser))
-    })
-
-    it('reverts if try to reactivate already active LAND', async () => {
-      const assetId = await land.encodeTokenId(0, 1)
-      await land.setReactivateAuthorized(operator, true, sentByCreator)
-      await assertRevert(land.reactivate(assetId, anotherUser, sentByOperator))
+      it('should emit Ping event when ping by other', async function() {
+        await land.setApprovalForAll(anotherUser, true, sentByUser)
+        const { logs } = await land.ping(user, sentByAnotherUser)
+        const log = logs[0]
+        log.event.should.be.eq('Ping')
+        log.args._caller.should.be.bignumber.equal(anotherUser)
+        log.args._holder.should.be.equal(user)
+      })
     })
   })
 })
