@@ -14,4 +14,9 @@ contract LANDRegistryTest is LANDRegistry {
   function isDeploymentAuthorized(address beneficiary) public view returns (bool) {
     return authorizedDeploy[beneficiary];
   }
+
+  // Problematic override on truffle
+  function pingMyself() external {
+    _ping(msg.sender);
+  }
 }

@@ -1275,7 +1275,7 @@ contract('LANDRegistry', accounts => {
 
     describe('hasDecayed', function() {
       beforeEach(async function() {
-        await land.ping()
+        await land.pingMyself(sentByUser)
       })
 
       it('should return true if a LAND is decayed', async function() {
@@ -1333,7 +1333,7 @@ contract('LANDRegistry', accounts => {
     describe('ping', function() {
       it('should refresh latestPing if pinged by owner', async function() {
         const latestPingBefore = await land.latestPing(user)
-        await land.ping(sentByUser)
+        await land.pingMyself(sentByUser)
         const latestPingAfter = await land.latestPing(user)
         latestPingAfter.should.be.bignumber.equal(Math.trunc(new Date().getTime() / 1000))
         ;(latestPingBefore < latestPingAfter).should.be.true
@@ -1358,7 +1358,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('should emit Ping event when ping', async function() {
-        const { logs } = await land.ping(sentByUser)
+        const { logs } = await land.pingMyself(sentByUser)
         const log = logs[0]
         log.event.should.be.eq('Ping')
         log.args._caller.should.be.bignumber.equal(user)
