@@ -1208,7 +1208,7 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe.only('LAND ping', function() {
+  describe('LAND ping', function() {
     describe('setGracePeriod', function() {
       it('should set 1 month grace period', async function() {
         let gracePeriod = await land.gracePeriod()
