@@ -491,20 +491,23 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   //
 
   /**
-   * @dev Set date from when the LAND Ping feature should be enabled
-   * @param _gracePeriod Desired amount of time in seconds from now to enable feature
+   * @dev Set the date from when the LAND Ping feature should be enabled
+   * @param _gracePeriod Desired amount of time in seconds from now to enable the feature
    */
   function setGracePeriod(uint256 _gracePeriod) external onlyDeployer {
+    require(_gracePeriod != 0, "Grace period can not be 0");
     // solium-disable-next-line security/no-block-members
-    gracePeriod = block.timestamp + _gracePeriod;
+    gracePeriod = block.timestamp.add(_gracePeriod);
+    emit GracePeriod(gracePeriod);
   }
 
   /**
-   * @dev Set amount of time that should pass for a LAND to be transferred to
+   * @dev Set the amount of time that should pass for a LAND to be transferred to
    * a new onwer
    * @param _deemPeriod Desired amount of time in seconds for a LAND to decay
    */
   function setDeemPeriod(uint256 _deemPeriod) external onlyDeployer {
+    require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
   }
 
@@ -516,13 +519,14 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(
       _isApprovedForAll(_user, msg.sender) ||
       updateManager[_user][msg.sender],
-      "This function can only be called by the operatorForAll or updateManager"
+      "This function can only be called by the approvedForAll or updateManager"
     );
     _ping(_user);
   }
 
   /**
-   * @dev Ping myself. This is only refresh owned assets, not operated/allowed ones
+   * @dev Ping myself.
+   * @notice that only refresh owned assets.
    */
   function ping() external {
     _ping(msg.sender);
@@ -533,30 +537,25 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @param _address address of LAND holder to be pinged
    */
   function _ping(address _address) internal {
+    require(_balanceOf(_address) > 0, "Address has no balance");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);
   }
 
   /**
-   * @dev Check if a LAND is still alive or not
+   * @dev Check if a LAND is decayed or not
    * @param _assetId LAND encoded coordinates
+   * @return True if LAND is decayed, false if not
    */
   function hasDecayed(uint256 _assetId) external view returns (bool) {
-    if (gracePeriod == 0) {
-      return false;
-    }
-
     // solium-disable-next-line security/no-block-members
-    if (block.timestamp <= gracePeriod) {
+    if (gracePeriod == 0 || block.timestamp <= gracePeriod) {
       return false;
     }
 
     address owner = _ownerOf(_assetId);
-    
-    uint256 expireTime = latestPing[owner] + deemPeriod;
-    require(expireTime >= deemPeriod, "Overflow");
     // solium-disable-next-line security/no-block-members
-    return expireTime <= block.timestamp;
+    return latestPing[owner].add(deemPeriod) < block.timestamp;
   }
 }

@@ -4,7 +4,7 @@ import setupContracts, {
   LAND_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
-import sleep from './helpers/sleep'
+import { increaseTime, duration } from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
@@ -14,6 +14,10 @@ require('chai')
   .use(require('chai-as-promised'))
   .use(require('chai-bignumber')(BigNumber))
   .should()
+
+function getEndTime(extraTime) {
+  return web3.eth.getBlock('latest').timestamp + extraTime
+}
 
 function checkDeployAuthorizedLog(log, caller, deployer) {
   log.event.should.be.eq('DeployAuthorized')
@@ -1210,67 +1214,50 @@ contract('LANDRegistry', accounts => {
 
   describe('LAND ping', function() {
     describe('setGracePeriod', function() {
-      it('should set 1 month grace period', async function() {
+      it('should set 4 weeks grace period', async function() {
         let gracePeriod = await land.gracePeriod()
         gracePeriod.should.be.bignumber.equal(0)
-        
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-
-        await land.setGracePeriod(oneMonth, sentByCreator)
+        await land.setGracePeriod(duration.weeks(4), sentByCreator)
         gracePeriod = await land.gracePeriod()
-
-        date.setMonth(date.getMonth() + 1)
-        const expected = Math.trunc(date.getTime() / 1000)
-
-        gracePeriod.should.be.bignumber.equal(expected)
+        gracePeriod.should.be.bignumber.equal(getEndTime(duration.weeks(4)))
       })
 
-      it('should set now if no delta grace period (0)', async function() {
-        let gracePeriod = await land.gracePeriod()
-        gracePeriod.should.be.bignumber.equal(0)
-        
-        await land.setGracePeriod(0, sentByCreator)
-        gracePeriod = await land.gracePeriod()
-
-        const date = new Date()
-        const expected = Math.trunc(date.getTime() / 1000)
-        gracePeriod.should.be.bignumber.equal(expected)
+      it('should emit GracePeriod event', async function() {
+        const { logs } = await land.setGracePeriod(
+          duration.weeks(4),
+          sentByCreator
+        )
+        const gracePeriod = await land.gracePeriod()
+        const log = logs[0]
+        log.event.should.be.eq('GracePeriod')
+        log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
       })
 
       it('reverts if hacker set grace period', async function() {
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
+        await assertRevert(land.setGracePeriod(duration.weeks(4), sentByHacker))
+      })
 
-        await assertRevert(land.setGracePeriod(oneMonth, sentByHacker))
+      it('reverts if set grace period 0', async function() {
+        await assertRevert(land.setGracePeriod(0, sentByCreator))
       })
     })
 
     describe('setDeemPeriod', function() {
-      it('should set 1 month deem period', async function() {
+      it('should set 4 weeks deem period', async function() {
         let deemPeriod = await land.deemPeriod()
         deemPeriod.should.be.bignumber.equal(0)
-        
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-
-        await land.setDeemPeriod(oneMonth, sentByCreator)
+        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
         deemPeriod = await land.deemPeriod()
-
-        deemPeriod.should.be.bignumber.equal(oneMonth)
+        deemPeriod.should.be.bignumber.equal(duration.weeks(4))
       })
 
       it('reverts if hacker set deem period', async function() {
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-
-        await assertRevert(land.setGracePeriod(oneMonth, sentByHacker))
+        await assertRevert(land.setDeemPeriod(duration.weeks(4), sentByHacker))
       })
 
+      it('reverts if set deem period 0', async function() {
+        await assertRevert(land.setDeemPeriod(0, sentByCreator))
+      })
     })
 
     describe('hasDecayed', function() {
@@ -1280,37 +1267,21 @@ contract('LANDRegistry', accounts => {
 
       it('should return true if a LAND is decayed', async function() {
         const assetId = await land.encodeTokenId(0, 1)
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-        
-        // 2 seconds from now
-        await land.setGracePeriod(2, sentByCreator)
-        // 1 second
-        await land.setDeemPeriod(1, sentByCreator)
-        await sleep(4) // inside delta period
-        // One second
+        await land.setGracePeriod(duration.weeks(1), sentByCreator)
+        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
+        await increaseTime(duration.weeks(5)) // outside delta period
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.true
       })
 
-      it('should return false if not decayed LAND but near to deem period', async function() {
+      it('should return false is the LAND is not decayed but near to deem period', async function() {
         const assetId = await land.encodeTokenId(0, 1)
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-        
-        // 2 seconds from now
-        await land.setGracePeriod(2, sentByCreator)
-        // One month
-        await land.setDeemPeriod(oneMonth, sentByCreator)
-        const gp = await land.gracePeriod()
-        const dp = await land.deemPeriod()
-        await sleep(3) // inside delta period
+        await land.setGracePeriod(duration.weeks(1), sentByCreator)
+        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
+        await increaseTime(duration.weeks(2)) // inside delta period
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
       })
-
 
       it('should return false if no gracePeriod set', async function() {
         const assetId = await land.encodeTokenId(0, 1)
@@ -1318,24 +1289,22 @@ contract('LANDRegistry', accounts => {
         decayed.should.be.false
       })
 
-      it('should return false if gracePeriod is bigger than today (one month from now)', async function() {
+      it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
         const assetId = await land.encodeTokenId(0, 1)
-        const date = new Date()
-        const oneMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          .getDate() * 24 * 60 * 60 // In seconds
-
-        await land.setGracePeriod(oneMonth, sentByCreator)
+        await land.setGracePeriod(duration.weeks(4), sentByCreator)
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
       })
     })
 
-    describe('ping', function() {
+    describe`('ping', function() {
       it('should refresh latestPing if pinged by owner', async function() {
         const latestPingBefore = await land.latestPing(user)
         await land.pingMyself(sentByUser)
         const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(Math.trunc(new Date().getTime() / 1000))
+        latestPingAfter.should.be.bignumber.equal(
+          web3.eth.getBlock('latest').timestamp
+        )
         ;(latestPingBefore < latestPingAfter).should.be.true
       })
 
@@ -1344,7 +1313,9 @@ contract('LANDRegistry', accounts => {
         await land.setUpdateManager(user, anotherUser, true, sentByUser)
         await land.ping(user, sentByAnotherUser)
         const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(Math.trunc(new Date().getTime() / 1000))
+        latestPingAfter.should.be.bignumber.equal(
+          web3.eth.getBlock('latest').timestamp
+        )
         ;(latestPingBefore < latestPingAfter).should.be.true
       })
 
@@ -1353,7 +1324,9 @@ contract('LANDRegistry', accounts => {
         await land.setApprovalForAll(anotherUser, true, sentByUser)
         await land.ping(user, sentByAnotherUser)
         const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(Math.trunc(new Date().getTime() / 1000))
+        latestPingAfter.should.be.bignumber.equal(
+          web3.eth.getBlock('latest').timestamp
+        )
         ;(latestPingBefore < latestPingAfter).should.be.true
       })
 
@@ -1374,7 +1347,7 @@ contract('LANDRegistry', accounts => {
         log.args._holder.should.be.equal(user)
       })
 
-      it('reverts if ping non-authorized address', async function() {
+      it('reverts if trying to ping by a non-authorized address', async function() {
         await assertRevert(land.ping(user, sentByHacker))
       })
     })
