@@ -1297,7 +1297,7 @@ contract('LANDRegistry', accounts => {
       })
     })
 
-    describe`('ping', function() {
+    describe('ping', function() {
       it('should refresh latestPing if pinged by owner', async function() {
         const latestPingBefore = await land.latestPing(user)
         await land.pingMyself(sentByUser)
