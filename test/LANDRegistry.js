@@ -1284,6 +1284,16 @@ contract('LANDRegistry', accounts => {
       })
 
       it('should return false if no gracePeriod set', async function() {
+        const gracePeriod = await land.gracePeriod()
+        gracePeriod.should.be.bignumber.equal(0)
+        const assetId = await land.encodeTokenId(0, 1)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
+
+      it('should return false if no deemPeriod set', async function() {
+        const deemPeriod = await land.deemPeriod()
+        deemPeriod.should.be.bignumber.equal(0)
         const assetId = await land.encodeTokenId(0, 1)
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
