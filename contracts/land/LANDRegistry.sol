@@ -509,6 +509,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function setDeemPeriod(uint256 _deemPeriod) external onlyDeployer {
     require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
+    emit DeemPeriod(deemPeriod);
   }
 
   /**
