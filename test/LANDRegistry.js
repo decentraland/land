@@ -1251,6 +1251,17 @@ contract('LANDRegistry', accounts => {
         deemPeriod.should.be.bignumber.equal(duration.weeks(4))
       })
 
+      it('should emit DeemPeriod event', async function() {
+        const { logs } = await land.setDeemPeriod(
+          duration.weeks(4),
+          sentByCreator
+        )
+        const deemPeriod = await land.deemPeriod()
+        const log = logs[0]
+        log.event.should.be.eq('DeemPeriod')
+        log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
+      })
+
       it('reverts if hacker set deem period', async function() {
         await assertRevert(land.setDeemPeriod(duration.weeks(4), sentByHacker))
       })
