@@ -70,10 +70,12 @@ interface ILANDRegistry {
   );
 
   event GracePeriod(
+    address indexed _caller,
     uint256 indexed _gracePeriod
   );
 
   event DeemPeriod(
+    address indexed _caller,
     uint256 indexed _deemPeriod
   );
 }

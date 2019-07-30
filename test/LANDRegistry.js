@@ -1230,6 +1230,7 @@ contract('LANDRegistry', accounts => {
         const gracePeriod = await land.gracePeriod()
         const log = logs[0]
         log.event.should.be.eq('GracePeriod')
+        log.args._caller.should.be.bignumber.equal(creator)
         log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
       })
 
@@ -1259,6 +1260,7 @@ contract('LANDRegistry', accounts => {
         const deemPeriod = await land.deemPeriod()
         const log = logs[0]
         log.event.should.be.eq('DeemPeriod')
+        log.args._caller.should.be.bignumber.equal(creator)
         log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
       })
 

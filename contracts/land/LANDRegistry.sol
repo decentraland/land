@@ -498,7 +498,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(_gracePeriod != 0, "Grace period can not be 0");
     // solium-disable-next-line security/no-block-members
     gracePeriod = block.timestamp.add(_gracePeriod);
-    emit GracePeriod(gracePeriod);
+    emit GracePeriod(msg.sender, gracePeriod);
   }
 
   /**
@@ -509,7 +509,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function setDeemPeriod(uint256 _deemPeriod) external onlyDeployer {
     require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
-    emit DeemPeriod(deemPeriod);
+    emit DeemPeriod(msg.sender, deemPeriod);
   }
 
   /**
