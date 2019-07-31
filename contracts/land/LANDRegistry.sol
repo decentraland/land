@@ -311,7 +311,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   /**
-   * @notice Set estates updateOperator
+   * @notice Set LAND updateOperator
    * @param assetId - LAND id
    * @param operator - address of the account to be set as the updateOperator
    */
@@ -327,7 +327,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   /**
-   * @notice Set estates updateOperator
+   * @notice Set many LAND updateOperator
    * @param _assetIds - LAND ids
    * @param _operator - address of the account to be set as the updateOperator
    */

@@ -182,7 +182,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @notice Set estate updateOperator
+   * @notice Set Estate updateOperator
    * @param estateId - Estate id
    * @param operator - address of the account to be set as the updateOperator
    */
@@ -198,7 +198,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @notice Set estates updateOperator
+   * @notice Set Estates updateOperator
    * @param _estateIds - Estate ids
    * @param _operator - address of the account to be set as the updateOperator
    */
@@ -232,7 +232,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
  /**
-   * @notice Set many land updateOperator
+   * @notice Set many LAND updateOperator
    * @param _estateId - Estate id
    * @param _landIds - LANDs to set the updateOperator
    * @param _operator - address of the account to be set as the updateOperator
