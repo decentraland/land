@@ -214,7 +214,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @notice Set many lands updateOperator
+   * @notice Set LAND updateOperator
    * @param estateId - Estate id
    * @param landId - LAND to set the updateOperator
    * @param operator - address of the account to be set as the updateOperator
