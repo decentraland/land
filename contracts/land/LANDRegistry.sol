@@ -494,7 +494,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @dev Set the date from when the LAND Ping feature should be enabled
    * @param _gracePeriod Desired amount of time in seconds from now to enable the feature
    */
-  function setGracePeriod(uint256 _gracePeriod) external onlyDeployer {
+  function setGracePeriod(uint256 _gracePeriod) external onlyProxyOwner {
     require(_gracePeriod != 0, "Grace period can not be 0");
     // solium-disable-next-line security/no-block-members
     gracePeriod = block.timestamp.add(_gracePeriod);
@@ -506,7 +506,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * a new onwer
    * @param _deemPeriod Desired amount of time in seconds for a LAND to decay
    */
-  function setDeemPeriod(uint256 _deemPeriod) external onlyDeployer {
+  function setDeemPeriod(uint256 _deemPeriod) external onlyProxyOwner {
     require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
     emit DeemPeriod(msg.sender, deemPeriod);
@@ -518,8 +518,9 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    */
   function ping(address _user) external {
     require(
+      updateManager[_user][msg.sender] ||
       _isApprovedForAll(_user, msg.sender) ||
-      updateManager[_user][msg.sender],
+      msg.sender == proxyOwner,
       "This function can only be called by the approvedForAll or updateManager"
     );
     _ping(_user);

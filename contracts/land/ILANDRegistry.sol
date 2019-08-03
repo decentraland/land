@@ -29,8 +29,8 @@ interface ILANDRegistry {
   // LAND Ping
   function ping(address _user) external;
   function ping() external;
-  function setGracePeriod(uint _gracePeriod) external;
-  function setDeemPeriod(uint _deemPeriod) external;
+  function setGracePeriod(uint256 _gracePeriod) external;
+  function setDeemPeriod(uint256 _deemPeriod) external;
   function hasDecayed(uint256 _tokenId) external view returns (bool);
 
   // Events

@@ -1312,9 +1312,22 @@ contract('LANDRegistry', accounts => {
         decayed.should.be.false
       })
 
+      it('should return false if both gracePerido and deemPeriod are not set', async function() {
+        const [gracePeriod, deemPeriod] = await Promise.all([
+          land.gracePeriod(),
+          land.deemPeriod()
+        ])
+        gracePeriod.should.be.bignumber.equal(0)
+        deemPeriod.should.be.bignumber.equal(0)
+        const assetId = await land.encodeTokenId(0, 1)
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
+
       it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
         const assetId = await land.encodeTokenId(0, 1)
         await land.setGracePeriod(duration.weeks(4), sentByCreator)
+        await land.setDeemPeriod(duration.weeks(1), sentByCreator)
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
       })
@@ -1345,6 +1358,17 @@ contract('LANDRegistry', accounts => {
       it('should refresh latestPing if pinged by approvedForAll', async function() {
         const latestPingBefore = await land.latestPing(user)
         await land.setApprovalForAll(anotherUser, true, sentByUser)
+        await land.ping(user, sentByAnotherUser)
+        const latestPingAfter = await land.latestPing(user)
+        latestPingAfter.should.be.bignumber.equal(
+          web3.eth.getBlock('latest').timestamp
+        )
+        ;(latestPingBefore < latestPingAfter).should.be.true
+      })
+
+      it('should refresh latestPing if pinged by proxyOwner', async function() {
+        const latestPingBefore = await land.latestPing(user)
+        await land.setApprovalForAll(anotherUser, true, sentByCreator)
         await land.ping(user, sentByAnotherUser)
         const latestPingAfter = await land.latestPing(user)
         latestPingAfter.should.be.bignumber.equal(
