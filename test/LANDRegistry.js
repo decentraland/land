@@ -1368,8 +1368,7 @@ contract('LANDRegistry', accounts => {
 
       it('should refresh latestPing if pinged by proxyOwner', async function() {
         const latestPingBefore = await land.latestPing(user)
-        await land.setApprovalForAll(anotherUser, true, sentByCreator)
-        await land.ping(user, sentByAnotherUser)
+        await land.ping(user, sentByCreator)
         const latestPingAfter = await land.latestPing(user)
         latestPingAfter.should.be.bignumber.equal(
           web3.eth.getBlock('latest').timestamp
