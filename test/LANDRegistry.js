@@ -1297,7 +1297,7 @@ contract('LANDRegistry', accounts => {
         decayed.should.be.false
       })
 
-      it.only('should return false is the LAND is not decayed (edge case)', async function() {
+      it('should return false is the LAND is not decayed (edge case)', async function() {
         const assetId = await land.encodeTokenId(0, 1)
         await land.setGracePeriod(duration.weeks(1), sentByCreator)
         await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
@@ -1351,7 +1351,7 @@ contract('LANDRegistry', accounts => {
         latestPingAfter.should.be.bignumber.equal(
           web3.eth.getBlock('latest').timestamp
         )
-        ;(latestPingBefore < latestPingAfter).should.be.true
+        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
       })
 
       it('should refresh latestPing if pinged by updateManager', async function() {
@@ -1362,7 +1362,7 @@ contract('LANDRegistry', accounts => {
         latestPingAfter.should.be.bignumber.equal(
           web3.eth.getBlock('latest').timestamp
         )
-        ;(latestPingBefore < latestPingAfter).should.be.true
+        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
       })
 
       it('should refresh latestPing if pinged by approvedForAll', async function() {
@@ -1373,7 +1373,7 @@ contract('LANDRegistry', accounts => {
         latestPingAfter.should.be.bignumber.equal(
           web3.eth.getBlock('latest').timestamp
         )
-        ;(latestPingBefore < latestPingAfter).should.be.true
+        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
       })
 
       it('should refresh latestPing if pinged by proxyOwner', async function() {
@@ -1383,7 +1383,7 @@ contract('LANDRegistry', accounts => {
         latestPingAfter.should.be.bignumber.equal(
           web3.eth.getBlock('latest').timestamp
         )
-        ;(latestPingBefore < latestPingAfter).should.be.true
+        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
       })
 
       it('should emit Ping event when ping', async function() {
