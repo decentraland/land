@@ -521,7 +521,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
       updateManager[_user][msg.sender] ||
       _isApprovedForAll(_user, msg.sender) ||
       msg.sender == proxyOwner,
-      "This function can only be called by the approvedForAll or updateManager"
+      "This function can only be called by an authorized user"
     );
     _ping(_user);
   }

@@ -9,6 +9,7 @@ import { increaseTime, duration } from './helpers/increaseTime'
 const BigNumber = web3.BigNumber
 
 const NONE = '0x0000000000000000000000000000000000000000'
+const fourWeeksDuration = duration.weeks(4)
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -1217,14 +1218,14 @@ contract('LANDRegistry', accounts => {
       it('should set 4 weeks grace period', async function() {
         let gracePeriod = await land.gracePeriod()
         gracePeriod.should.be.bignumber.equal(0)
-        await land.setGracePeriod(duration.weeks(4), sentByCreator)
+        await land.setGracePeriod(fourWeeksDuration, sentByCreator)
         gracePeriod = await land.gracePeriod()
-        gracePeriod.should.be.bignumber.equal(getEndTime(duration.weeks(4)))
+        gracePeriod.should.be.bignumber.equal(getEndTime(fourWeeksDuration))
       })
 
       it('should emit GracePeriod event', async function() {
         const { logs } = await land.setGracePeriod(
-          duration.weeks(4),
+          fourWeeksDuration,
           sentByCreator
         )
         const gracePeriod = await land.gracePeriod()
@@ -1235,7 +1236,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('reverts if hacker set grace period', async function() {
-        await assertRevert(land.setGracePeriod(duration.weeks(4), sentByHacker))
+        await assertRevert(land.setGracePeriod(fourWeeksDuration, sentByHacker))
       })
 
       it('reverts if set grace period 0', async function() {
@@ -1247,14 +1248,14 @@ contract('LANDRegistry', accounts => {
       it('should set 4 weeks deem period', async function() {
         let deemPeriod = await land.deemPeriod()
         deemPeriod.should.be.bignumber.equal(0)
-        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
+        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
         deemPeriod = await land.deemPeriod()
-        deemPeriod.should.be.bignumber.equal(duration.weeks(4))
+        deemPeriod.should.be.bignumber.equal(fourWeeksDuration)
       })
 
       it('should emit DeemPeriod event', async function() {
         const { logs } = await land.setDeemPeriod(
-          duration.weeks(4),
+          fourWeeksDuration,
           sentByCreator
         )
         const deemPeriod = await land.deemPeriod()
@@ -1265,7 +1266,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('reverts if hacker set deem period', async function() {
-        await assertRevert(land.setDeemPeriod(duration.weeks(4), sentByHacker))
+        await assertRevert(land.setDeemPeriod(fourWeeksDuration, sentByHacker))
       })
 
       it('reverts if set deem period 0', async function() {
@@ -1281,7 +1282,7 @@ contract('LANDRegistry', accounts => {
       it('should return true if a LAND is decayed', async function() {
         const assetId = await land.encodeTokenId(0, 1)
         await land.setGracePeriod(duration.weeks(1), sentByCreator)
-        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
+        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
         await increaseTime(duration.weeks(5)) // outside delta period
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.true
@@ -1290,8 +1291,17 @@ contract('LANDRegistry', accounts => {
       it('should return false is the LAND is not decayed but near to deem period', async function() {
         const assetId = await land.encodeTokenId(0, 1)
         await land.setGracePeriod(duration.weeks(1), sentByCreator)
-        await land.setDeemPeriod(duration.weeks(4), sentByCreator)
+        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
         await increaseTime(duration.weeks(2)) // inside delta period
+        const decayed = await land.hasDecayed(assetId)
+        decayed.should.be.false
+      })
+
+      it.only('should return false is the LAND is not decayed (edge case)', async function() {
+        const assetId = await land.encodeTokenId(0, 1)
+        await land.setGracePeriod(duration.weeks(1), sentByCreator)
+        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+        await increaseTime(fourWeeksDuration - 1) // still inside delta period
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
       })
@@ -1326,7 +1336,7 @@ contract('LANDRegistry', accounts => {
 
       it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
         const assetId = await land.encodeTokenId(0, 1)
-        await land.setGracePeriod(duration.weeks(4), sentByCreator)
+        await land.setGracePeriod(fourWeeksDuration, sentByCreator)
         await land.setDeemPeriod(duration.weeks(1), sentByCreator)
         const decayed = await land.hasDecayed(assetId)
         decayed.should.be.false
