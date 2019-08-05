@@ -548,7 +548,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   /**
    * @dev Check if a LAND is decayed or not
    * @param _assetId LAND encoded coordinates
-   * @return True if LAND is decayed, false if not
+   * @return Boolean True if LAND is decayed, false if not
    */
   function hasDecayed(uint256 _assetId) external view returns (bool) {
     // solium-disable-next-line security/no-block-members
