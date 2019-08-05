@@ -492,7 +492,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Set the date from when the LAND Ping feature should be enabled
-   * @param _gracePeriod Desired amount of time in seconds from now to enable the feature
+   * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
    */
   function setGracePeriod(uint256 _gracePeriod) external onlyProxyOwner {
     require(_gracePeriod != 0, "Grace period can not be 0");
@@ -504,7 +504,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   /**
    * @dev Set the amount of time that should pass for a LAND to be transferred to
    * a new onwer
-   * @param _deemPeriod Desired amount of time in seconds for a LAND to decay
+   * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
    */
   function setDeemPeriod(uint256 _deemPeriod) external onlyProxyOwner {
     require(_deemPeriod != 0, "Deem period can not be 0");
@@ -514,7 +514,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Ping an address
-   * @param _user address of LAND holder to be pinged
+   * @param _user - address of LAND holder to be pinged
    */
   function ping(address _user) external {
     require(
@@ -536,7 +536,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Ping an address
-   * @param _address address of LAND holder to be pinged
+   * @param _address - address of LAND holder to be pinged
    */
   function _ping(address _address) internal {
     require(_balanceOf(_address) > 0, "Address has no balance");
@@ -547,8 +547,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Check if a LAND is decayed or not
-   * @param _assetId LAND encoded coordinates
-   * @return Boolean True if LAND is decayed, false if not
+   * @param _assetId - LAND encoded coordinates
+   * @return True if LAND is decayed, false if not
    */
   function hasDecayed(uint256 _assetId) external view returns (bool) {
     // solium-disable-next-line security/no-block-members
