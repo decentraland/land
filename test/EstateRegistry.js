@@ -1288,4 +1288,304 @@ contract('EstateRegistry', accounts => {
       await assertRevert(estate.transferLand(1, 1, anotherUser, sentByOperator))
     })
   })
+
+  describe('setManyUpdateOperator', function() {
+    let estateId1
+    let estateId2
+    beforeEach(async function() {
+      estateId1 = await createUserEstateWithToken1()
+      estateId2 = await createUserEstateWithToken2()
+    })
+
+    it('should set update operator', async function() {
+      let updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setManyUpdateOperator([estateId1], operator, sentByUser)
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(operator)
+    })
+
+    it('should set many update operator :: owner', async function() {
+      let updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        operator,
+        sentByUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(operator)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(operator)
+    })
+
+    it('should set many update operator :: approvedForAll', async function() {
+      let updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        operator,
+        sentByAnotherUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(operator)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(operator)
+    })
+
+    it('should set many update operator :: operator', async function() {
+      let updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.approve(anotherUser, estateId1, sentByUser)
+      await estate.approve(anotherUser, estateId2, sentByUser)
+
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        operator,
+        sentByAnotherUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(operator)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(operator)
+    })
+
+    it('should set many update operator :: updateManager', async function() {
+      let updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        operator,
+        sentByAnotherUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(operator)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(operator)
+    })
+
+    it('should clean many update operator', async function() {
+      let updateOperator
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        anotherUser,
+        sentByUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(anotherUser)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(anotherUser)
+
+      await estate.setManyUpdateOperator(
+        [estateId1, estateId2],
+        EMPTY_ADDRESS,
+        sentByUser
+      )
+
+      updateOperator = await estate.updateOperator(estateId1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      updateOperator = await estate.updateOperator(estateId2)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+    })
+
+    it('reverts when updateOperator try to set many update operator', async function() {
+      await estate.setUpdateOperator(estateId1, anotherUser, sentByUser)
+
+      await assertRevert(
+        estate.setManyUpdateOperator([estateId1], operator, sentByAnotherUser)
+      )
+    })
+
+    it('reverts when unauthorized user try to set many update operator', async function() {
+      await assertRevert(
+        estate.setManyUpdateOperator([estateId1], operator, sentByAnotherUser)
+      )
+    })
+  })
+
+  describe('setManyLandUpdateOperator', function() {
+    let estateId
+    let updateOperator
+    beforeEach(async function() {
+      estateId = await createUserEstateWithNumberedTokens()
+      updateOperator = EMPTY_ADDRESS
+    })
+
+    it('should set LAND update operator', async function() {
+      updateOperator = await land.updateOperator(1)
+      expect(updateOperator).be.equal(EMPTY_ADDRESS)
+
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        [1],
+        anotherUser,
+        sentByUser
+      )
+
+      updateOperator = await land.updateOperator(1)
+      updateOperator.should.be.equal(anotherUser)
+    })
+
+    it('should set many LAND update operator :: owner', async function() {
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      }
+
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        anotherUser,
+        sentByUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(anotherUser)
+      }
+    })
+
+    it('should set many LAND update operator :: approvedForAll', async function() {
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      }
+
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        operator,
+        sentByAnotherUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(operator)
+      }
+    })
+
+    it('should set many LAND update operator :: operator', async function() {
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      }
+
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        operator,
+        sentByAnotherUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(operator)
+      }
+    })
+
+    it('should set many LAND update operator :: updateManager', async function() {
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      }
+
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        operator,
+        sentByAnotherUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(operator)
+      }
+    })
+
+    it('should clean many LAND update operator', async function() {
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        anotherUser,
+        sentByUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(anotherUser)
+      }
+
+      await estate.setManyLandUpdateOperator(
+        estateId,
+        fiveY,
+        EMPTY_ADDRESS,
+        sentByUser
+      )
+
+      for (let id of fiveY) {
+        updateOperator = await land.updateOperator(id)
+        expect(updateOperator).be.equal(EMPTY_ADDRESS)
+      }
+    })
+
+    it('reverts when updateOperator try to set many LAND update operator', async function() {
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+
+      await assertRevert(
+        estate.setManyLandUpdateOperator(
+          estateId,
+          fiveY,
+          yetAnotherUser,
+          sentByAnotherUser
+        )
+      )
+    })
+
+    it('reverts when setting LAND updateOperator for a LAND outside the estate', async function() {
+      await land.assignMultipleParcels([0], [6], user, sentByCreator)
+      await createEstate([0], [6], user, sentByUser)
+
+      await assertRevert(
+        estate.setManyLandUpdateOperator(estateId, [6], anotherUser, sentByUser)
+      )
+    })
+
+    it('reverts when unauthorized user try to set many update operator', async function() {
+      await assertRevert(
+        estate.setManyLandUpdateOperator(
+          estateId,
+          fiveY,
+          operator,
+          sentByAnotherUser
+        )
+      )
+    })
+  })
 })

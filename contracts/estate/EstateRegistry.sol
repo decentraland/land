@@ -181,6 +181,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     );
   }
 
+  /**
+   * @notice Set Estate updateOperator
+   * @param estateId - Estate id
+   * @param operator - address of the account to be set as the updateOperator
+   */
   function setUpdateOperator(
     uint256 estateId,
     address operator
@@ -192,6 +197,28 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     emit UpdateOperator(estateId, operator);
   }
 
+  /**
+   * @notice Set Estates updateOperator
+   * @param _estateIds - Estate ids
+   * @param _operator - address of the account to be set as the updateOperator
+   */
+  function setManyUpdateOperator(
+    uint256[] _estateIds,
+    address _operator
+  )
+    public
+  {
+    for (uint i = 0; i < _estateIds.length; i++) {
+      setUpdateOperator(_estateIds[i], _operator);
+    }
+  }
+
+  /**
+   * @notice Set LAND updateOperator
+   * @param estateId - Estate id
+   * @param landId - LAND to set the updateOperator
+   * @param operator - address of the account to be set as the updateOperator
+   */
   function setLandUpdateOperator(
     uint256 estateId,
     uint256 landId,
@@ -202,6 +229,26 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   {
     require(landIdEstate[landId] == estateId, "The LAND is not part of the Estate");
     registry.setUpdateOperator(landId, operator);
+  }
+
+ /**
+   * @notice Set many LAND updateOperator
+   * @param _estateId - Estate id
+   * @param _landIds - LANDs to set the updateOperator
+   * @param _operator - address of the account to be set as the updateOperator
+   */
+  function setManyLandUpdateOperator(
+    uint256 _estateId,
+    uint256[] _landIds,
+    address _operator
+  )
+    public
+    canSetUpdateOperator(_estateId)
+  {
+    for (uint i = 0; i < _landIds.length; i++) {
+      require(landIdEstate[_landIds[i]] == _estateId, "The LAND is not part of the Estate");
+    }
+    registry.setManyUpdateOperator(_landIds, _operator);
   }
 
   function initialize(

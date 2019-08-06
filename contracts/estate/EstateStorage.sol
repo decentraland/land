@@ -5,6 +5,7 @@ contract LANDRegistry {
   function decodeTokenId(uint value) external pure returns (int, int);
   function updateLandData(int x, int y, string data) external;
   function setUpdateOperator(uint256 assetId, address operator) external;
+  function setManyUpdateOperator(uint256[] landIds, address operator) external;
   function ping() public;
   function ownerOf(uint256 tokenId) public returns (address);
   function safeTransferFrom(address, address, uint256) public;

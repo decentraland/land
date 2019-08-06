@@ -310,15 +310,36 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
+  /**
+   * @notice Set LAND updateOperator
+   * @param assetId - LAND id
+   * @param operator - address of the account to be set as the updateOperator
+   */
   function setUpdateOperator(
     uint256 assetId,
     address operator
   )
-    external
+    public
     canSetUpdateOperator(assetId)
   {
     updateOperator[assetId] = operator;
     emit UpdateOperator(assetId, operator);
+  }
+
+  /**
+   * @notice Set many LAND updateOperator
+   * @param _assetIds - LAND ids
+   * @param _operator - address of the account to be set as the updateOperator
+   */
+  function setManyUpdateOperator(
+    uint256[] _assetIds,
+    address _operator
+  )
+    public
+  {
+    for (uint i = 0; i < _assetIds.length; i++) {
+      setUpdateOperator(_assetIds[i], _operator);
+    }
   }
 
   /**
