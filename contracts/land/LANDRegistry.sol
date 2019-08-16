@@ -536,7 +536,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    * @param _address - address of LAND holder to be pinged
    */
   function _ping(address _address) internal {
-    require(_balanceOf(_address) > 0, "Address has no balance");
+    require(_balanceOf(_address) > 0, "Address has not LANDs");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);

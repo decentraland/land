@@ -33,7 +33,7 @@ function checkDeployForbiddenLog(log, caller, deployer) {
   log.args._deployer.should.be.equal(deployer)
 }
 
-contract.only('LANDRegistry', accounts => {
+contract('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
 
   let contracts = null

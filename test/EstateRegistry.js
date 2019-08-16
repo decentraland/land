@@ -5,6 +5,12 @@ import setupContracts, {
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
 import { getSoliditySha3 } from './helpers/getSoliditySha3'
+import {
+  increaseTime,
+  duration,
+  getEndTime,
+  latestTime
+} from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
@@ -52,6 +58,7 @@ contract('EstateRegistry', accounts => {
   const fiveY = [1, 2, 3, 4, 5]
 
   const newMetadata = 'new land content'
+  const fourWeeksDuration = duration.weeks(4)
 
   async function createEstateMetadata(xs, ys, owner, metadata, sendParams) {
     return createEstateFull(contracts, xs, ys, owner, metadata, sendParams)
@@ -1586,6 +1593,210 @@ contract('EstateRegistry', accounts => {
           sentByAnotherUser
         )
       )
+    })
+  })
+
+  describe('setGracePeriod', function() {
+    it('should set 4 weeks grace period', async function() {
+      let gracePeriod = await estate.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(0)
+      await estate.setGracePeriod(fourWeeksDuration, sentByCreator)
+      gracePeriod = await estate.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(getEndTime(fourWeeksDuration))
+    })
+
+    it('should emit GracePeriod event', async function() {
+      const { logs } = await estate.setGracePeriod(
+        fourWeeksDuration,
+        sentByCreator
+      )
+      const gracePeriod = await estate.gracePeriod()
+      const log = logs[0]
+      log.event.should.be.eq('GracePeriod')
+      log.args._caller.should.be.bignumber.equal(creator)
+      log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
+    })
+
+    it.skip('reverts if hacker set grace period', async function() {
+      await assertRevert(estate.setGracePeriod(fourWeeksDuration, sentByHacker))
+    })
+
+    it.skip('reverts if set grace period 0', async function() {
+      await assertRevert(estate.setGracePeriod(0, sentByCreator))
+    })
+  })
+
+  describe('setDeemPeriod', function() {
+    it('should set 4 weeks deem period', async function() {
+      let deemPeriod = await estate.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(0)
+      await estate.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      deemPeriod = await estate.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(fourWeeksDuration)
+    })
+
+    it('should emit DeemPeriod event', async function() {
+      const { logs } = await estate.setDeemPeriod(
+        fourWeeksDuration,
+        sentByCreator
+      )
+      const deemPeriod = await estate.deemPeriod()
+      const log = logs[0]
+      log.event.should.be.eq('DeemPeriod')
+      log.args._caller.should.be.bignumber.equal(creator)
+      log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
+    })
+
+    it.skip('reverts if hacker set deem period', async function() {
+      await assertRevert(estate.setDeemPeriod(fourWeeksDuration, sentByHacker))
+    })
+
+    it.skip('reverts if set deem period 0', async function() {
+      await assertRevert(estate.setDeemPeriod(0, sentByCreator))
+    })
+  })
+
+  describe('hasDecayed', function() {
+    let estateId
+    beforeEach(async function() {
+      estateId = await createUserEstateWithToken1()
+      await estate.pingMyself(sentByUser)
+    })
+
+    it('should return true if an Estate is decayed', async function() {
+      await estate.setGracePeriod(duration.weeks(1), sentByCreator)
+      await estate.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(5)) // outside delta period
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.true
+    })
+
+    it('should return false is the Estate is not decayed but near to deem period', async function() {
+      await estate.setGracePeriod(duration.weeks(1), sentByCreator)
+      await estate.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(2)) // inside delta period
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false is the Estate is not decayed (edge case)', async function() {
+      await estate.setGracePeriod(duration.weeks(1), sentByCreator)
+      await estate.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(fourWeeksDuration - 1) // still inside delta period
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false if no gracePeriod set', async function() {
+      const gracePeriod = await estate.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(0)
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false if no deemPeriod set', async function() {
+      const deemPeriod = await estate.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(0)
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false if both gracePerido and deemPeriod are not set', async function() {
+      const [gracePeriod, deemPeriod] = await Promise.all([
+        estate.gracePeriod(),
+        estate.deemPeriod()
+      ])
+      gracePeriod.should.be.bignumber.equal(0)
+      deemPeriod.should.be.bignumber.equal(0)
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
+      await estate.setGracePeriod(fourWeeksDuration, sentByCreator)
+      await estate.setDeemPeriod(duration.weeks(1), sentByCreator)
+      const decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.false
+    })
+
+    it('should return false if the LAND is inside an Estate', async function() {
+      await estate.setGracePeriod(duration.weeks(1), sentByCreator)
+      await estate.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(5)) // outside delta period
+      let decayed = await estate.hasDecayed(estateId)
+      decayed.should.be.true
+
+      await increaseTime(duration.weeks(5)) // outside delta period
+      decayed = await land.hasDecayed(1)
+      decayed.should.be.false
+    })
+  })
+
+  describe('ping', function() {
+    beforeEach(async function() {
+      await createUserEstateWithToken1()
+    })
+
+    it('should refresh latestPing if pinged by owner', async function() {
+      let latestPingBefore = await estate.latestPing(user)
+      await estate.pingMyself(sentByUser)
+      let latestPingAfter = await estate.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(latestTime())
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+
+      await increaseTime(duration.seconds(1))
+      latestPingBefore = latestPingAfter
+      await estate.ping(user, sentByUser)
+      latestPingAfter = await estate.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(latestTime())
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should refresh latestPing if pinged by updateManager', async function() {
+      const latestPingBefore = await estate.latestPing(user)
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+      await estate.ping(user, sentByAnotherUser)
+      const latestPingAfter = await estate.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(latestTime())
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should refresh latestPing if pinged by approvedForAll', async function() {
+      const latestPingBefore = await estate.latestPing(user)
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.ping(user, sentByAnotherUser)
+      const latestPingAfter = await estate.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(latestTime())
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it.skip('should refresh latestPing if pinged by proxyOwner', async function() {
+      const latestPingBefore = await estate.latestPing(user)
+      await estate.ping(user, sentByCreator)
+      const latestPingAfter = await estate.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(latestTime())
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should emit Ping event when ping', async function() {
+      const { logs } = await estate.pingMyself(sentByUser)
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(user)
+      log.args._holder.should.be.equal(user)
+    })
+
+    it('should emit Ping event when ping by other', async function() {
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      const { logs } = await estate.ping(user, sentByAnotherUser)
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(anotherUser)
+      log.args._holder.should.be.equal(user)
+    })
+
+    it('reverts if trying to ping by a non-authorized address', async function() {
+      await assertRevert(estate.ping(user, sentByHacker))
     })
   })
 })

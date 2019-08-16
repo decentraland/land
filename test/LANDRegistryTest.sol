@@ -15,7 +15,7 @@ contract LANDRegistryTest is LANDRegistry {
     return authorizedDeploy[beneficiary];
   }
 
-  // Problematic override on truffle
+  // Override Problem on truffle
   function pingMyself() external {
     _ping(msg.sender);
   }

@@ -629,7 +629,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _address - address of Estate holder to be pinged
    */
   function _ping(address _address) internal {
-    require(balanceOf(_address) > 0, "Address has no balance");
+    require(balanceOf(_address) > 0, "Address has not Estates");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);
