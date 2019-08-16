@@ -120,7 +120,7 @@ contract IEstateRegistry {
 // File: contracts/land/LANDStorage.sol
 
 contract LANDStorage {
-  mapping (address => uint) public latestPing;
+  mapping (address => uint256) public latestPing;
 
   uint256 constant clearLow = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
   uint256 constant clearHigh = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
@@ -135,6 +135,12 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping(address => mapping(address => bool)) public updateManager;
+  
+  mapping (address => bool) public reactivateAuthorized;
+
+  uint256 public gracePeriod;
+
+  uint256 public deemPeriod;
 }
 
 // File: contracts/Storage.sol

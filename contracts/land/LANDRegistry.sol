@@ -112,21 +112,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   //
-  // Inactive keys after 1 year lose ownership
-  //
-
-  function ping() external {
-    // solium-disable-next-line security/no-block-members
-    latestPing[msg.sender] = block.timestamp;
-  }
-
-  function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
-    // solium-disable-next-line security/no-block-members
-    latestPing[user] = block.timestamp;
-  }
-
-  //
   // LAND Getters
   //
 
@@ -499,5 +484,80 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
+  }
+
+  //
+  // LAND Ping
+  //
+
+  /**
+   * @dev Set the date from when the LAND Ping feature should be enabled
+   * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
+   */
+  function setGracePeriod(uint256 _gracePeriod) external onlyProxyOwner {
+    require(_gracePeriod != 0, "Grace period can not be 0");
+    // solium-disable-next-line security/no-block-members
+    gracePeriod = block.timestamp.add(_gracePeriod);
+    emit GracePeriod(msg.sender, gracePeriod);
+  }
+
+  /**
+   * @dev Set the amount of time that should pass for a LAND to be transferred to
+   * a new onwer
+   * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
+   */
+  function setDeemPeriod(uint256 _deemPeriod) external onlyProxyOwner {
+    require(_deemPeriod != 0, "Deem period can not be 0");
+    deemPeriod = _deemPeriod;
+    emit DeemPeriod(msg.sender, deemPeriod);
+  }
+
+  /**
+   * @dev Ping an address
+   * @param _user - address of LAND holder to be pinged
+   */
+  function ping(address _user) external {
+    require(
+      updateManager[_user][msg.sender] ||
+      _isApprovedForAll(_user, msg.sender) ||
+      msg.sender == proxyOwner,
+      "This function can only be called by an authorized user"
+    );
+    _ping(_user);
+  }
+
+  /**
+   * @dev Ping myself.
+   * @notice that only refresh owned assets.
+   */
+  function ping() external {
+    _ping(msg.sender);
+  }
+
+  /**
+   * @dev Ping an address
+   * @param _address - address of LAND holder to be pinged
+   */
+  function _ping(address _address) internal {
+    require(_balanceOf(_address) > 0, "Address has no balance");
+    // solium-disable-next-line security/no-block-members
+    latestPing[_address] = block.timestamp;
+    emit Ping(msg.sender, _address);
+  }
+
+  /**
+   * @dev Check if a LAND is decayed or not
+   * @param _assetId - LAND encoded coordinates
+   * @return Whether the LAND is decayed or not
+   */
+  function hasDecayed(uint256 _assetId) external view returns (bool) {
+    // solium-disable-next-line security/no-block-members
+    if (gracePeriod == 0 || block.timestamp <= gracePeriod) {
+      return false;
+    }
+
+    address owner = _ownerOf(_assetId);
+    // solium-disable-next-line security/no-block-members
+    return latestPing[owner].add(deemPeriod) < block.timestamp;
   }
 }

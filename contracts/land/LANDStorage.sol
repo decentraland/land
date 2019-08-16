@@ -19,4 +19,8 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping(address => mapping(address => bool)) public updateManager;
+
+  uint256 public gracePeriod;
+
+  uint256 public deemPeriod;
 }
