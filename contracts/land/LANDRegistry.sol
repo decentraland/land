@@ -7,7 +7,7 @@ import "erc821/contracts/FullAssetRegistry.sol";
 import "./ILANDRegistry.sol";
 import "../metadata/IMetadataHolder.sol";
 import "../estate/IEstateRegistry.sol";
-import "../common/Iping.sol";
+import "../common/IPing.sol";
 
 
 
