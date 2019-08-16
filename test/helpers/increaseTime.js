@@ -70,3 +70,7 @@ export const duration = {
     return val * this.days(365)
   }
 }
+
+export function getEndTime(extraTime) {
+  return latestTime() + extraTime
+}

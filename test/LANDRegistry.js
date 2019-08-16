@@ -4,7 +4,12 @@ import setupContracts, {
   LAND_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
-import { increaseTime, duration } from './helpers/increaseTime'
+import {
+  increaseTime,
+  duration,
+  getEndTime,
+  latestTime
+} from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
@@ -15,10 +20,6 @@ require('chai')
   .use(require('chai-as-promised'))
   .use(require('chai-bignumber')(BigNumber))
   .should()
-
-function getEndTime(extraTime) {
-  return web3.eth.getBlock('latest').timestamp + extraTime
-}
 
 function checkDeployAuthorizedLog(log, caller, deployer) {
   log.event.should.be.eq('DeployAuthorized')
@@ -32,7 +33,7 @@ function checkDeployForbiddenLog(log, caller, deployer) {
   log.args._deployer.should.be.equal(deployer)
 }
 
-contract('LANDRegistry', accounts => {
+contract.only('LANDRegistry', accounts => {
   const [creator, user, anotherUser, operator, hacker] = accounts
 
   let contracts = null
@@ -1361,18 +1362,14 @@ contract('LANDRegistry', accounts => {
       let latestPingBefore = await land.latestPing(user)
       await land.pingMyself(sentByUser)
       let latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(
-        web3.eth.getBlock('latest').timestamp
-      )
+      latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
 
       await increaseTime(duration.seconds(1))
       latestPingBefore = latestPingAfter
       await land.ping(user, sentByUser)
       latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(
-        web3.eth.getBlock('latest').timestamp
-      )
+      latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
@@ -1381,9 +1378,7 @@ contract('LANDRegistry', accounts => {
       await land.setUpdateManager(user, anotherUser, true, sentByUser)
       await land.ping(user, sentByAnotherUser)
       const latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(
-        web3.eth.getBlock('latest').timestamp
-      )
+      latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
@@ -1392,9 +1387,7 @@ contract('LANDRegistry', accounts => {
       await land.setApprovalForAll(anotherUser, true, sentByUser)
       await land.ping(user, sentByAnotherUser)
       const latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(
-        web3.eth.getBlock('latest').timestamp
-      )
+      latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
@@ -1402,9 +1395,7 @@ contract('LANDRegistry', accounts => {
       const latestPingBefore = await land.latestPing(user)
       await land.ping(user, sentByCreator)
       const latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(
-        web3.eth.getBlock('latest').timestamp
-      )
+      latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
