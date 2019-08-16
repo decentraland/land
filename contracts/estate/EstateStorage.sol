@@ -39,4 +39,13 @@ contract EstateStorage {
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
 
+  // Address Last active
+  mapping (address => uint) public latestPing;
+
+  // Time when the grace period should end
+  uint256 public gracePeriod;
+
+  // Time when the deem period should end
+  uint256 public deemPeriod;
+
 }

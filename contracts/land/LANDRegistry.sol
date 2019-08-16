@@ -1,22 +1,18 @@
 pragma solidity ^0.4.23;
 
 import "../Storage.sol";
-
 import "../upgradable/Ownable.sol";
-
 import "../upgradable/IApplication.sol";
-
 import "erc821/contracts/FullAssetRegistry.sol";
-
 import "./ILANDRegistry.sol";
-
 import "../metadata/IMetadataHolder.sol";
-
 import "../estate/IEstateRegistry.sol";
+import "../common/Iping.sol";
+
 
 
 /* solium-disable function-order */
-contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
+contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPing {
   bytes4 constant public GET_METADATA = bytes4(keccak256("getMetadata(uint256)"));
 
   function initialize(bytes) external {
@@ -491,7 +487,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   //
 
   /**
-   * @dev Set the date from when the LAND Ping feature should be enabled
+   * @dev Set the date from when the ping feature should be enabled
    * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
    */
   function setGracePeriod(uint256 _gracePeriod) external onlyProxyOwner {
@@ -502,7 +498,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   /**
-   * @dev Set the amount of time that should pass for a LAND to be transferred to
+   * @dev Set the amount of time that should pass for an asset to be transferred to
    * a new onwer
    * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
    */
@@ -518,6 +514,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    */
   function ping(address _user) external {
     require(
+      _user == msg.sender ||
       updateManager[_user][msg.sender] ||
       _isApprovedForAll(_user, msg.sender) ||
       msg.sender == proxyOwner,
@@ -557,6 +554,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
 
     address owner = _ownerOf(_assetId);
+
+    if (owner == address(estateRegistry)) {
+      return false;
+    }
+
     // solium-disable-next-line security/no-block-members
     return latestPing[owner].add(deemPeriod) < block.timestamp;
   }

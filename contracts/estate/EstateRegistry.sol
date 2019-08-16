@@ -8,6 +8,7 @@ import "zos-lib/contracts/migrations/Migratable.sol";
 
 import "./IEstateRegistry.sol";
 import "./EstateStorage.sol";
+import "../common/IPing.sol";
 
 
 /**
@@ -18,7 +19,7 @@ import "./EstateStorage.sol";
  *   - using AddressUtils for address;
  */
 // solium-disable-next-line max-len
-contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Receiver, Ownable, EstateStorage {
+contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Receiver, Ownable, EstateStorage, IPing {
   modifier canTransfer(uint256 estateId) {
     require(isApprovedOrOwner(msg.sender, estateId), "Only owner or operator can transfer");
     _;
@@ -113,10 +114,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     emit SetLANDRegistry(registry);
   }
 
-  function ping() external {
-    registry.ping();
-  }
-
   /**
    * @notice Return the amount of tokens for a given Estate
    * @param estateId Estate id to search
@@ -180,6 +177,29 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
       _approved
     );
   }
+
+  /**
+   * @dev Set the date from when the ping feature should be enabled
+   * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
+   */
+  function setGracePeriod(uint256 _gracePeriod) external onlyOwner {
+    require(_gracePeriod != 0, "Grace period can not be 0");
+    // solium-disable-next-line security/no-block-members
+    gracePeriod = block.timestamp.add(_gracePeriod);
+    emit GracePeriod(msg.sender, gracePeriod);
+  }
+
+  /**
+   * @dev Set the amount of time that should pass for an asset to be transferred to
+   * a new onwer
+   * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
+   */
+  function setDeemPeriod(uint256 _deemPeriod) external onlyOwner {
+    require(_deemPeriod != 0, "Deem period can not be 0");
+    deemPeriod = _deemPeriod;
+    emit DeemPeriod(msg.sender, deemPeriod);
+  }
+
 
   /**
    * @notice Set Estate updateOperator
@@ -395,6 +415,45 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     super.transferFrom(_from, _to, _tokenId);
   }
 
+  /**
+   * @dev Ping an address
+   * @param _user - address of Estate holder to be pinged
+   */
+  function ping(address _user) public {
+    require(
+      _user == msg.sender ||
+      updateManager[_user][msg.sender] ||
+      isApprovedForAll(_user, msg.sender) ||
+      msg.sender == owner,
+      "This function can only be called by an authorized user"
+    );
+    _ping(_user);
+  }
+
+  /**
+   * @dev Ping myself.
+   * @notice that only refresh owned assets.
+   */
+  function ping() public {
+    _ping(msg.sender);
+  }
+
+  /**
+   * @dev Check if an Estate is decayed or not
+   * @param _tokenId - Estate id
+   * @return Whether the Estate is decayed or not
+   */
+  function hasDecayed(uint256 _tokenId) public view returns (bool) {
+    // solium-disable-next-line security/no-block-members
+    if (gracePeriod == 0 || block.timestamp <= gracePeriod) {
+      return false;
+    }
+
+    address owner = ownerOf(_tokenId);
+    // solium-disable-next-line security/no-block-members
+    return latestPing[owner].add(deemPeriod) < block.timestamp;
+  }
+
   // check the supported interfaces via ERC165
   function _supportsInterface(bytes4 _interfaceId) internal view returns (bool) {
     // solium-disable-next-line operator-whitespace
@@ -563,5 +622,16 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     int y;
     (x, y) = registry.decodeTokenId(landId);
     registry.updateLandData(x, y, data);
+  }
+
+  /**
+   * @dev Ping an address
+   * @param _address - address of Estate holder to be pinged
+   */
+  function _ping(address _address) internal {
+    require(balanceOf(_address) > 0, "Address has no balance");
+    // solium-disable-next-line security/no-block-members
+    latestPing[_address] = block.timestamp;
+    emit Ping(msg.sender, _address);
   }
 }

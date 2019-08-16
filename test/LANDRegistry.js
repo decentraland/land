@@ -1213,199 +1213,220 @@ contract('LANDRegistry', accounts => {
     })
   })
 
-  describe('LAND ping', function() {
-    describe('setGracePeriod', function() {
-      it('should set 4 weeks grace period', async function() {
-        let gracePeriod = await land.gracePeriod()
-        gracePeriod.should.be.bignumber.equal(0)
-        await land.setGracePeriod(fourWeeksDuration, sentByCreator)
-        gracePeriod = await land.gracePeriod()
-        gracePeriod.should.be.bignumber.equal(getEndTime(fourWeeksDuration))
-      })
-
-      it('should emit GracePeriod event', async function() {
-        const { logs } = await land.setGracePeriod(
-          fourWeeksDuration,
-          sentByCreator
-        )
-        const gracePeriod = await land.gracePeriod()
-        const log = logs[0]
-        log.event.should.be.eq('GracePeriod')
-        log.args._caller.should.be.bignumber.equal(creator)
-        log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
-      })
-
-      it('reverts if hacker set grace period', async function() {
-        await assertRevert(land.setGracePeriod(fourWeeksDuration, sentByHacker))
-      })
-
-      it('reverts if set grace period 0', async function() {
-        await assertRevert(land.setGracePeriod(0, sentByCreator))
-      })
+  describe('setGracePeriod', function() {
+    it('should set 4 weeks grace period', async function() {
+      let gracePeriod = await land.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(0)
+      await land.setGracePeriod(fourWeeksDuration, sentByCreator)
+      gracePeriod = await land.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(getEndTime(fourWeeksDuration))
     })
 
-    describe('setDeemPeriod', function() {
-      it('should set 4 weeks deem period', async function() {
-        let deemPeriod = await land.deemPeriod()
-        deemPeriod.should.be.bignumber.equal(0)
-        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
-        deemPeriod = await land.deemPeriod()
-        deemPeriod.should.be.bignumber.equal(fourWeeksDuration)
-      })
-
-      it('should emit DeemPeriod event', async function() {
-        const { logs } = await land.setDeemPeriod(
-          fourWeeksDuration,
-          sentByCreator
-        )
-        const deemPeriod = await land.deemPeriod()
-        const log = logs[0]
-        log.event.should.be.eq('DeemPeriod')
-        log.args._caller.should.be.bignumber.equal(creator)
-        log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
-      })
-
-      it('reverts if hacker set deem period', async function() {
-        await assertRevert(land.setDeemPeriod(fourWeeksDuration, sentByHacker))
-      })
-
-      it('reverts if set deem period 0', async function() {
-        await assertRevert(land.setDeemPeriod(0, sentByCreator))
-      })
+    it('should emit GracePeriod event', async function() {
+      const { logs } = await land.setGracePeriod(
+        fourWeeksDuration,
+        sentByCreator
+      )
+      const gracePeriod = await land.gracePeriod()
+      const log = logs[0]
+      log.event.should.be.eq('GracePeriod')
+      log.args._caller.should.be.bignumber.equal(creator)
+      log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
     })
 
-    describe('hasDecayed', function() {
-      beforeEach(async function() {
-        await land.pingMyself(sentByUser)
-      })
-
-      it('should return true if a LAND is decayed', async function() {
-        const assetId = await land.encodeTokenId(0, 1)
-        await land.setGracePeriod(duration.weeks(1), sentByCreator)
-        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
-        await increaseTime(duration.weeks(5)) // outside delta period
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.true
-      })
-
-      it('should return false is the LAND is not decayed but near to deem period', async function() {
-        const assetId = await land.encodeTokenId(0, 1)
-        await land.setGracePeriod(duration.weeks(1), sentByCreator)
-        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
-        await increaseTime(duration.weeks(2)) // inside delta period
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
-
-      it('should return false is the LAND is not decayed (edge case)', async function() {
-        const assetId = await land.encodeTokenId(0, 1)
-        await land.setGracePeriod(duration.weeks(1), sentByCreator)
-        await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
-        await increaseTime(fourWeeksDuration - 1) // still inside delta period
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
-
-      it('should return false if no gracePeriod set', async function() {
-        const gracePeriod = await land.gracePeriod()
-        gracePeriod.should.be.bignumber.equal(0)
-        const assetId = await land.encodeTokenId(0, 1)
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
-
-      it('should return false if no deemPeriod set', async function() {
-        const deemPeriod = await land.deemPeriod()
-        deemPeriod.should.be.bignumber.equal(0)
-        const assetId = await land.encodeTokenId(0, 1)
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
-
-      it('should return false if both gracePerido and deemPeriod are not set', async function() {
-        const [gracePeriod, deemPeriod] = await Promise.all([
-          land.gracePeriod(),
-          land.deemPeriod()
-        ])
-        gracePeriod.should.be.bignumber.equal(0)
-        deemPeriod.should.be.bignumber.equal(0)
-        const assetId = await land.encodeTokenId(0, 1)
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
-
-      it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
-        const assetId = await land.encodeTokenId(0, 1)
-        await land.setGracePeriod(fourWeeksDuration, sentByCreator)
-        await land.setDeemPeriod(duration.weeks(1), sentByCreator)
-        const decayed = await land.hasDecayed(assetId)
-        decayed.should.be.false
-      })
+    it('reverts if hacker set grace period', async function() {
+      await assertRevert(land.setGracePeriod(fourWeeksDuration, sentByHacker))
     })
 
-    describe('ping', function() {
-      it('should refresh latestPing if pinged by owner', async function() {
-        const latestPingBefore = await land.latestPing(user)
-        await land.pingMyself(sentByUser)
-        const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(
-          web3.eth.getBlock('latest').timestamp
-        )
-        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-      })
+    it('reverts if set grace period 0', async function() {
+      await assertRevert(land.setGracePeriod(0, sentByCreator))
+    })
+  })
 
-      it('should refresh latestPing if pinged by updateManager', async function() {
-        const latestPingBefore = await land.latestPing(user)
-        await land.setUpdateManager(user, anotherUser, true, sentByUser)
-        await land.ping(user, sentByAnotherUser)
-        const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(
-          web3.eth.getBlock('latest').timestamp
-        )
-        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-      })
+  describe('setDeemPeriod', function() {
+    it('should set 4 weeks deem period', async function() {
+      let deemPeriod = await land.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(0)
+      await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      deemPeriod = await land.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(fourWeeksDuration)
+    })
 
-      it('should refresh latestPing if pinged by approvedForAll', async function() {
-        const latestPingBefore = await land.latestPing(user)
-        await land.setApprovalForAll(anotherUser, true, sentByUser)
-        await land.ping(user, sentByAnotherUser)
-        const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(
-          web3.eth.getBlock('latest').timestamp
-        )
-        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-      })
+    it('should emit DeemPeriod event', async function() {
+      const { logs } = await land.setDeemPeriod(
+        fourWeeksDuration,
+        sentByCreator
+      )
+      const deemPeriod = await land.deemPeriod()
+      const log = logs[0]
+      log.event.should.be.eq('DeemPeriod')
+      log.args._caller.should.be.bignumber.equal(creator)
+      log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
+    })
 
-      it('should refresh latestPing if pinged by proxyOwner', async function() {
-        const latestPingBefore = await land.latestPing(user)
-        await land.ping(user, sentByCreator)
-        const latestPingAfter = await land.latestPing(user)
-        latestPingAfter.should.be.bignumber.equal(
-          web3.eth.getBlock('latest').timestamp
-        )
-        latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-      })
+    it('reverts if hacker set deem period', async function() {
+      await assertRevert(land.setDeemPeriod(fourWeeksDuration, sentByHacker))
+    })
 
-      it('should emit Ping event when ping', async function() {
-        const { logs } = await land.pingMyself(sentByUser)
-        const log = logs[0]
-        log.event.should.be.eq('Ping')
-        log.args._caller.should.be.bignumber.equal(user)
-        log.args._holder.should.be.equal(user)
-      })
+    it('reverts if set deem period 0', async function() {
+      await assertRevert(land.setDeemPeriod(0, sentByCreator))
+    })
+  })
 
-      it('should emit Ping event when ping by other', async function() {
-        await land.setApprovalForAll(anotherUser, true, sentByUser)
-        const { logs } = await land.ping(user, sentByAnotherUser)
-        const log = logs[0]
-        log.event.should.be.eq('Ping')
-        log.args._caller.should.be.bignumber.equal(anotherUser)
-        log.args._holder.should.be.equal(user)
-      })
+  describe('hasDecayed', function() {
+    beforeEach(async function() {
+      await land.pingMyself(sentByUser)
+    })
 
-      it('reverts if trying to ping by a non-authorized address', async function() {
-        await assertRevert(land.ping(user, sentByHacker))
-      })
+    it('should return true if a LAND is decayed', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setGracePeriod(duration.weeks(1), sentByCreator)
+      await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(5)) // outside delta period
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.true
+    })
+
+    it('should return false is the LAND is not decayed but near to deem period', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setGracePeriod(duration.weeks(1), sentByCreator)
+      await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(2)) // inside delta period
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false is the LAND is not decayed (edge case)', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setGracePeriod(duration.weeks(1), sentByCreator)
+      await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(fourWeeksDuration - 1) // still inside delta period
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false if no gracePeriod set', async function() {
+      const gracePeriod = await land.gracePeriod()
+      gracePeriod.should.be.bignumber.equal(0)
+      const assetId = await land.encodeTokenId(0, 1)
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false if no deemPeriod set', async function() {
+      const deemPeriod = await land.deemPeriod()
+      deemPeriod.should.be.bignumber.equal(0)
+      const assetId = await land.encodeTokenId(0, 1)
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false if both gracePerido and deemPeriod are not set', async function() {
+      const [gracePeriod, deemPeriod] = await Promise.all([
+        land.gracePeriod(),
+        land.deemPeriod()
+      ])
+      gracePeriod.should.be.bignumber.equal(0)
+      deemPeriod.should.be.bignumber.equal(0)
+      const assetId = await land.encodeTokenId(0, 1)
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false if gracePeriod is bigger than today (4 weeks from now)', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setGracePeriod(fourWeeksDuration, sentByCreator)
+      await land.setDeemPeriod(duration.weeks(1), sentByCreator)
+      const decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+
+    it('should return false if the LAND is inside an Estate', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setGracePeriod(duration.weeks(1), sentByCreator)
+      await land.setDeemPeriod(fourWeeksDuration, sentByCreator)
+      await increaseTime(duration.weeks(5)) // outside delta period
+      let decayed = await land.hasDecayed(assetId)
+      decayed.should.be.true
+
+      await createEstate([0], [1], user, sentByUser)
+      await increaseTime(duration.weeks(5)) // outside delta period
+      decayed = await land.hasDecayed(assetId)
+      decayed.should.be.false
+    })
+  })
+
+  describe('ping', function() {
+    it('should refresh latestPing if pinged by owner', async function() {
+      let latestPingBefore = await land.latestPing(user)
+      await land.pingMyself(sentByUser)
+      let latestPingAfter = await land.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(
+        web3.eth.getBlock('latest').timestamp
+      )
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+
+      await increaseTime(duration.seconds(1))
+      latestPingBefore = latestPingAfter
+      await land.ping(user, sentByUser)
+      latestPingAfter = await land.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(
+        web3.eth.getBlock('latest').timestamp
+      )
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should refresh latestPing if pinged by updateManager', async function() {
+      const latestPingBefore = await land.latestPing(user)
+      await land.setUpdateManager(user, anotherUser, true, sentByUser)
+      await land.ping(user, sentByAnotherUser)
+      const latestPingAfter = await land.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(
+        web3.eth.getBlock('latest').timestamp
+      )
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should refresh latestPing if pinged by approvedForAll', async function() {
+      const latestPingBefore = await land.latestPing(user)
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      await land.ping(user, sentByAnotherUser)
+      const latestPingAfter = await land.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(
+        web3.eth.getBlock('latest').timestamp
+      )
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should refresh latestPing if pinged by proxyOwner', async function() {
+      const latestPingBefore = await land.latestPing(user)
+      await land.ping(user, sentByCreator)
+      const latestPingAfter = await land.latestPing(user)
+      latestPingAfter.should.be.bignumber.equal(
+        web3.eth.getBlock('latest').timestamp
+      )
+      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+    })
+
+    it('should emit Ping event when ping', async function() {
+      const { logs } = await land.pingMyself(sentByUser)
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(user)
+      log.args._holder.should.be.equal(user)
+    })
+
+    it('should emit Ping event when ping by other', async function() {
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      const { logs } = await land.ping(user, sentByAnotherUser)
+      const log = logs[0]
+      log.event.should.be.eq('Ping')
+      log.args._caller.should.be.bignumber.equal(anotherUser)
+      log.args._holder.should.be.equal(user)
+    })
+
+    it('reverts if trying to ping by a non-authorized address', async function() {
+      await assertRevert(land.ping(user, sentByHacker))
     })
   })
 })
