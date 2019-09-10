@@ -1044,7 +1044,6 @@ contract EstateStorage {
 
   // Time when the deem period should end
   uint256 public deemPeriod;
-
 }
 
 // File: contracts/common/IPing.sol
@@ -1247,7 +1246,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @dev Set the date from when the ping feature should be enabled
    * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
    */
-  function setGracePeriod(uint256 _gracePeriod) external onlyOwner {
+  function setGracePeriod(uint256 _gracePeriod) external /* onlyOwner @TODO: owner is lost replace with a new role or make it calleable by anyone */{
     require(_gracePeriod != 0, "Grace period can not be 0");
     // solium-disable-next-line security/no-block-members
     gracePeriod = block.timestamp.add(_gracePeriod);
@@ -1259,7 +1258,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * a new onwer
    * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
    */
-  function setDeemPeriod(uint256 _deemPeriod) external onlyOwner {
+  function setDeemPeriod(uint256 _deemPeriod) external /* onlyOwner @TODO: owner is lost replace with a new role or make it calleable by anyone */ {
     require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
     emit DeemPeriod(msg.sender, deemPeriod);
@@ -1487,7 +1486,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function ping(address _user) public {
     require(
       _user == msg.sender ||
-      updateManager[_user][msg.sender] ||
       isApprovedForAll(_user, msg.sender) ||
       msg.sender == owner,
       "This function can only be called by an authorized user"
@@ -1694,7 +1692,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _address - address of Estate holder to be pinged
    */
   function _ping(address _address) internal {
-    require(balanceOf(_address) > 0, "Address has no balance");
+    require(balanceOf(_address) > 0, "The user has not Estates");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);

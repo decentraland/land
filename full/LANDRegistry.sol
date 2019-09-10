@@ -909,7 +909,7 @@ contract IMetadataHolder is ERC165 {
   function getMetadata(uint256 /* assetId */) external view returns (string);
 }
 
-// File: contracts/common/Iping.sol
+// File: contracts/common/IPing.sol
 
 interface IPing {
   // LAND Ping
@@ -1442,7 +1442,6 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
   function ping(address _user) external {
     require(
       _user == msg.sender ||
-      updateManager[_user][msg.sender] ||
       _isApprovedForAll(_user, msg.sender) ||
       msg.sender == proxyOwner,
       "This function can only be called by an authorized user"
@@ -1463,7 +1462,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    * @param _address - address of LAND holder to be pinged
    */
   function _ping(address _address) internal {
-    require(_balanceOf(_address) > 0, "Address has no balance");
+    require(_balanceOf(_address) > 0, "The user has not LANDs");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);

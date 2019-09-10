@@ -47,5 +47,4 @@ contract EstateStorage {
 
   // Time when the deem period should end
   uint256 public deemPeriod;
-
 }

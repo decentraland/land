@@ -1733,8 +1733,9 @@ contract('EstateRegistry', accounts => {
   })
 
   describe('ping', function() {
+    let estateId
     beforeEach(async function() {
-      await createUserEstateWithToken1()
+      estateId = await createUserEstateWithToken1()
     })
 
     it('should refresh latestPing if pinged by owner', async function() {
@@ -1748,15 +1749,6 @@ contract('EstateRegistry', accounts => {
       latestPingBefore = latestPingAfter
       await estate.ping(user, sentByUser)
       latestPingAfter = await estate.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(latestTime())
-      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-    })
-
-    it('should refresh latestPing if pinged by updateManager', async function() {
-      const latestPingBefore = await estate.latestPing(user)
-      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
-      await estate.ping(user, sentByAnotherUser)
-      const latestPingAfter = await estate.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
@@ -1793,6 +1785,21 @@ contract('EstateRegistry', accounts => {
       log.event.should.be.eq('Ping')
       log.args._caller.should.be.bignumber.equal(anotherUser)
       log.args._holder.should.be.equal(user)
+    })
+
+    it('reverts if pinged by updateManager', async function() {
+      await estate.setUpdateManager(user, anotherUser, true, sentByUser)
+      await assertRevert(estate.ping(user, sentByAnotherUser))
+    })
+
+    it('reverts if pinged by operator', async function() {
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await assertRevert(estate.ping(user, sentByAnotherUser))
+    })
+
+    it('reverts if pinged by updateOperator ', async function() {
+      await estate.setUpdateOperator(estateId, anotherUser, sentByUser)
+      await assertRevert(estate.ping(user, sentByAnotherUser))
     })
 
     it('reverts if trying to ping by a non-authorized address', async function() {

@@ -1373,15 +1373,6 @@ contract('LANDRegistry', accounts => {
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
-    it('should refresh latestPing if pinged by updateManager', async function() {
-      const latestPingBefore = await land.latestPing(user)
-      await land.setUpdateManager(user, anotherUser, true, sentByUser)
-      await land.ping(user, sentByAnotherUser)
-      const latestPingAfter = await land.latestPing(user)
-      latestPingAfter.should.be.bignumber.equal(latestTime())
-      latestPingAfter.should.bignumber.be.gt(latestPingBefore)
-    })
-
     it('should refresh latestPing if pinged by approvedForAll', async function() {
       const latestPingBefore = await land.latestPing(user)
       await land.setApprovalForAll(anotherUser, true, sentByUser)
@@ -1414,6 +1405,23 @@ contract('LANDRegistry', accounts => {
       log.event.should.be.eq('Ping')
       log.args._caller.should.be.bignumber.equal(anotherUser)
       log.args._holder.should.be.equal(user)
+    })
+
+    it('reverts if pinged by updateManager', async function() {
+      await land.setUpdateManager(user, anotherUser, true, sentByUser)
+      await assertRevert(land.ping(user, sentByAnotherUser))
+    })
+
+    it('reverts if pinged by operator', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.approve(anotherUser, assetId, sentByUser)
+      await assertRevert(land.ping(user, sentByAnotherUser))
+    })
+
+    it('reverts if pinged by updateOperator', async function() {
+      const assetId = await land.encodeTokenId(0, 1)
+      await land.setUpdateOperator(assetId, anotherUser, sentByUser)
+      await assertRevert(land.ping(user, sentByAnotherUser))
     })
 
     it('reverts if trying to ping by a non-authorized address', async function() {

@@ -422,7 +422,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function ping(address _user) public {
     require(
       _user == msg.sender ||
-      updateManager[_user][msg.sender] ||
       isApprovedForAll(_user, msg.sender) ||
       msg.sender == owner,
       "This function can only be called by an authorized user"
@@ -629,7 +628,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _address - address of Estate holder to be pinged
    */
   function _ping(address _address) internal {
-    require(balanceOf(_address) > 0, "Address has not Estates");
+    require(balanceOf(_address) > 0, "The user has not Estates");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
     emit Ping(msg.sender, _address);
