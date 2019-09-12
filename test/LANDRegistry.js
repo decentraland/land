@@ -1360,6 +1360,7 @@ contract('LANDRegistry', accounts => {
   describe('ping', function() {
     it('should refresh latestPing if pinged by owner', async function() {
       let latestPingBefore = await land.latestPing(user)
+      await increaseTime(duration.seconds(1))
       await land.pingMyself(sentByUser)
       let latestPingAfter = await land.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
@@ -1376,6 +1377,7 @@ contract('LANDRegistry', accounts => {
     it('should refresh latestPing if pinged by approvedForAll', async function() {
       const latestPingBefore = await land.latestPing(user)
       await land.setApprovalForAll(anotherUser, true, sentByUser)
+      await increaseTime(duration.seconds(1))
       await land.ping(user, sentByAnotherUser)
       const latestPingAfter = await land.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
@@ -1384,6 +1386,7 @@ contract('LANDRegistry', accounts => {
 
     it('should refresh latestPing if pinged by proxyOwner', async function() {
       const latestPingBefore = await land.latestPing(user)
+      await increaseTime(duration.seconds(1))
       await land.ping(user, sentByCreator)
       const latestPingAfter = await land.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
@@ -1394,8 +1397,7 @@ contract('LANDRegistry', accounts => {
       const { logs } = await land.pingMyself(sentByUser)
       const log = logs[0]
       log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(user)
-      log.args._holder.should.be.equal(user)
+      log.args._user.should.be.equal(user)
     })
 
     it('should emit Ping event when ping by other', async function() {
@@ -1403,8 +1405,100 @@ contract('LANDRegistry', accounts => {
       const { logs } = await land.ping(user, sentByAnotherUser)
       const log = logs[0]
       log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(anotherUser)
-      log.args._holder.should.be.equal(user)
+      log.args._user.should.be.equal(user)
+    })
+
+    it('should Ping when transfer to a new address :: transferFrom', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.transferFrom(user, anotherUser, landId, sentByUser)
+
+      latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: safeTransferFrom', async function() {
+      const landId = await land.encodeTokenId(0, 1)
+
+      let latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
+
+      latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: transferLand', async function() {
+      let latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.transferLand(0, 1, anotherUser, sentByUser)
+
+      latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: transferManyLand', async function() {
+      const [xUser, yUser] = await getLandOfUser()
+
+      let latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.transferManyLand(xUser, yUser, anotherUser, sentByUser)
+
+      latestPing = await land.latestPing(anotherUser)
+      latestPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: transferLandToEstate', async function() {
+      let latestPing = await land.latestPing(estate.address)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+      const estateId = await createEstate([3], [3], user, sentByCreator)
+
+      latestPing = await land.latestPing(estate.address)
+      const latestEstatePingTime = latestTime()
+      latestPing.should.be.bignumber.equal(latestEstatePingTime)
+
+      await land.transferLandToEstate(0, 1, estateId, sentByUser)
+
+      latestPing = await land.latestPing(estate.address)
+      latestPing.should.be.bignumber.equal(latestEstatePingTime)
+    })
+
+    it('should Ping when transfer to a new address :: transferManyLandToEstate', async function() {
+      let latestPing = await land.latestPing(estate.address)
+      latestPing.should.be.bignumber.equal(0)
+
+      await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+      const estateId = await createEstate([3], [3], user, sentByCreator)
+
+      latestPing = await land.latestPing(estate.address)
+      const latestEstatePingTime = latestTime()
+      latestPing.should.be.bignumber.equal(latestEstatePingTime)
+
+      const [xUser, yUser] = await getLandOfUser()
+
+      await land.transferManyLandToEstate(xUser, yUser, estateId, sentByUser)
+
+      latestPing = await land.latestPing(estate.address)
+      latestPing.should.be.bignumber.equal(latestEstatePingTime)
+    })
+
+    it('should not Ping on transfer to an used address', async function() {
+      let latestPing = await land.latestPing(user)
+
+      const landId = await land.encodeTokenId(0, 1)
+      await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
+      await land.safeTransferFrom(anotherUser, user, landId, sentByAnotherUser)
+
+      const currentPing = await land.latestPing(user)
+      currentPing.should.be.bignumber.equal(latestPing)
     })
 
     it('reverts if pinged by updateManager', async function() {

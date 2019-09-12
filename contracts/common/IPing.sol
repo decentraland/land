@@ -10,8 +10,7 @@ interface IPing {
 
   // Events
   event Ping(
-    address indexed _caller,
-    address indexed _holder
+    address indexed _user
   );
 
   event GracePeriod(

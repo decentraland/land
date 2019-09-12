@@ -413,6 +413,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   {
     updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
+    _initializeAddress(_to);
   }
 
   /**
@@ -420,6 +421,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _user - address of Estate holder to be pinged
    */
   function ping(address _user) public {
+    require(balanceOf(_user) > 0, "The user has not Estates");
     require(
       _user == msg.sender ||
       isApprovedForAll(_user, msg.sender) ||
@@ -434,6 +436,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @notice that only refresh owned assets.
    */
   function ping() public {
+    require(balanceOf(msg.sender) > 0, "The user has not Estates");
     _ping(msg.sender);
   }
 
@@ -473,6 +476,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     _mint(to, estateId);
     _updateMetadata(estateId, metadata);
     emit CreateEstate(to, estateId, metadata);
+    _initializeAddress(to);
     return estateId;
   }
 
@@ -628,9 +632,18 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _address - address of Estate holder to be pinged
    */
   function _ping(address _address) internal {
-    require(balanceOf(_address) > 0, "The user has not Estates");
     // solium-disable-next-line security/no-block-members
     latestPing[_address] = block.timestamp;
-    emit Ping(msg.sender, _address);
+    emit Ping(_address);
+  }
+
+  /**
+   * @dev Initialize user's latestPing if it is 0
+   * @param _user - address of LAND holder to be pinged
+   */
+  function _initializeAddress(address _user) internal {
+    if (latestPing[_user] == 0) {
+      _ping(_user);
+    }
   }
 }
