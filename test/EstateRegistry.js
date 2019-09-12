@@ -1789,19 +1789,29 @@ contract('EstateRegistry', accounts => {
     })
 
     it('should Ping when transfer to a new address :: safeTransferFrom', async function() {
-      let latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(0)
+      let latestFromPing = await estate.latestPing(user)
 
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
       await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
 
-      latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(latestTime())
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
     })
 
     it('should Ping when transfer to a new address :: safeTransferFrom with bytes', async function() {
-      let latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(0)
+      let latestFromPing = await estate.latestPing(user)
 
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
       await estate.safeTransferFromWithBytes(
         user,
         anotherUser,
@@ -1810,24 +1820,38 @@ contract('EstateRegistry', accounts => {
         sentByUser
       )
 
-      latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(latestTime())
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
     })
 
     it('should Ping when transfer to a new address :: transferFrom', async function() {
-      let latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(0)
+      let latestFromPing = await estate.latestPing(user)
 
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
       await estate.transferFrom(user, anotherUser, estateId, sentByUser)
 
-      latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(latestTime())
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
     })
 
     it('should Ping when transfer to a new address :: safeTransferManyFrom', async function() {
-      let latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(0)
+      let latestFromPing = await estate.latestPing(user)
 
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
       await estate.safeTransferManyFrom(
         user,
         anotherUser,
@@ -1835,16 +1859,46 @@ contract('EstateRegistry', accounts => {
         sentByUser
       )
 
-      latestPing = await estate.latestPing(anotherUser)
-      latestPing.should.be.bignumber.equal(latestTime())
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should emit only one Ping event', async function() {
+      const estateId2 = await createUserEstateWithToken2()
+      await increaseTime(duration.seconds(1))
+      const { logs } = await estate.safeTransferManyFrom(
+        user,
+        anotherUser,
+        [estateId, estateId2],
+        sentByUser
+      )
+
+      const PingFromEvents = logs.filter(
+        log => log.event === 'Ping' && log.args._user === user
+      )
+
+      PingFromEvents.length.should.be.equal(1)
+
+      const PingToEvents = logs.filter(
+        log => log.event === 'Ping' && log.args._user === anotherUser
+      )
+
+      PingToEvents.length.should.be.equal(1)
     })
 
     it('should not Ping on transfer to an used address', async function() {
-      let latestPing = await estate.latestPing(user)
       await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
       await estate.transferFrom(anotherUser, user, estateId, sentByAnotherUser)
 
-      const currentPing = await land.latestPing(user)
+      const currentPing = await estate.latestPing(user)
       currentPing.should.be.bignumber.equal(latestPing)
     })
 

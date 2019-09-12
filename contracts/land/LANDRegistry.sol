@@ -475,7 +475,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
       userData,
       doCheck
     );
-
+    _pingByAction(from);
     _initializeAddress(to);
   }
 
@@ -552,6 +552,17 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    */
   function _initializeAddress(address _user) internal {
     if (latestPing[_user] == 0) {
+      _ping(_user);
+    }
+  }
+
+  /**
+   * @dev Ping a user
+   * @notice that would be used ONLY when performing an action
+   * @param _user - address of LAND holder to be pinged
+   */
+  function _pingByAction(address _user) internal {
+    if (latestPing[_user] != block.timestamp) {
       _ping(_user);
     }
   }

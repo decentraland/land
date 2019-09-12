@@ -413,6 +413,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   {
     updateOperator[_tokenId] = address(0);
     super.transferFrom(_from, _to, _tokenId);
+    _pingByAction(_from);
     _initializeAddress(_to);
   }
 
@@ -643,6 +644,17 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    */
   function _initializeAddress(address _user) internal {
     if (latestPing[_user] == 0) {
+      _ping(_user);
+    }
+  }
+
+  /**
+   * @dev Ping a user
+   * @notice that would be used ONLY when performing an action
+   * @param _user - address of LAND holder to be pinged
+   */
+  function _pingByAction(address _user) internal {
+    if (latestPing[_user] != block.timestamp) {
       _ping(_user);
     }
   }
