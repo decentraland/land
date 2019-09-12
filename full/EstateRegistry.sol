@@ -1713,7 +1713,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   /**
    * @dev Ping a user
-   * @notice that would be used ONLY when performing an action
+   * @notice that should be used ONLY when performing an action
    * @param _user - address of LAND holder to be pinged
    */
   function _pingByAction(address _user) internal {
