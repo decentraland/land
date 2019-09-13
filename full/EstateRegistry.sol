@@ -994,6 +994,11 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event ProxyOwnershipTransferred(
+    address indexed _previousProxyOwner,
+    address indexed _newProxyOwner
+  );
 }
 
 // File: contracts/estate/EstateStorage.sol
@@ -1044,6 +1049,9 @@ contract EstateStorage {
 
   // Time when the deem period should end
   uint256 public deemPeriod;
+
+  // Master role
+  address public proxyOwner;
 }
 
 // File: contracts/common/IPing.sol
@@ -1100,6 +1108,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   modifier onlyLandUpdateAuthorized(uint256 estateId, uint256 landId) {
     require(_isLandUpdateAuthorized(msg.sender, estateId, landId), "unauthorized user");
+    _;
+  }
+
+  modifier onlyProxyOwner() {
+    require(msg.sender == proxyOwner, "Unauthorized user");
     _;
   }
 
@@ -1170,7 +1183,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return landIdEstate[landId];
   }
 
-  function setLANDRegistry(address _registry) external onlyOwner {
+  function setLANDRegistry(address _registry) external onlyProxyOwner {
     require(_registry.isContract(), "The LAND registry address should be a contract");
     require(_registry != 0, "The LAND registry address should be valid");
     registry = LANDRegistry(_registry);
@@ -1245,7 +1258,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @dev Set the date from when the ping feature should be enabled
    * @param _gracePeriod - Desired amount of time in seconds from now to enable the feature
    */
-  function setGracePeriod(uint256 _gracePeriod) external /* onlyOwner @TODO: owner is lost replace with a new role or make it calleable by anyone */{
+  function setGracePeriod(uint256 _gracePeriod) external onlyProxyOwner {
     require(_gracePeriod != 0, "Grace period can not be 0");
     // solium-disable-next-line security/no-block-members
     gracePeriod = block.timestamp.add(_gracePeriod);
@@ -1257,12 +1270,29 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * a new onwer
    * @param _deemPeriod - Desired amount of time in seconds for a LAND to decay
    */
-  function setDeemPeriod(uint256 _deemPeriod) external /* onlyOwner @TODO: owner is lost replace with a new role or make it calleable by anyone */ {
+  function setDeemPeriod(uint256 _deemPeriod) external onlyProxyOwner {
     require(_deemPeriod != 0, "Deem period can not be 0");
     deemPeriod = _deemPeriod;
     emit DeemPeriod(msg.sender, deemPeriod);
   }
 
+  /**
+   * @dev Set the decentraland multisig as proxyOwner if it is empty
+   */
+  function initProxyOwner() external {
+    require(proxyOwner == address(0), "ProxyOwner can be initialized only once");
+    proxyOwner = address(0x4eAC6325e1DBF1Ac90434d39766e164Dca71139E);
+    emit ProxyOwnershipTransferred(address(0), proxyOwner);
+  }
+
+  /**
+   * @dev Set the decentraland multisig as proxyOwner if it is empty
+   */
+  function transferProxyOwnership(address _newProxyOwner) onlyProxyOwner external {
+    require(_newProxyOwner != address(0), "New proxyOwner should not be zero address");
+    emit ProxyOwnershipTransferred(proxyOwner, _newProxyOwner);
+    proxyOwner = _newProxyOwner;
+  }
 
   /**
    * @notice Set Estate updateOperator
@@ -1717,7 +1747,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _user - address of LAND holder to be pinged
    */
   function _pingByAction(address _user) internal {
-    if (latestPing[_user] != block.timestamp) {
+    if (
+        latestPing[_user] != block.timestamp &&
+        (msg.sender == _user || isApprovedForAll(_user, msg.sender))
+    ) {
       _ping(_user);
     }
   }

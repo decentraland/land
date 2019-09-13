@@ -562,7 +562,10 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    * @param _user - address of LAND holder to be pinged
    */
   function _pingByAction(address _user) internal {
-    if (latestPing[_user] != block.timestamp) {
+    if (
+        latestPing[_user] != block.timestamp &&
+        (msg.sender == _user || _isApprovedForAll(_user, msg.sender))
+    ) {
       _ping(_user);
     }
   }

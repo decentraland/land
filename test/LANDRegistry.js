@@ -1600,6 +1600,32 @@ contract('LANDRegistry', accounts => {
       currentPing.should.be.bignumber.equal(latestPing)
     })
 
+    it('should Ping on transfer by approvalForAll', async function() {
+      let latestPing = await land.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+
+      await land.setApprovalForAll(anotherUser, true, sentByUser)
+      const landId = await land.encodeTokenId(0, 1)
+      await land.transferFrom(user, hacker, landId, sentByAnotherUser)
+
+      const currentPing = await land.latestPing(user)
+      currentPing.should.be.bignumber.gt(latestPing)
+    })
+
+    it('should not Ping on transfer by operator', async function() {
+      let latestPing = await land.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+
+      const landId = await land.encodeTokenId(0, 1)
+      await land.approve(anotherUser, landId, sentByUser)
+      await land.transferFrom(user, hacker, landId, sentByUser)
+
+      const currentPing = await land.latestPing(user)
+      currentPing.should.be.bignumber.equal(latestPing)
+    })
+
     it('reverts if pinged by updateManager', async function() {
       await land.setUpdateManager(user, anotherUser, true, sentByUser)
       await assertRevert(land.ping(user, sentByAnotherUser))

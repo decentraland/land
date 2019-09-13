@@ -17,6 +17,7 @@ const BigNumber = web3.BigNumber
 const LANDProxy = artifacts.require('LANDProxy')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const DCL_MULTISIG = '0x4eac6325e1dbf1ac90434d39766e164dca71139e'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -211,16 +212,19 @@ contract('EstateRegistry', accounts => {
   describe('set LAND Registry', function() {
     it('set works correctly', async function() {
       const registry = await LANDProxy.new(creationParams)
+      await estate.initAndChangeProxyOwner(creator)
       await estate.setLANDRegistry(registry.address, creationParams)
       await assertRegistry(registry.address)
     })
 
     it('should throw if setting a non-contract', async function() {
+      await estate.initAndChangeProxyOwner(creator)
       await assertRevert(estate.setLANDRegistry(hacker, creationParams))
     })
 
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
+      await estate.initAndChangeProxyOwner(creator)
       await assertRevert(
         estate.setLANDRegistry(registry.address, sentByAnotherUser)
       )
@@ -1596,7 +1600,77 @@ contract('EstateRegistry', accounts => {
     })
   })
 
+  describe('ProxyOwner', function() {
+    it('should init proxyOwner to dcl Multisig', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      const { logs } = await estate.initProxyOwner()
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(EMPTY_ADDRESS)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(DCL_MULTISIG)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(DCL_MULTISIG)
+    })
+
+    it('should transfer proxyOwner', async function() {
+      await estate.initAndChangeProxyOwner(creator)
+
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      const { logs } = await estate.transferProxyOwnership(user, sentByCreator)
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(creator)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(user)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(user)
+    })
+
+    it('reverts when transferring proxyOwner by unauthorized user', async function() {
+      await estate.initAndChangeProxyOwner(creator)
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      await assertRevert(estate.transferProxyOwnership(user, sentByHacker))
+    })
+
+    it('reverts if trying to init proxyOwner after transferred', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.initAndChangeProxyOwner(creator)
+
+      await estate.transferProxyOwnership(user, sentByCreator)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(user)
+
+      await assertRevert(estate.initProxyOwner())
+    })
+
+    it('reverts if trying to init proxyOwner more than once', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.initProxyOwner()
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(DCL_MULTISIG)
+
+      await assertRevert(estate.initProxyOwner())
+    })
+  })
+
   describe('setGracePeriod', function() {
+    beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
+    })
+
     it('should set 4 weeks grace period', async function() {
       let gracePeriod = await estate.gracePeriod()
       gracePeriod.should.be.bignumber.equal(0)
@@ -1617,16 +1691,20 @@ contract('EstateRegistry', accounts => {
       log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
     })
 
-    it.skip('reverts if hacker set grace period', async function() {
+    it('reverts if hacker set grace period', async function() {
       await assertRevert(estate.setGracePeriod(fourWeeksDuration, sentByHacker))
     })
 
-    it.skip('reverts if set grace period 0', async function() {
+    it('reverts if set grace period 0', async function() {
       await assertRevert(estate.setGracePeriod(0, sentByCreator))
     })
   })
 
   describe('setDeemPeriod', function() {
+    beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
+    })
+
     it('should set 4 weeks deem period', async function() {
       let deemPeriod = await estate.deemPeriod()
       deemPeriod.should.be.bignumber.equal(0)
@@ -1647,11 +1725,11 @@ contract('EstateRegistry', accounts => {
       log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
     })
 
-    it.skip('reverts if hacker set deem period', async function() {
+    it('reverts if hacker set deem period', async function() {
       await assertRevert(estate.setDeemPeriod(fourWeeksDuration, sentByHacker))
     })
 
-    it.skip('reverts if set deem period 0', async function() {
+    it('reverts if set deem period 0', async function() {
       await assertRevert(estate.setDeemPeriod(0, sentByCreator))
     })
   })
@@ -1659,6 +1737,7 @@ contract('EstateRegistry', accounts => {
   describe('hasDecayed', function() {
     let estateId
     beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
       estateId = await createUserEstateWithToken1()
       await estate.pingMyself(sentByUser)
     })
@@ -1735,6 +1814,7 @@ contract('EstateRegistry', accounts => {
   describe('ping', function() {
     let estateId
     beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
       estateId = await createUserEstateWithToken1()
     })
 
@@ -1764,7 +1844,7 @@ contract('EstateRegistry', accounts => {
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
-    it.skip('should refresh latestPing if pinged by proxyOwner', async function() {
+    it('should refresh latestPing if pinged by proxyOwner', async function() {
       const latestPingBefore = await estate.latestPing(user)
       await increaseTime(duration.seconds(1))
       await estate.ping(user, sentByCreator)
@@ -1888,6 +1968,28 @@ contract('EstateRegistry', accounts => {
       )
 
       PingToEvents.length.should.be.equal(1)
+    })
+
+    it('should Ping on transfer by approvalForAll', async function() {
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.transferFrom(user, hacker, estateId, sentByAnotherUser)
+
+      const currentPing = await estate.latestPing(user)
+      currentPing.should.be.bignumber.gt(latestPing)
+    })
+
+    it('should not Ping on transfer by operator', async function() {
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.transferFrom(user, hacker, estateId, sentByAnotherUser)
+
+      const currentPing = await estate.latestPing(user)
+      currentPing.should.be.bignumber.equal(latestPing)
     })
 
     it('should not Ping on transfer to an used address', async function() {
