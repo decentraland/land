@@ -1620,7 +1620,7 @@ contract('LANDRegistry', accounts => {
 
       const landId = await land.encodeTokenId(0, 1)
       await land.approve(anotherUser, landId, sentByUser)
-      await land.transferFrom(user, hacker, landId, sentByUser)
+      await land.transferFrom(user, hacker, landId, sentByAnotherUser)
 
       const currentPing = await land.latestPing(user)
       currentPing.should.be.bignumber.equal(latestPing)
