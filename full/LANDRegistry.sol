@@ -115,6 +115,11 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event ProxyOwnershipTransferred(
+    address indexed _previousProxyOwner,
+    address indexed _newProxyOwner
+  );
 }
 
 // File: contracts/land/LANDStorage.sol
@@ -921,8 +926,7 @@ interface IPing {
 
   // Events
   event Ping(
-    address indexed _caller,
-    address indexed _holder
+    address indexed _user
   );
 
   event GracePeriod(
@@ -1026,12 +1030,14 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
 
   function assignNewParcel(int x, int y, address beneficiary) external onlyDeployer {
     _generate(_encodeTokenId(x, y), beneficiary);
+    _initializeAddress(beneficiary);
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external onlyDeployer {
     for (uint i = 0; i < x.length; i++) {
       _generate(_encodeTokenId(x[i], y[i]), beneficiary);
     }
+    _initializeAddress(beneficiary);
   }
 
   //
@@ -1400,6 +1406,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
       userData,
       doCheck
     );
+    _pingByAction(from);
+    _initializeAddress(to);
   }
 
   function _isContract(address addr) internal view returns (bool) {
@@ -1440,6 +1448,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    * @param _user - address of LAND holder to be pinged
    */
   function ping(address _user) external {
+    require(_balanceOf(_user) > 0, "The user has not LANDs");
     require(
       _user == msg.sender ||
       _isApprovedForAll(_user, msg.sender) ||
@@ -1454,18 +1463,42 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry, IPi
    * @notice that only refresh owned assets.
    */
   function ping() external {
+    require(_balanceOf(msg.sender) > 0, "The user has not LANDs");
     _ping(msg.sender);
   }
 
   /**
    * @dev Ping an address
-   * @param _address - address of LAND holder to be pinged
+   * @param _user - address of LAND holder to be pinged
    */
-  function _ping(address _address) internal {
-    require(_balanceOf(_address) > 0, "The user has not LANDs");
+  function _ping(address _user) internal {
     // solium-disable-next-line security/no-block-members
-    latestPing[_address] = block.timestamp;
-    emit Ping(msg.sender, _address);
+    latestPing[_user] = block.timestamp;
+    emit Ping(_user);
+  }
+
+  /**
+   * @dev Initialize user's latestPing if it is 0
+   * @param _user - address of LAND holder to be pinged
+   */
+  function _initializeAddress(address _user) internal {
+    if (latestPing[_user] == 0) {
+      _ping(_user);
+    }
+  }
+
+  /**
+   * @dev Ping a user
+   * @notice that should be used ONLY when performing an action
+   * @param _user - address of LAND holder to be pinged
+   */
+  function _pingByAction(address _user) internal {
+    if (
+        latestPing[_user] != block.timestamp &&
+        (msg.sender == _user || _isApprovedForAll(_user, msg.sender))
+    ) {
+      _ping(_user);
+    }
   }
 
   /**

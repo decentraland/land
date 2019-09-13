@@ -49,4 +49,9 @@ contract EstateRegistryTest is EstateRegistry {
   function pingMyself() external {
     _ping(msg.sender);
   }
+
+  function initAndChangeProxyOwner(address _address) public {
+    this.initProxyOwner();
+    proxyOwner = _address;
+  }
 }

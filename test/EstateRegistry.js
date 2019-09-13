@@ -17,6 +17,7 @@ const BigNumber = web3.BigNumber
 const LANDProxy = artifacts.require('LANDProxy')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const DCL_MULTISIG = '0x4eac6325e1dbf1ac90434d39766e164dca71139e'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -211,16 +212,19 @@ contract('EstateRegistry', accounts => {
   describe('set LAND Registry', function() {
     it('set works correctly', async function() {
       const registry = await LANDProxy.new(creationParams)
+      await estate.initAndChangeProxyOwner(creator)
       await estate.setLANDRegistry(registry.address, creationParams)
       await assertRegistry(registry.address)
     })
 
     it('should throw if setting a non-contract', async function() {
+      await estate.initAndChangeProxyOwner(creator)
       await assertRevert(estate.setLANDRegistry(hacker, creationParams))
     })
 
     it('unauthorized user can not set registry', async function() {
       const registry = await LANDProxy.new(creationParams)
+      await estate.initAndChangeProxyOwner(creator)
       await assertRevert(
         estate.setLANDRegistry(registry.address, sentByAnotherUser)
       )
@@ -257,7 +261,7 @@ contract('EstateRegistry', accounts => {
       const metadata = 'name,description'
       const { logs } = await estate.mintEstate(user, metadata)
 
-      logs.length.should.be.equal(2)
+      logs.length.should.be.equal(3)
 
       // ERC721
       assertEvent(logs[0], 'Transfer', {
@@ -1596,7 +1600,77 @@ contract('EstateRegistry', accounts => {
     })
   })
 
+  describe('ProxyOwner', function() {
+    it('should init proxyOwner to dcl Multisig', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      const { logs } = await estate.initProxyOwner()
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(EMPTY_ADDRESS)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(DCL_MULTISIG)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(DCL_MULTISIG)
+    })
+
+    it('should transfer proxyOwner', async function() {
+      await estate.initAndChangeProxyOwner(creator)
+
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      const { logs } = await estate.transferProxyOwnership(user, sentByCreator)
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(creator)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(user)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(user)
+    })
+
+    it('reverts when transferring proxyOwner by unauthorized user', async function() {
+      await estate.initAndChangeProxyOwner(creator)
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      await assertRevert(estate.transferProxyOwnership(user, sentByHacker))
+    })
+
+    it('reverts if trying to init proxyOwner after transferred', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.initAndChangeProxyOwner(creator)
+
+      await estate.transferProxyOwnership(user, sentByCreator)
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(user)
+
+      await assertRevert(estate.initProxyOwner())
+    })
+
+    it('reverts if trying to init proxyOwner more than once', async function() {
+      let proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await estate.initProxyOwner()
+
+      proxyOwner = await estate.proxyOwner()
+      proxyOwner.should.be.equal(DCL_MULTISIG)
+
+      await assertRevert(estate.initProxyOwner())
+    })
+  })
+
   describe('setGracePeriod', function() {
+    beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
+    })
+
     it('should set 4 weeks grace period', async function() {
       let gracePeriod = await estate.gracePeriod()
       gracePeriod.should.be.bignumber.equal(0)
@@ -1617,16 +1691,20 @@ contract('EstateRegistry', accounts => {
       log.args._gracePeriod.should.be.bignumber.equal(gracePeriod)
     })
 
-    it.skip('reverts if hacker set grace period', async function() {
+    it('reverts if hacker set grace period', async function() {
       await assertRevert(estate.setGracePeriod(fourWeeksDuration, sentByHacker))
     })
 
-    it.skip('reverts if set grace period 0', async function() {
+    it('reverts if set grace period 0', async function() {
       await assertRevert(estate.setGracePeriod(0, sentByCreator))
     })
   })
 
   describe('setDeemPeriod', function() {
+    beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
+    })
+
     it('should set 4 weeks deem period', async function() {
       let deemPeriod = await estate.deemPeriod()
       deemPeriod.should.be.bignumber.equal(0)
@@ -1647,11 +1725,11 @@ contract('EstateRegistry', accounts => {
       log.args._deemPeriod.should.be.bignumber.equal(deemPeriod)
     })
 
-    it.skip('reverts if hacker set deem period', async function() {
+    it('reverts if hacker set deem period', async function() {
       await assertRevert(estate.setDeemPeriod(fourWeeksDuration, sentByHacker))
     })
 
-    it.skip('reverts if set deem period 0', async function() {
+    it('reverts if set deem period 0', async function() {
       await assertRevert(estate.setDeemPeriod(0, sentByCreator))
     })
   })
@@ -1659,6 +1737,7 @@ contract('EstateRegistry', accounts => {
   describe('hasDecayed', function() {
     let estateId
     beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
       estateId = await createUserEstateWithToken1()
       await estate.pingMyself(sentByUser)
     })
@@ -1735,18 +1814,20 @@ contract('EstateRegistry', accounts => {
   describe('ping', function() {
     let estateId
     beforeEach(async function() {
+      await estate.initAndChangeProxyOwner(creator)
       estateId = await createUserEstateWithToken1()
     })
 
     it('should refresh latestPing if pinged by owner', async function() {
       let latestPingBefore = await estate.latestPing(user)
+      await increaseTime(duration.seconds(1))
       await estate.pingMyself(sentByUser)
       let latestPingAfter = await estate.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
+      latestPingBefore = latestPingAfter
 
       await increaseTime(duration.seconds(1))
-      latestPingBefore = latestPingAfter
       await estate.ping(user, sentByUser)
       latestPingAfter = await estate.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
@@ -1756,14 +1837,16 @@ contract('EstateRegistry', accounts => {
     it('should refresh latestPing if pinged by approvedForAll', async function() {
       const latestPingBefore = await estate.latestPing(user)
       await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await increaseTime(duration.seconds(1))
       await estate.ping(user, sentByAnotherUser)
       const latestPingAfter = await estate.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
       latestPingAfter.should.bignumber.be.gt(latestPingBefore)
     })
 
-    it.skip('should refresh latestPing if pinged by proxyOwner', async function() {
+    it('should refresh latestPing if pinged by proxyOwner', async function() {
       const latestPingBefore = await estate.latestPing(user)
+      await increaseTime(duration.seconds(1))
       await estate.ping(user, sentByCreator)
       const latestPingAfter = await estate.latestPing(user)
       latestPingAfter.should.be.bignumber.equal(latestTime())
@@ -1774,8 +1857,7 @@ contract('EstateRegistry', accounts => {
       const { logs } = await estate.pingMyself(sentByUser)
       const log = logs[0]
       log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(user)
-      log.args._holder.should.be.equal(user)
+      log.args._user.should.be.equal(user)
     })
 
     it('should emit Ping event when ping by other', async function() {
@@ -1783,8 +1865,143 @@ contract('EstateRegistry', accounts => {
       const { logs } = await estate.ping(user, sentByAnotherUser)
       const log = logs[0]
       log.event.should.be.eq('Ping')
-      log.args._caller.should.be.bignumber.equal(anotherUser)
-      log.args._holder.should.be.equal(user)
+      log.args._user.should.be.equal(user)
+    })
+
+    it('should Ping when transfer to a new address :: safeTransferFrom', async function() {
+      let latestFromPing = await estate.latestPing(user)
+
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
+      await estate.safeTransferFrom(user, anotherUser, estateId, sentByUser)
+
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: safeTransferFrom with bytes', async function() {
+      let latestFromPing = await estate.latestPing(user)
+
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
+      await estate.safeTransferFromWithBytes(
+        user,
+        anotherUser,
+        estateId,
+        '0x',
+        sentByUser
+      )
+
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: transferFrom', async function() {
+      let latestFromPing = await estate.latestPing(user)
+
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
+      await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should Ping when transfer to a new address :: safeTransferManyFrom', async function() {
+      let latestFromPing = await estate.latestPing(user)
+
+      let latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(0)
+
+      await increaseTime(duration.seconds(1))
+      await estate.safeTransferManyFrom(
+        user,
+        anotherUser,
+        [estateId],
+        sentByUser
+      )
+
+      const currentFromPing = await estate.latestPing(user)
+      currentFromPing.should.be.bignumber.gt(latestFromPing)
+      currentFromPing.should.be.bignumber.equal(latestTime())
+
+      latestToPing = await estate.latestPing(anotherUser)
+      latestToPing.should.be.bignumber.equal(latestTime())
+    })
+
+    it('should emit only one Ping event', async function() {
+      const estateId2 = await createUserEstateWithToken2()
+      await increaseTime(duration.seconds(1))
+      const { logs } = await estate.safeTransferManyFrom(
+        user,
+        anotherUser,
+        [estateId, estateId2],
+        sentByUser
+      )
+
+      const PingFromEvents = logs.filter(
+        log => log.event === 'Ping' && log.args._user === user
+      )
+
+      PingFromEvents.length.should.be.equal(1)
+
+      const PingToEvents = logs.filter(
+        log => log.event === 'Ping' && log.args._user === anotherUser
+      )
+
+      PingToEvents.length.should.be.equal(1)
+    })
+
+    it('should Ping on transfer by approvalForAll', async function() {
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+      await estate.setApprovalForAll(anotherUser, true, sentByUser)
+      await estate.transferFrom(user, hacker, estateId, sentByAnotherUser)
+
+      const currentPing = await estate.latestPing(user)
+      currentPing.should.be.bignumber.gt(latestPing)
+    })
+
+    it('should not Ping on transfer by operator', async function() {
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+      await estate.approve(anotherUser, estateId, sentByUser)
+      await estate.transferFrom(user, hacker, estateId, sentByAnotherUser)
+
+      const currentPing = await estate.latestPing(user)
+      currentPing.should.be.bignumber.equal(latestPing)
+    })
+
+    it('should not Ping on transfer to an used address', async function() {
+      await estate.transferFrom(user, anotherUser, estateId, sentByUser)
+
+      let latestPing = await estate.latestPing(user)
+
+      await increaseTime(duration.seconds(1))
+      await estate.transferFrom(anotherUser, user, estateId, sentByAnotherUser)
+
+      const currentPing = await estate.latestPing(user)
+      currentPing.should.be.bignumber.equal(latestPing)
     })
 
     it('reverts if pinged by updateManager', async function() {

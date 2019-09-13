@@ -115,6 +115,11 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event ProxyOwnershipTransferred(
+    address indexed _previousProxyOwner,
+    address indexed _newProxyOwner
+  );
 }
 
 // File: contracts/land/LANDStorage.sol
