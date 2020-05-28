@@ -127,6 +127,22 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
+   * @notice Return the amount of LANDs inside the Estates for a given address
+   * @param _owner of the estates
+   * @return the amount of LANDs
+   */
+  function getLANDsSize(address _owner) public view returns (uint256) {
+    // Avoid balanceOf to not compute an unnecesary require
+    uint256 landsSize;
+    uint256 balance = ownedTokensCount[_owner];
+    for (uint256 i; i < balance; i++) {
+      uint256 estateId = ownedTokens[_owner][i];
+      landsSize += estateLandIds[estateId].length;
+    }
+    return landsSize;
+  }
+
+  /**
    * @notice Update the metadata of an Estate
    * @dev Reverts if the Estate does not exist or the user is not authorized
    * @param estateId Estate id to update

@@ -1588,4 +1588,90 @@ contract('EstateRegistry', accounts => {
       )
     })
   })
+
+  describe('LANDs size', function() {
+    it('should return the amount of LANDs', async () => {
+      const estateId1 = await createUserEstateWithNumberedTokens()
+
+      await land.assignMultipleParcels([1], [1], user, sentByCreator)
+      const estateId2 = await createEstate([1], [1], user, sentByUser)
+
+      await land.assignMultipleParcels([1, 1], [2, 3], user, sentByCreator)
+      const estateId3 = await createEstate([1, 1], [2, 3], user, sentByUser)
+
+      let totalSize = (await estate.getEstateSize(estateId1)).toNumber()
+      totalSize += (await estate.getEstateSize(estateId2)).toNumber()
+      totalSize += (await estate.getEstateSize(estateId3)).toNumber()
+
+      const LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+    })
+
+    it('should update the amount of LANDs', async () => {
+      const estateId1 = await createUserEstateWithNumberedTokens()
+
+      await land.assignMultipleParcels([1], [1], user, sentByCreator)
+      const estateId2 = await createEstate([1], [1], user, sentByUser)
+
+      await land.assignMultipleParcels([1, 1], [2, 3], user, sentByCreator)
+      const estateId3 = await createEstate([1, 1], [2, 3], user, sentByUser)
+
+      let totalSize = (await estate.getEstateSize(estateId1)).toNumber()
+      totalSize += (await estate.getEstateSize(estateId2)).toNumber()
+      totalSize += (await estate.getEstateSize(estateId3)).toNumber()
+
+      let LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+      totalSize.should.be.equal(8)
+
+      await land.assignMultipleParcels(
+        [1, 1, 1, 1],
+        [4, 5, 6, 7],
+        user,
+        sentByCreator
+      )
+      const estateId4 = await createEstate(
+        [1, 1, 1, 1],
+        [4, 5, 6, 7],
+        user,
+        sentByUser
+      )
+
+      totalSize += (await estate.getEstateSize(estateId4)).toNumber()
+
+      LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+      totalSize.should.be.equal(12)
+
+      await transferOut(estateId1, 1)
+
+      totalSize--
+
+      LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+      totalSize.should.be.equal(11)
+
+      await land.assignMultipleParcels([0], [8], user, sentByCreator)
+      // Estate4 should have 5 LANDs now
+      await transferIn(estateId4, 8, user)
+
+      totalSize++
+
+      LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+      totalSize.should.be.equal(12)
+
+      await estate.safeTransferFrom(user, anotherUser, estateId4, sentByUser)
+      totalSize -= (await estate.getEstateSize(estateId4)).toNumber()
+
+      LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(totalSize)
+      totalSize.should.be.equal(7)
+    })
+
+    it('should returns 0 for an address with 0 Estates', async () => {
+      const LANDSize = await estate.getLANDsSize(user)
+      LANDSize.toNumber().should.be.equal(0)
+    })
+  })
 })
