@@ -30,18 +30,23 @@ contract EstateRegistryTest is EstateRegistry {
   }
 
   function safeTransferFromWithBytes(
-    address from, 
-    address to, 
-    uint256 assetId, 
+    address from,
+    address to,
+    uint256 assetId,
     bytes data
-  ) 
-    public 
+  )
+    public
   {
     safeTransferFrom(
-      from, 
+      from,
       to,
-      assetId, 
+      assetId,
       data
     );
+  }
+
+  function initAndChangeProxyOwner(address _address) public {
+    this.initProxyOwner();
+    proxyOwner = _address;
   }
 }

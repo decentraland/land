@@ -8,9 +8,11 @@ import { getSoliditySha3 } from './helpers/getSoliditySha3'
 
 const BigNumber = web3.BigNumber
 
+const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const CURRENT_OWNER = '0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -1672,6 +1674,84 @@ contract('EstateRegistry', accounts => {
     it('should returns 0 for an address with 0 Estates', async () => {
       const LANDSize = await estate.getLANDsSize(user)
       LANDSize.toNumber().should.be.equal(0)
+    })
+  })
+
+  describe('ProxyOwner', function() {
+    let contract
+    beforeEach(async () => {
+      contract = await EstateRegistry.new(
+        ESTATE_NAME,
+        ESTATE_SYMBOL,
+        land.address,
+        creationParams
+      )
+    })
+    it('should init proxyOwner to dcl Multisig', async function() {
+      let proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      const { logs } = await contract.initProxyOwner()
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(EMPTY_ADDRESS)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(CURRENT_OWNER)
+
+      proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(CURRENT_OWNER)
+    })
+
+    it('should transfer proxyOwner', async function() {
+      await contract.initAndChangeProxyOwner(creator)
+
+      let proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      const { logs } = await contract.transferProxyOwnership(
+        user,
+        sentByCreator
+      )
+      logs.length.should.be.equal(1)
+      logs[0].event.should.be.equal('ProxyOwnershipTransferred')
+      logs[0].args._previousProxyOwner.should.be.equal(creator)
+      logs[0].args._newProxyOwner.should.be.bignumber.equal(user)
+
+      proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(user)
+    })
+
+    it('reverts when transferring proxyOwner by unauthorized user', async function() {
+      await contract.initAndChangeProxyOwner(creator)
+      let proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+
+      await assertRevert(contract.transferProxyOwnership(user, sentByHacker))
+    })
+
+    it('reverts if trying to init proxyOwner after transferred', async function() {
+      let proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await contract.initAndChangeProxyOwner(creator)
+
+      await contract.transferProxyOwnership(user, sentByCreator)
+
+      proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(user)
+
+      await assertRevert(contract.initProxyOwner())
+    })
+
+    it('reverts if trying to init proxyOwner more than once', async function() {
+      let proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(EMPTY_ADDRESS)
+
+      await contract.initProxyOwner()
+
+      proxyOwner = await contract.proxyOwner()
+      proxyOwner.should.be.equal(CURRENT_OWNER)
+
+      await assertRevert(contract.initProxyOwner())
     })
   })
 })

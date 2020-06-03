@@ -620,7 +620,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
     require(_newLandBalance != address(0), "New landBalance should not be zero address");
     emit SetLandBalanceToken(landBalance, _newLandBalance);
-    landBalance = _newLandBalance;
+    landBalance = IMiniMeToken(_newLandBalance);
   }
 
    /**
@@ -628,9 +628,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @notice Register land Balance
    */
   function registerBalance() external {
-    // Check that the balance of the sender is 0
-    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
-    if (registeredBalance > 0) {
+    // Get balance of the sender is 0
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+    if (currentBalance > 0) {
       require(
         landBalance.destroyTokens(msg.sender, currentBalance),
         "Register Balance::Could not destroy tokens"
@@ -640,12 +640,12 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     // Set balance as registered
     registeredBalance[msg.sender] = true;
 
-    // Get currennt LANDs balannce
-    uint256 currentBalance = estateRegistry.getLANDsSize(msg.sender);
+    // Get LAND balance
+    uint256 newBalance = getLANDsSize(msg.sender);
 
     // Generate Tokens
     require(
-      landBalance.generateTokens(msg.sender, currentBalance),
+      landBalance.generateTokens(msg.sender, newBalance),
       "Register Balance::Could not generate tokens"
     );
   }
@@ -658,12 +658,12 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     // Set balance as unregistered
     registeredBalance[msg.sender] = false;
 
-    // Check that the balance of the sender is 0
-    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+    // Get balance
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
 
     // Destroy Tokens
     require(
-      landBalance.destroyTokens(msg.sender, registeredBalance),
+      landBalance.destroyTokens(msg.sender, currentBalance),
       "Unregister Balance::Could not destroy tokens"
     );
   }
