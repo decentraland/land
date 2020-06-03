@@ -21,5 +21,7 @@ interface IMiniMeToken {
 
     /// @param _owner The address that's balance is being requested
     /// @return The balance of `_owner` at the current block
-    function balanceOf(address _owner) external constant returns (uint256 balance);
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
 }

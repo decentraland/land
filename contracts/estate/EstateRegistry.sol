@@ -628,7 +628,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @notice Register land Balance
    */
   function registerBalance() external {
-    // Get balance of the sender is 0
+    // Get balance of the sender
     uint256 currentBalance = landBalance.balanceOf(msg.sender);
     if (currentBalance > 0) {
       require(
@@ -670,19 +670,16 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   /**
    * @dev Update account balances
-   * @notice That if one of the account is the LANDRegistry, the operation will be omitted.
-   * The LANDRegistry has its own minime token.
    * @param _from account
    * @param _to account
    * @param _amount to update
    */
   function _updateLandBalance(address _from, address _to, uint256 _amount) internal {
-    address landRegistry = address(registry);
-    if (_from != landRegistry && registeredBalance[_from]) {
+    if (registeredBalance[_from]) {
       landBalance.destroyTokens(_from, _amount);
     }
 
-    if (_to != landRegistry && registeredBalance[_to]) {
+    if (registeredBalance[_to]) {
       landBalance.generateTokens(_to, _amount);
     }
   }

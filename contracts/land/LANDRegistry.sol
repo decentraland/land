@@ -489,7 +489,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @notice Register land Balance
    */
   function registerBalance() external {
-    // Get balance of the sender is 0
+    // Get balance of the sender
     uint256 currentBalance = landBalance.balanceOf(msg.sender);
     if (currentBalance > 0) {
       require(
@@ -558,18 +558,15 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Update account balances
-   * @notice That if one of the account is the EstateRegistry, the operation will be omitted.
-   * The EstateRegistry has its own minime token.
    * @param _from account
    * @param _to account
    */
   function _updateLandBalance(address _from, address _to) internal {
-    address estateContract = address(estateRegistry);
-    if (_from != estateContract && registeredBalance[_from]) {
+    if (registeredBalance[_from]) {
       landBalance.destroyTokens(_from, 1);
     }
 
-    if (_to != estateContract && registeredBalance[_to]) {
+    if (registeredBalance[_to]) {
       landBalance.generateTokens(_to, 1);
     }
   }
