@@ -17,9 +17,9 @@ export default async function setupContracts(creator) {
   const LANDRegistry = artifacts.require('LANDRegistryTest')
   const EstateRegistry = artifacts.require('EstateRegistryTest')
   const LANDProxy = artifacts.require('LANDProxy')
-  const MinimeToken = artifacts.require('MinimeToken')
+  const MiniMeToken = artifacts.require('MiniMeToken')
 
-  const landMinimeToken = await MinimeToken.new(
+  const landMinimeToken = await MiniMeToken.new(
     EMPTY_ADDRESS,
     EMPTY_ADDRESS,
     0,
@@ -29,7 +29,7 @@ export default async function setupContracts(creator) {
     false,
     creationParams
   )
-  const estateMinimeToken = await MinimeToken.new(
+  const estateMinimeToken = await MiniMeToken.new(
     EMPTY_ADDRESS,
     EMPTY_ADDRESS,
     0,

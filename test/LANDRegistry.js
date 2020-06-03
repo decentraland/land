@@ -5,7 +5,7 @@ import setupContracts, {
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
 
-const MinimeToken = artifacts.require('MinimeToken')
+const MiniMeToken = artifacts.require('MiniMeToken')
 
 const BigNumber = web3.BigNumber
 
@@ -1223,8 +1223,8 @@ contract('LANDRegistry', accounts => {
     }
 
     beforeEach(async function() {
-      landBalance = MinimeToken.at(await land.landBalance())
-      estateBalance = MinimeToken.at(await estate.landBalance())
+      landBalance = MiniMeToken.at(await land.landBalance())
+      estateBalance = MiniMeToken.at(await estate.landBalance())
     })
 
     describe('setBalanceToken', function() {
@@ -1376,7 +1376,7 @@ contract('LANDRegistry', accounts => {
         landRegistryBalance.should.be.bignumber.equal(0)
       })
 
-      it.only('should register owner balance if it was transferred by operator', async function() {
+      it('should register owner balance if it was transferred by operator', async function() {
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, sentByOperator)
 
