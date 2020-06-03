@@ -474,6 +474,61 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
+  /**
+   * @dev Set a new land balance minime token
+   * @notice Set new land balance token: `_newLandBalance`
+   */
+  function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
+    require(_newLandBalance != address(0), "New landBalance should not be zero address");
+    emit SetLandBalanceToken(landBalance, _newLandBalance);
+    landBalance = _newLandBalance;
+  }
+
+   /**
+   * @dev Register an account balance
+   * @notice Register land Balance
+   */
+  function registerBalance() external {
+    // Check that the balance of the sender is 0
+    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+    if (registeredBalance > 0) {
+      require(
+        landBalance.destroyTokens(msg.sender, currentBalance),
+        "Register Balance::Could not destroy tokens"
+      );
+    }
+
+    // Set balance as registered
+    registeredBalance[msg.sender] = true;
+
+    // Get LAND balance
+    uint256 currentBalannce = balanceOf(msg.sender);
+
+    // Generate Tokens
+    require(
+      landBalance.generateTokens(msg.sender, currentBalannce),
+      "Register Balance::Could not generate tokens"
+    );
+  }
+
+  /**
+   * @dev Unregister an account balance
+   * @notice Unregister land Balance
+   */
+  function unregisterBalance() external {
+    // Set balance as unregistered
+    registeredBalance[msg.sender] = false;
+
+    // Check that the balance of the sender is 0
+    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+
+    // Destroy Tokens
+    require(
+      landBalance.destroyTokens(msg.sender, registeredBalance),
+      "Unregister Balance::Could not destroy tokens"
+    );
+  }
+
   function _doTransferFrom(
     address from,
     address to,
@@ -484,7 +539,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     internal
   {
     updateOperator[assetId] = address(0);
-
+    _updateLandBalance(from, to);
     super._doTransferFrom(
       from,
       to,
@@ -499,5 +554,23 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
+  }
+
+  /**
+   * @dev Update account balances
+   * @notice That if one of the account is the EstateRegistry, the operation will be omitted.
+   * The EstateRegistry has its own minime token.
+   * @param _from account
+   * @param _to account
+   */
+  function _updateLandBalance(address _from, address _to) internal {
+    address estateContract = address(estateRegistry);
+    if (_from != estateContract && registeredBalance[_from]) {
+      landBalance.destroyTokens(_from, 1);
+    }
+
+    if (_to != estateContract && registeredBalance[_to]) {
+      landBalance.generateTokens(_to, 1);
+    }
   }
 }

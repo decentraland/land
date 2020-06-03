@@ -1,5 +1,6 @@
 pragma solidity ^0.4.23;
 
+import "../minimeToken/IMinimeToken.sol";
 
 contract LANDRegistry {
   function decodeTokenId(uint value) external pure returns (int, int);
@@ -38,5 +39,14 @@ contract EstateStorage {
 
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
+
+  // Master role
+  address public proxyOwner;
+
+  // Land balance minime token
+  IMiniMeToken public landBalance;
+
+  // Registered balance accounts
+  mapping(address => bool) public registeredBalance;
 
 }

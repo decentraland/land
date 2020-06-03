@@ -994,6 +994,41 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event ProxyOwnershipTransferred(
+    address indexed _previousProxyOwner,
+    address indexed _newProxyOwner
+  );
+
+  event SetLandBalanceToken(
+    address indexed _previousLandBalance,
+    address indexed _newLandBalance
+  );
+}
+
+// File: contracts/minimeToken/IMinimeToken.sol
+
+interface IMiniMeToken {
+////////////////
+// Generate and destroy tokens
+////////////////
+
+    /// @notice Generates `_amount` tokens that are assigned to `_owner`
+    /// @param _owner The address that will be assigned the new tokens
+    /// @param _amount The quantity of tokens generated
+    /// @return True if the tokens are generated correctly
+    function generateTokens(address _owner, uint _amount) onlyController external returns (bool);
+
+
+    /// @notice Burns `_amount` tokens from `_owner`
+    /// @param _owner The address that will lose the tokens
+    /// @param _amount The quantity of tokens to burn
+    /// @return True if the tokens are burned correctly
+    function destroyTokens(address _owner, uint _amount) onlyController external returns (bool);
+
+    /// @param _owner The address that's balance is being requested
+    /// @return The balance of `_owner` at the current block
+    function balanceOf(address _owner) external constant returns (uint256 balance);
 }
 
 // File: contracts/estate/EstateStorage.sol
@@ -1036,6 +1071,15 @@ contract EstateStorage {
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
 
+  // Master role
+  address public proxyOwner;
+
+  // Land balance minime token
+  IMiniMeToken public landBalance;
+
+  // Registered balance accounts
+  mapping(address => bool) public registeredBalance;
+
 }
 
 // File: contracts/estate/EstateRegistry.sol
@@ -1075,6 +1119,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
       isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender],
       "unauthorized user"
     );
+    _;
+  }
+
+  modifier onlyProxyOwner() {
+    require(msg.sender == proxyOwner, "Unauthorized user");
     _;
   }
 
@@ -1136,7 +1185,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return landIdEstate[landId];
   }
 
-  function setLANDRegistry(address _registry) external onlyOwner {
+  function setLANDRegistry(address _registry) external onlyProxyOwner {
     require(_registry.isContract(), "The LAND registry address should be a contract");
     require(_registry != 0, "The LAND registry address should be valid");
     registry = LANDRegistry(_registry);
@@ -1438,6 +1487,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   public
   {
     updateOperator[_tokenId] = address(0);
+    _updateLandBalance(_from, _to, estateLandIds[_tokenId].length);
     super.transferFrom(_from, _to, _tokenId);
   }
 
@@ -1499,6 +1549,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
     estateLandIndex[estateId][landId] = estateLandIds[estateId].length;
 
+    address owner = ownerOf(estateId);
+    _updateLandBalance(address(registry), owner, 1);
+
     emit AddLand(estateId, landId);
   }
 
@@ -1559,7 +1612,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
      */
     landIdEstate[landId] = 0;
 
+    address owner = ownerOf(estateId);
+    _updateLandBalance(owner, address(registry), 1);
+
     registry.safeTransferFrom(this, destinatary, landId);
+
 
     emit RemoveLand(estateId, landId, destinatary);
   }
@@ -1609,5 +1666,98 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     int y;
     (x, y) = registry.decodeTokenId(landId);
     registry.updateLandData(x, y, data);
+  }
+
+  /**
+   * @dev Set the current owner as proxyOwner if it is empty
+   */
+  function initProxyOwner() external {
+    require(proxyOwner == address(0), "ProxyOwner can be initialized only once");
+    proxyOwner = address(0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce);
+    emit ProxyOwnershipTransferred(address(0), proxyOwner);
+  }
+
+  /**
+   * @dev Set a new proxyOwner
+   * @notice Transfer Proxy Ownership to `_newProxyOwner`
+   */
+  function transferProxyOwnership(address _newProxyOwner) onlyProxyOwner external {
+    require(_newProxyOwner != address(0), "New proxyOwner should not be zero address");
+    emit ProxyOwnershipTransferred(proxyOwner, _newProxyOwner);
+    proxyOwner = _newProxyOwner;
+  }
+
+  /**
+   * @dev Set a new land balance minime token
+   * @notice Set new land balance token: `_newLandBalance`
+   */
+  function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
+    require(_newLandBalance != address(0), "New landBalance should not be zero address");
+    emit SetLandBalanceToken(landBalance, _newLandBalance);
+    landBalance = _newLandBalance;
+  }
+
+   /**
+   * @dev Register an account balance
+   * @notice Register land Balance
+   */
+  function registerBalance() external {
+    // Check that the balance of the sender is 0
+    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+    if (registeredBalance > 0) {
+      require(
+        landBalance.destroyTokens(msg.sender, currentBalance),
+        "Register Balance::Could not destroy tokens"
+      );
+    }
+
+    // Set balance as registered
+    registeredBalance[msg.sender] = true;
+
+    // Get currennt LANDs balannce
+    uint256 currentBalance = estateRegistry.getLANDsSize(msg.sender);
+
+    // Generate Tokens
+    require(
+      landBalance.generateTokens(msg.sender, currentBalance),
+      "Register Balance::Could not generate tokens"
+    );
+  }
+
+  /**
+   * @dev Unregister an account balance
+   * @notice Unregister land Balance
+   */
+  function unregisterBalance() external {
+    // Set balance as unregistered
+    registeredBalance[msg.sender] = false;
+
+    // Check that the balance of the sender is 0
+    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+
+    // Destroy Tokens
+    require(
+      landBalance.destroyTokens(msg.sender, registeredBalance),
+      "Unregister Balance::Could not destroy tokens"
+    );
+  }
+
+  /**
+   * @dev Update account balances
+   * @notice That if one of the account is the LANDRegistry, the operation will be omitted.
+   * The LANDRegistry has its own minime token.
+   * @param _from account
+   * @param _to account
+   * @param _amount to update
+   */
+  function _updateLandBalance(address _from, address _to, uint256 _amount) internal {
+    address landRegistry = address(registry);
+    if (_from != landRegistry && registeredBalance[_from]) {
+      landBalance.destroyTokens(_from, _amount);
+    }
+
+    if (_to != landRegistry && registeredBalance[_to]) {
+      landBalance.generateTokens(_to, _amount);
+    }
   }
 }

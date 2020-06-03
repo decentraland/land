@@ -59,4 +59,9 @@ interface ILANDRegistry {
     address indexed _caller,
     address indexed _deployer
   );
+
+  event SetLandBalanceToken(
+    address indexed _previousLandBalance,
+    address indexed _newLandBalance
+  );
 }
