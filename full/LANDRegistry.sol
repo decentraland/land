@@ -138,18 +138,20 @@ interface IMiniMeToken {
     /// @param _owner The address that will be assigned the new tokens
     /// @param _amount The quantity of tokens generated
     /// @return True if the tokens are generated correctly
-    function generateTokens(address _owner, uint _amount) onlyController external returns (bool);
+    function generateTokens(address _owner, uint _amount) external returns (bool);
 
 
     /// @notice Burns `_amount` tokens from `_owner`
     /// @param _owner The address that will lose the tokens
     /// @param _amount The quantity of tokens to burn
     /// @return True if the tokens are burned correctly
-    function destroyTokens(address _owner, uint _amount) onlyController external returns (bool);
+    function destroyTokens(address _owner, uint _amount) external returns (bool);
 
     /// @param _owner The address that's balance is being requested
     /// @return The balance of `_owner` at the current block
-    function balanceOf(address _owner) external constant returns (uint256 balance);
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
 }
 
 // File: contracts/land/LANDStorage.sol
@@ -1422,7 +1424,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
     require(_newLandBalance != address(0), "New landBalance should not be zero address");
     emit SetLandBalanceToken(landBalance, _newLandBalance);
-    landBalance = _newLandBalance;
+    landBalance = IMiniMeToken(_newLandBalance);
   }
 
    /**
@@ -1430,9 +1432,9 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @notice Register land Balance
    */
   function registerBalance() external {
-    // Check that the balance of the sender is 0
-    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
-    if (registeredBalance > 0) {
+    // Get balance of the sender
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+    if (currentBalance > 0) {
       require(
         landBalance.destroyTokens(msg.sender, currentBalance),
         "Register Balance::Could not destroy tokens"
@@ -1443,11 +1445,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     registeredBalance[msg.sender] = true;
 
     // Get LAND balance
-    uint256 currentBalannce = balanceOf(msg.sender);
+    uint256 newBalance = _balanceOf(msg.sender);
 
     // Generate Tokens
     require(
-      landBalance.generateTokens(msg.sender, currentBalannce),
+      landBalance.generateTokens(msg.sender, newBalance),
       "Register Balance::Could not generate tokens"
     );
   }
@@ -1460,12 +1462,12 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     // Set balance as unregistered
     registeredBalance[msg.sender] = false;
 
-    // Check that the balance of the sender is 0
-    uint256 registeredBalance = landBalance.balanceOf(msg.sender);
+    // Get balance
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
 
     // Destroy Tokens
     require(
-      landBalance.destroyTokens(msg.sender, registeredBalance),
+      landBalance.destroyTokens(msg.sender, currentBalance),
       "Unregister Balance::Could not destroy tokens"
     );
   }
@@ -1499,18 +1501,15 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   /**
    * @dev Update account balances
-   * @notice That if one of the account is the EstateRegistry, the operation will be omitted.
-   * The EstateRegistry has its own minime token.
    * @param _from account
    * @param _to account
    */
   function _updateLandBalance(address _from, address _to) internal {
-    address estateContract = address(estateRegistry);
-    if (_from != estateContract && registeredBalance[_from]) {
+    if (registeredBalance[_from]) {
       landBalance.destroyTokens(_from, 1);
     }
 
-    if (_to != estateContract && registeredBalance[_to]) {
+    if (registeredBalance[_to]) {
       landBalance.generateTokens(_to, 1);
     }
   }

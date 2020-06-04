@@ -138,18 +138,20 @@ interface IMiniMeToken {
     /// @param _owner The address that will be assigned the new tokens
     /// @param _amount The quantity of tokens generated
     /// @return True if the tokens are generated correctly
-    function generateTokens(address _owner, uint _amount) onlyController external returns (bool);
+    function generateTokens(address _owner, uint _amount) external returns (bool);
 
 
     /// @notice Burns `_amount` tokens from `_owner`
     /// @param _owner The address that will lose the tokens
     /// @param _amount The quantity of tokens to burn
     /// @return True if the tokens are burned correctly
-    function destroyTokens(address _owner, uint _amount) onlyController external returns (bool);
+    function destroyTokens(address _owner, uint _amount) external returns (bool);
 
     /// @param _owner The address that's balance is being requested
     /// @return The balance of `_owner` at the current block
-    function balanceOf(address _owner) external constant returns (uint256 balance);
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
 }
 
 // File: contracts/land/LANDStorage.sol
