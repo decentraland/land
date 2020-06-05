@@ -1287,7 +1287,7 @@ contract('LANDRegistry', accounts => {
 
         // Balance should keep as 0
         anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(0)
+        anotherUserBalance.should.be.bignumber.equal(1)
 
         // Register again
         await land.registerBalance(sentByAnotherUser)
@@ -1307,7 +1307,7 @@ contract('LANDRegistry', accounts => {
         log.event.should.be.eq('Transfer')
         log.args._from.should.be.equal(anotherUser)
         log.args._to.should.be.equal(NONE)
-        log.args._amount.should.be.bignumber.equal(1)
+        log.args._amount.should.be.bignumber.equal(2)
 
         log = logs[1]
         log.event.should.be.eq('Transfer')
@@ -1376,7 +1376,7 @@ contract('LANDRegistry', accounts => {
         landRegistryBalance.should.be.bignumber.equal(0)
       })
 
-      it('should register owner balance if it was transferred by operator', async function() {
+      it('should register owner balance if it was transferred by approval for all or operator', async function() {
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, sentByOperator)
 
@@ -1541,6 +1541,151 @@ contract('LANDRegistry', accounts => {
 
         userEstateBalance = await estateBalance.balanceOf(user)
         userEstateBalance.should.be.bignumber.equal(2)
+      })
+
+      it('should update on transfer :: transferFrom', async function() {
+        const landId = await land.encodeTokenId(0, 1)
+
+        await land.registerBalance(sentByAnotherUser)
+
+        let userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(2)
+
+        let anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(0)
+
+        await land.transferFrom(user, anotherUser, landId, sentByUser)
+
+        userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(1)
+
+        anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(1)
+      })
+
+      it('should update on transfer :: safeTransferFrom', async function() {
+        const landId = await land.encodeTokenId(0, 1)
+
+        await land.registerBalance(sentByAnotherUser)
+
+        let userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(2)
+
+        let anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(0)
+
+        await land.safeTransferFrom(user, anotherUser, landId, sentByUser)
+
+        userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(1)
+
+        anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(1)
+      })
+
+      it('should update on transfer :: transferLand', async function() {
+        await land.registerBalance(sentByAnotherUser)
+
+        let userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(2)
+
+        let anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(0)
+
+        await land.transferLand(0, 1, anotherUser, sentByUser)
+
+        userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(1)
+
+        anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(1)
+      })
+
+      it('should update on transfer :: transferManyLand', async function() {
+        const [xUser, yUser] = await getLandOfUser()
+
+        await land.registerBalance(sentByAnotherUser)
+
+        let userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(2)
+
+        let anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(0)
+
+        await land.transferManyLand(xUser, yUser, anotherUser, sentByUser)
+
+        userBalance = await landBalance.balanceOf(user)
+        userBalance.should.be.bignumber.equal(0)
+
+        anotherUserBalance = await landBalance.balanceOf(anotherUser)
+        anotherUserBalance.should.be.bignumber.equal(2)
+      })
+
+      it('should update on transfer :: transferLandToEstate', async function() {
+        await land.registerBalance(sentByCreator)
+        await estate.registerBalance(sentByUser)
+
+        let userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(2)
+
+        let userEstateBalance = await estateBalance.balanceOf(user)
+        userEstateBalance.should.be.bignumber.equal(0)
+
+        let creatorLandBalance = await landBalance.balanceOf(creator)
+        creatorLandBalance.should.be.bignumber.equal(0)
+
+        let creatorEstateBalance = await estateBalance.balanceOf(creator)
+        creatorEstateBalance.should.be.bignumber.equal(0)
+
+        await land.assignMultipleParcels([3], [3], creator, sentByCreator)
+
+        const estateId = await createEstate([3], [3], user, sentByCreator)
+
+        userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(2)
+
+        userEstateBalance = await estateBalance.balanceOf(user)
+        userEstateBalance.should.be.bignumber.equal(1)
+
+        creatorLandBalance = await landBalance.balanceOf(creator)
+        creatorLandBalance.should.be.bignumber.equal(0)
+
+        creatorEstateBalance = await estateBalance.balanceOf(creator)
+        creatorEstateBalance.should.be.bignumber.equal(0)
+
+        await land.transferLandToEstate(0, 1, estateId, sentByUser)
+
+        userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(1)
+
+        userEstateBalance = await estateBalance.balanceOf(user)
+        userEstateBalance.should.be.bignumber.equal(2)
+
+        creatorLandBalance = await landBalance.balanceOf(creator)
+        creatorLandBalance.should.be.bignumber.equal(0)
+
+        creatorEstateBalance = await estateBalance.balanceOf(creator)
+        creatorEstateBalance.should.be.bignumber.equal(0)
+      })
+
+      it('should update on mint :: assignNewParcel', async function() {
+        let userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(2)
+
+        await land.assignNewParcel(3, 3, user, sentByCreator)
+
+        userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(3)
+      })
+
+      it('should update on mint :: assignMultipleParcels', async function() {
+        let userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(2)
+
+        await land.assignMultipleParcels([3, 4], [3, 4], user, sentByCreator)
+
+        userLandBalance = await landBalance.balanceOf(user)
+        userLandBalance.should.be.bignumber.equal(4)
       })
     })
   })

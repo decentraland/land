@@ -1046,11 +1046,13 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function assignNewParcel(int x, int y, address beneficiary) external onlyDeployer {
     _generate(_encodeTokenId(x, y), beneficiary);
+    _updateLandBalance(address(0), beneficiary);
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external onlyDeployer {
     for (uint i = 0; i < x.length; i++) {
       _generate(_encodeTokenId(x[i], y[i]), beneficiary);
+      _updateLandBalance(address(0), beneficiary);
     }
   }
 
