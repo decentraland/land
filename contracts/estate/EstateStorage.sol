@@ -44,7 +44,7 @@ contract EstateStorage {
   address public proxyOwner;
 
   // Land balance minime token
-  IMiniMeToken public landBalance;
+  IMiniMeToken public estateLandBalance;
 
   // Registered balance accounts
   mapping(address => bool) public registeredBalance;

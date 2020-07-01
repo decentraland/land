@@ -61,7 +61,7 @@ export default async function setupContracts(creator) {
   await land.setLandBalanceToken(landMinimeToken.address)
 
   await estateMinimeToken.changeController(estate.address, sentByCreator)
-  await estate.setLandBalanceToken(estateMinimeToken.address)
+  await estate.setEstateLandBalanceToken(estateMinimeToken.address)
 
   return {
     proxy,

@@ -1224,7 +1224,7 @@ contract('LANDRegistry', accounts => {
 
     beforeEach(async function() {
       landBalance = MiniMeToken.at(await land.landBalance())
-      estateBalance = MiniMeToken.at(await estate.landBalance())
+      estateBalance = MiniMeToken.at(await estate.estateLandBalance())
     })
 
     describe('setBalanceToken', function() {
@@ -1268,57 +1268,6 @@ contract('LANDRegistry', accounts => {
         userBalance.should.be.bignumber.equal(2)
       })
 
-      it('should re-register balance', async function() {
-        let isRegistered = await land.registeredBalance(anotherUser)
-        expect(isRegistered).equal(false)
-
-        let anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(0)
-
-        await land.registerBalance(sentByAnotherUser)
-
-        isRegistered = await land.registeredBalance(anotherUser)
-        expect(isRegistered).equal(true)
-
-        anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(0)
-
-        await land.assignNewParcel(0, 3, anotherUser, sentByCreator)
-
-        // Balance should keep as 0
-        anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(1)
-
-        // Register again
-        await land.registerBalance(sentByAnotherUser)
-
-        // Balance should be 1
-        anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(1)
-
-        await land.assignNewParcel(0, 4, anotherUser, sentByCreator)
-
-        // Register again
-        await land.registerBalance(sentByAnotherUser)
-        const logs = await getLandBalanceEvents('Transfer')
-        logs.length.should.be.equal(2)
-
-        let log = logs[0]
-        log.event.should.be.eq('Transfer')
-        log.args._from.should.be.equal(anotherUser)
-        log.args._to.should.be.equal(NONE)
-        log.args._amount.should.be.bignumber.equal(2)
-
-        log = logs[1]
-        log.event.should.be.eq('Transfer')
-        log.args._from.should.be.equal(NONE)
-        log.args._to.should.be.equal(anotherUser)
-        log.args._amount.should.be.bignumber.equal(2)
-
-        anotherUserBalance = await landBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(2)
-      })
-
       it('should unregister balance', async function() {
         // Register
         await land.registerBalance(sentByUser)
@@ -1346,6 +1295,17 @@ contract('LANDRegistry', accounts => {
 
         userBalance = await landBalance.balanceOf(user)
         userBalance.should.be.bignumber.equal(0)
+      })
+
+      it('reverts re-register balance', async function() {
+        await land.registerBalance(sentByAnotherUser)
+        await assertRevert(land.registerBalance(sentByAnotherUser))
+      })
+
+      it('reverts re-unregister balance', async function() {
+        await land.registerBalance(sentByAnotherUser)
+        await land.unregisterBalance(sentByAnotherUser)
+        await assertRevert(land.unregisterBalance(sentByAnotherUser))
       })
     })
 
@@ -1532,9 +1492,6 @@ contract('LANDRegistry', accounts => {
 
         let ownEstateBalance = await estateBalance.balanceOf(estate.address)
         ownEstateBalance.should.be.bignumber.equal(0)
-
-        await land.registerBalance(sentByUser)
-        await estate.registerBalance(sentByUser)
 
         userLandBalance = await landBalance.balanceOf(user)
         userLandBalance.should.be.bignumber.equal(0)

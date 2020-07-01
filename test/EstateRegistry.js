@@ -1769,26 +1769,31 @@ contract('EstateRegistry', accounts => {
 
     beforeEach(async function() {
       landBalance = MiniMeToken.at(await land.landBalance())
-      estateBalance = MiniMeToken.at(await estate.landBalance())
+      estateBalance = MiniMeToken.at(await estate.estateLandBalance())
 
       estateId1 = await createUserEstateWithNumberedTokens()
     })
 
     describe('setBalanceToken', function() {
       it('should set balance token', async function() {
-        const { logs } = await estate.setLandBalanceToken(user, sentByCreator)
+        const { logs } = await estate.setEstateLandBalanceToken(
+          user,
+          sentByCreator
+        )
 
         // Event emitted
         logs.length.should.be.equal(1)
 
         const log = logs[0]
-        log.event.should.be.eq('SetLandBalanceToken')
-        log.args._previousLandBalance.should.be.equal(estateBalance.address)
-        log.args._newLandBalance.should.be.equal(user)
+        log.event.should.be.eq('SetEstateLandBalanceToken')
+        log.args._previousEstateLandBalance.should.be.equal(
+          estateBalance.address
+        )
+        log.args._newEstateLandBalance.should.be.equal(user)
       })
 
       it('reverts if a hacker try to set balance token', async function() {
-        await assertRevert(estate.setLandBalanceToken(user, sentByHacker))
+        await assertRevert(estate.setEstateLandBalanceToken(user, sentByHacker))
       })
     })
 
@@ -1826,60 +1831,6 @@ contract('EstateRegistry', accounts => {
         userBalance.should.be.bignumber.equal(5)
       })
 
-      it('should re-register balance', async function() {
-        let isRegistered = await estate.registeredBalance(anotherUser)
-        expect(isRegistered).equal(false)
-
-        let anotherUserBalance = await estateBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(0)
-
-        await land.assignNewParcel(0, 6, anotherUser, sentByCreator)
-        await createEstate([0], [6], anotherUser, sentByAnotherUser)
-
-        // Balance should keep as 0
-        anotherUserBalance = await estateBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(0)
-
-        await estate.registerBalance(sentByAnotherUser)
-
-        isRegistered = await estate.registeredBalance(anotherUser)
-        expect(isRegistered).equal(true)
-
-        // Balance should be 1
-        anotherUserBalance = await estateBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(1)
-
-        // Register again
-        await estate.registerBalance(sentByAnotherUser)
-
-        // Balance should be 1
-        anotherUserBalance = await estateBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(1)
-
-        await land.assignNewParcel(0, 7, anotherUser, sentByCreator)
-        await createEstate([0], [7], anotherUser, sentByAnotherUser)
-
-        // Register again
-        await estate.registerBalance(sentByAnotherUser)
-        const logs = await getEstateBalanceEvents('Transfer')
-        logs.length.should.be.equal(2)
-
-        let log = logs[0]
-        log.event.should.be.eq('Transfer')
-        log.args._from.should.be.equal(anotherUser)
-        log.args._to.should.be.equal(EMPTY_ADDRESS)
-        log.args._amount.should.be.bignumber.equal(2)
-
-        log = logs[1]
-        log.event.should.be.eq('Transfer')
-        log.args._from.should.be.equal(EMPTY_ADDRESS)
-        log.args._to.should.be.equal(anotherUser)
-        log.args._amount.should.be.bignumber.equal(2)
-
-        anotherUserBalance = await estateBalance.balanceOf(anotherUser)
-        anotherUserBalance.should.be.bignumber.equal(2)
-      })
-
       it('should unregister balance', async function() {
         // Register
         await estate.registerBalance(sentByUser)
@@ -1907,6 +1858,17 @@ contract('EstateRegistry', accounts => {
 
         userBalance = await estateBalance.balanceOf(user)
         userBalance.should.be.bignumber.equal(0)
+      })
+
+      it('reverts re-register balance', async function() {
+        await estate.registerBalance(sentByAnotherUser)
+        await assertRevert(estate.registerBalance(sentByAnotherUser))
+      })
+
+      it('reverts re-unregister balance', async function() {
+        await estate.registerBalance(sentByAnotherUser)
+        await estate.unregisterBalance(sentByAnotherUser)
+        await assertRevert(estate.unregisterBalance(sentByAnotherUser))
       })
     })
 
@@ -2117,9 +2079,7 @@ contract('EstateRegistry', accounts => {
         operatorEstateBalance = await estateBalance.balanceOf(operator)
         operatorEstateBalance.should.be.bignumber.equal(0)
 
-        await land.registerBalance(sentByUser)
         await land.registerBalance(sentByOperator)
-        await estate.registerBalance(sentByUser)
         await estate.registerBalance(sentByOperator)
 
         userLandBalance = await landBalance.balanceOf(user)
