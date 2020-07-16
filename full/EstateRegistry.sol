@@ -1659,7 +1659,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   /**
    * @dev Set a new estate land balance minime token
-   * @notice Set new land balance token: `_newEstateLandBalance`
+   * @param _newEstateLandBalance address of the new estate land balance token
    */
   function _setEstateLandBalanceToken(address _newEstateLandBalance) internal {
     require(_newEstateLandBalance != address(0), "New estateLandBalance should not be zero address");

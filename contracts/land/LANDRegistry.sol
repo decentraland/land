@@ -479,6 +479,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   /**
    * @dev Set a new land balance minime token
    * @notice Set new land balance token: `_newLandBalance`
+   * @param _newLandBalance address of the new land balance token
    */
   function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
     require(_newLandBalance != address(0), "New landBalance should not be zero address");
