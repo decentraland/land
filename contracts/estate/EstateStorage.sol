@@ -40,9 +40,6 @@ contract EstateStorage {
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
 
-  // Master role
-  address public proxyOwner;
-
   // Land balance minime token
   IMiniMeToken public estateLandBalance;
 

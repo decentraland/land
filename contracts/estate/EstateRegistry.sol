@@ -48,11 +48,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     _;
   }
 
-  modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner, "Unauthorized user");
-    _;
-  }
-
   /**
    * @dev Mint a new Estate with some metadata
    * @param to The address that will own the minted token
@@ -111,7 +106,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return landIdEstate[landId];
   }
 
-  function setLANDRegistry(address _registry) external onlyProxyOwner {
+  function setLANDRegistry(address _registry) external onlyOwner {
     require(_registry.isContract(), "The LAND registry address should be a contract");
     require(_registry != 0, "The LAND registry address should be valid");
     registry = LANDRegistry(_registry);
@@ -595,29 +590,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @dev Set the current owner as proxyOwner if it is empty
-   */
-  function initProxyOwner() external {
-    require(proxyOwner == address(0), "ProxyOwner can be initialized only once");
-    proxyOwner = address(0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce);
-    emit ProxyOwnershipTransferred(address(0), proxyOwner);
-  }
-
-  /**
-   * @dev Set a new proxyOwner
-   * @notice Transfer Proxy Ownership to `_newProxyOwner`
-   */
-  function transferProxyOwnership(address _newProxyOwner) onlyProxyOwner external {
-    require(_newProxyOwner != address(0), "New proxyOwner should not be zero address");
-    emit ProxyOwnershipTransferred(proxyOwner, _newProxyOwner);
-    proxyOwner = _newProxyOwner;
-  }
-
-  /**
    * @dev Set a new estate land balance minime token
    * @notice Set new land balance token: `_newEstateLandBalance`
    */
-  function setEstateLandBalanceToken(address _newEstateLandBalance) onlyProxyOwner external {
+  function _setEstateLandBalanceToken(address _newEstateLandBalance) internal {
     require(_newEstateLandBalance != address(0), "New estateLandBalance should not be zero address");
     emit SetEstateLandBalanceToken(estateLandBalance, _newEstateLandBalance);
     estateLandBalance = IMiniMeToken(_newEstateLandBalance);

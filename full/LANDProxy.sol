@@ -116,14 +116,9 @@ contract IEstateRegistry {
     address indexed _registry
   );
 
-  event ProxyOwnershipTransferred(
-    address indexed _previousProxyOwner,
-    address indexed _newProxyOwner
-  );
-
-  event SetLandBalanceToken(
-    address indexed _previousLandBalance,
-    address indexed _newLandBalance
+  event SetEstateLandBalanceToken(
+    address indexed _previousEstateLandBalance,
+    address indexed _newEstateLandBalance
   );
 }
 

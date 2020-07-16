@@ -51,7 +51,6 @@ export default async function setupContracts(creator) {
     proxy.address,
     creationParams
   )
-  await estate.initAndChangeProxyOwner(creator)
 
   const land = await LANDRegistry.at(proxy.address)
   await land.initialize(creator, sentByCreator)

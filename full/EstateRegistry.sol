@@ -995,14 +995,9 @@ contract IEstateRegistry {
     address indexed _registry
   );
 
-  event ProxyOwnershipTransferred(
-    address indexed _previousProxyOwner,
-    address indexed _newProxyOwner
-  );
-
-  event SetLandBalanceToken(
-    address indexed _previousLandBalance,
-    address indexed _newLandBalance
+  event SetEstateLandBalanceToken(
+    address indexed _previousEstateLandBalance,
+    address indexed _newEstateLandBalance
   );
 }
 
@@ -1073,11 +1068,8 @@ contract EstateStorage {
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
 
-  // Master role
-  address public proxyOwner;
-
   // Land balance minime token
-  IMiniMeToken public landBalance;
+  IMiniMeToken public estateLandBalance;
 
   // Registered balance accounts
   mapping(address => bool) public registeredBalance;
@@ -1121,11 +1113,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
       isApprovedOrOwner(msg.sender, estateId) || updateManager[owner][msg.sender],
       "unauthorized user"
     );
-    _;
-  }
-
-  modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner, "Unauthorized user");
     _;
   }
 
@@ -1187,7 +1174,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     return landIdEstate[landId];
   }
 
-  function setLANDRegistry(address _registry) external onlyProxyOwner {
+  function setLANDRegistry(address _registry) external onlyOwner {
     require(_registry.isContract(), "The LAND registry address should be a contract");
     require(_registry != 0, "The LAND registry address should be valid");
     registry = LANDRegistry(_registry);
@@ -1489,7 +1476,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   public
   {
     updateOperator[_tokenId] = address(0);
-    _updateLandBalance(_from, _to, estateLandIds[_tokenId].length);
+    _updateEstateLandBalance(_from, _to, estateLandIds[_tokenId].length);
     super.transferFrom(_from, _to, _tokenId);
   }
 
@@ -1552,7 +1539,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     estateLandIndex[estateId][landId] = estateLandIds[estateId].length;
 
     address owner = ownerOf(estateId);
-    _updateLandBalance(address(registry), owner, 1);
+    _updateEstateLandBalance(address(registry), owner, 1);
 
     emit AddLand(estateId, landId);
   }
@@ -1615,7 +1602,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     landIdEstate[landId] = 0;
 
     address owner = ownerOf(estateId);
-    _updateLandBalance(owner, address(registry), 1);
+    _updateEstateLandBalance(owner, address(registry), 1);
 
     registry.safeTransferFrom(this, destinatary, landId);
 
@@ -1671,32 +1658,13 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @dev Set the current owner as proxyOwner if it is empty
+   * @dev Set a new estate land balance minime token
+   * @notice Set new land balance token: `_newEstateLandBalance`
    */
-  function initProxyOwner() external {
-    require(proxyOwner == address(0), "ProxyOwner can be initialized only once");
-    proxyOwner = address(0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce);
-    emit ProxyOwnershipTransferred(address(0), proxyOwner);
-  }
-
-  /**
-   * @dev Set a new proxyOwner
-   * @notice Transfer Proxy Ownership to `_newProxyOwner`
-   */
-  function transferProxyOwnership(address _newProxyOwner) onlyProxyOwner external {
-    require(_newProxyOwner != address(0), "New proxyOwner should not be zero address");
-    emit ProxyOwnershipTransferred(proxyOwner, _newProxyOwner);
-    proxyOwner = _newProxyOwner;
-  }
-
-  /**
-   * @dev Set a new land balance minime token
-   * @notice Set new land balance token: `_newLandBalance`
-   */
-  function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
-    require(_newLandBalance != address(0), "New landBalance should not be zero address");
-    emit SetLandBalanceToken(landBalance, _newLandBalance);
-    landBalance = IMiniMeToken(_newLandBalance);
+  function _setEstateLandBalanceToken(address _newEstateLandBalance) internal {
+    require(_newEstateLandBalance != address(0), "New estateLandBalance should not be zero address");
+    emit SetEstateLandBalanceToken(estateLandBalance, _newEstateLandBalance);
+    estateLandBalance = IMiniMeToken(_newEstateLandBalance);
   }
 
    /**
@@ -1704,11 +1672,13 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @notice Register land Balance
    */
   function registerBalance() external {
+    require(!registeredBalance[msg.sender], "Register Balance::The user is already registered");
+
     // Get balance of the sender
-    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+    uint256 currentBalance = estateLandBalance.balanceOf(msg.sender);
     if (currentBalance > 0) {
       require(
-        landBalance.destroyTokens(msg.sender, currentBalance),
+        estateLandBalance.destroyTokens(msg.sender, currentBalance),
         "Register Balance::Could not destroy tokens"
       );
     }
@@ -1721,7 +1691,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
     // Generate Tokens
     require(
-      landBalance.generateTokens(msg.sender, newBalance),
+      estateLandBalance.generateTokens(msg.sender, newBalance),
       "Register Balance::Could not generate tokens"
     );
   }
@@ -1731,15 +1701,17 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @notice Unregister land Balance
    */
   function unregisterBalance() external {
+    require(registeredBalance[msg.sender], "Unregister Balance::The user not registered");
+
     // Set balance as unregistered
     registeredBalance[msg.sender] = false;
 
     // Get balance
-    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+    uint256 currentBalance = estateLandBalance.balanceOf(msg.sender);
 
     // Destroy Tokens
     require(
-      landBalance.destroyTokens(msg.sender, currentBalance),
+      estateLandBalance.destroyTokens(msg.sender, currentBalance),
       "Unregister Balance::Could not destroy tokens"
     );
   }
@@ -1750,13 +1722,13 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _to account
    * @param _amount to update
    */
-  function _updateLandBalance(address _from, address _to, uint256 _amount) internal {
+  function _updateEstateLandBalance(address _from, address _to, uint256 _amount) internal {
     if (registeredBalance[_from]) {
-      landBalance.destroyTokens(_from, _amount);
+      estateLandBalance.destroyTokens(_from, _amount);
     }
 
     if (registeredBalance[_to]) {
-      landBalance.generateTokens(_to, _amount);
+      estateLandBalance.generateTokens(_to, _amount);
     }
   }
 }

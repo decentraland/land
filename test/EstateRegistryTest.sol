@@ -45,8 +45,7 @@ contract EstateRegistryTest is EstateRegistry {
     );
   }
 
-  function initAndChangeProxyOwner(address _address) public {
-    this.initProxyOwner();
-    proxyOwner = _address;
+  function setEstateLandBalanceToken(address _newEstateLandBalance) public {
+    _setEstateLandBalanceToken(_newEstateLandBalance);
   }
 }

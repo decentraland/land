@@ -116,14 +116,9 @@ contract IEstateRegistry {
     address indexed _registry
   );
 
-  event ProxyOwnershipTransferred(
-    address indexed _previousProxyOwner,
-    address indexed _newProxyOwner
-  );
-
-  event SetLandBalanceToken(
-    address indexed _previousLandBalance,
-    address indexed _newLandBalance
+  event SetEstateLandBalanceToken(
+    address indexed _previousEstateLandBalance,
+    address indexed _newEstateLandBalance
   );
 }
 
@@ -1434,6 +1429,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @notice Register land Balance
    */
   function registerBalance() external {
+    require(!registeredBalance[msg.sender], "Register Balance::The user is already registered");
+
     // Get balance of the sender
     uint256 currentBalance = landBalance.balanceOf(msg.sender);
     if (currentBalance > 0) {
@@ -1461,6 +1458,8 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @notice Unregister land Balance
    */
   function unregisterBalance() external {
+    require(registeredBalance[msg.sender], "Unregister Balance::The user not registered");
+
     // Set balance as unregistered
     registeredBalance[msg.sender] = false;
 
