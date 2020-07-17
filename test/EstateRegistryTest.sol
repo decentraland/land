@@ -45,7 +45,7 @@ contract EstateRegistryTest is EstateRegistry {
     );
   }
 
-  function setEstateLandBalanceToken(address _newEstateLandBalance) public {
+  function setEstateLandBalance(address _newEstateLandBalance) public {
     _setEstateLandBalanceToken(_newEstateLandBalance);
   }
 }
