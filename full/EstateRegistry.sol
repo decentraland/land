@@ -994,6 +994,38 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event SetEstateLandBalanceToken(
+    address indexed _previousEstateLandBalance,
+    address indexed _newEstateLandBalance
+  );
+}
+
+// File: contracts/minimeToken/IMinimeToken.sol
+
+interface IMiniMeToken {
+////////////////
+// Generate and destroy tokens
+////////////////
+
+    /// @notice Generates `_amount` tokens that are assigned to `_owner`
+    /// @param _owner The address that will be assigned the new tokens
+    /// @param _amount The quantity of tokens generated
+    /// @return True if the tokens are generated correctly
+    function generateTokens(address _owner, uint _amount) external returns (bool);
+
+
+    /// @notice Burns `_amount` tokens from `_owner`
+    /// @param _owner The address that will lose the tokens
+    /// @param _amount The quantity of tokens to burn
+    /// @return True if the tokens are burned correctly
+    function destroyTokens(address _owner, uint _amount) external returns (bool);
+
+    /// @param _owner The address that's balance is being requested
+    /// @return The balance of `_owner` at the current block
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
 }
 
 // File: contracts/estate/EstateStorage.sol
@@ -1035,6 +1067,12 @@ contract EstateStorage {
 
   // From account to mapping of operator to bool whether is allowed to update content or not
   mapping(address => mapping(address => bool)) public updateManager;
+
+  // Land balance minime token
+  IMiniMeToken public estateLandBalance;
+
+  // Registered balance accounts
+  mapping(address => bool) public registeredBalance;
 
 }
 
@@ -1154,6 +1192,22 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    */
   function getEstateSize(uint256 estateId) external view returns (uint256) {
     return estateLandIds[estateId].length;
+  }
+
+  /**
+   * @notice Return the amount of LANDs inside the Estates for a given address
+   * @param _owner of the estates
+   * @return the amount of LANDs
+   */
+  function getLANDsSize(address _owner) public view returns (uint256) {
+    // Avoid balanceOf to not compute an unnecesary require
+    uint256 landsSize;
+    uint256 balance = ownedTokensCount[_owner];
+    for (uint256 i; i < balance; i++) {
+      uint256 estateId = ownedTokens[_owner][i];
+      landsSize += estateLandIds[estateId].length;
+    }
+    return landsSize;
   }
 
   /**
@@ -1422,6 +1476,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   public
   {
     updateOperator[_tokenId] = address(0);
+    _updateEstateLandBalance(_from, _to, estateLandIds[_tokenId].length);
     super.transferFrom(_from, _to, _tokenId);
   }
 
@@ -1483,6 +1538,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
     estateLandIndex[estateId][landId] = estateLandIds[estateId].length;
 
+    address owner = ownerOf(estateId);
+    _updateEstateLandBalance(address(registry), owner, 1);
+
     emit AddLand(estateId, landId);
   }
 
@@ -1543,7 +1601,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
      */
     landIdEstate[landId] = 0;
 
+    address owner = ownerOf(estateId);
+    _updateEstateLandBalance(owner, address(registry), 1);
+
     registry.safeTransferFrom(this, destinatary, landId);
+
 
     emit RemoveLand(estateId, landId, destinatary);
   }
@@ -1593,5 +1655,80 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     int y;
     (x, y) = registry.decodeTokenId(landId);
     registry.updateLandData(x, y, data);
+  }
+
+  /**
+   * @dev Set a new estate land balance minime token
+   * @param _newEstateLandBalance address of the new estate land balance token
+   */
+  function _setEstateLandBalanceToken(address _newEstateLandBalance) internal {
+    require(_newEstateLandBalance != address(0), "New estateLandBalance should not be zero address");
+    emit SetEstateLandBalanceToken(estateLandBalance, _newEstateLandBalance);
+    estateLandBalance = IMiniMeToken(_newEstateLandBalance);
+  }
+
+   /**
+   * @dev Register an account balance
+   * @notice Register land Balance
+   */
+  function registerBalance() external {
+    require(!registeredBalance[msg.sender], "Register Balance::The user is already registered");
+
+    // Get balance of the sender
+    uint256 currentBalance = estateLandBalance.balanceOf(msg.sender);
+    if (currentBalance > 0) {
+      require(
+        estateLandBalance.destroyTokens(msg.sender, currentBalance),
+        "Register Balance::Could not destroy tokens"
+      );
+    }
+
+    // Set balance as registered
+    registeredBalance[msg.sender] = true;
+
+    // Get LAND balance
+    uint256 newBalance = getLANDsSize(msg.sender);
+
+    // Generate Tokens
+    require(
+      estateLandBalance.generateTokens(msg.sender, newBalance),
+      "Register Balance::Could not generate tokens"
+    );
+  }
+
+  /**
+   * @dev Unregister an account balance
+   * @notice Unregister land Balance
+   */
+  function unregisterBalance() external {
+    require(registeredBalance[msg.sender], "Unregister Balance::The user not registered");
+
+    // Set balance as unregistered
+    registeredBalance[msg.sender] = false;
+
+    // Get balance
+    uint256 currentBalance = estateLandBalance.balanceOf(msg.sender);
+
+    // Destroy Tokens
+    require(
+      estateLandBalance.destroyTokens(msg.sender, currentBalance),
+      "Unregister Balance::Could not destroy tokens"
+    );
+  }
+
+  /**
+   * @dev Update account balances
+   * @param _from account
+   * @param _to account
+   * @param _amount to update
+   */
+  function _updateEstateLandBalance(address _from, address _to, uint256 _amount) internal {
+    if (registeredBalance[_from]) {
+      estateLandBalance.destroyTokens(_from, _amount);
+    }
+
+    if (registeredBalance[_to]) {
+      estateLandBalance.generateTokens(_to, _amount);
+    }
   }
 }

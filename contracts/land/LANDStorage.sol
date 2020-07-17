@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "../estate/IEstateRegistry.sol";
+import "../minimeToken/IMinimeToken.sol";
 
 
 contract LANDStorage {
@@ -19,4 +20,10 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping(address => mapping(address => bool)) public updateManager;
+
+  // Land balance minime token
+  IMiniMeToken public landBalance;
+
+  // Registered balance accounts
+  mapping(address => bool) public registeredBalance;
 }

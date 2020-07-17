@@ -115,6 +115,38 @@ contract IEstateRegistry {
   event SetLANDRegistry(
     address indexed _registry
   );
+
+  event SetEstateLandBalanceToken(
+    address indexed _previousEstateLandBalance,
+    address indexed _newEstateLandBalance
+  );
+}
+
+// File: contracts/minimeToken/IMinimeToken.sol
+
+interface IMiniMeToken {
+////////////////
+// Generate and destroy tokens
+////////////////
+
+    /// @notice Generates `_amount` tokens that are assigned to `_owner`
+    /// @param _owner The address that will be assigned the new tokens
+    /// @param _amount The quantity of tokens generated
+    /// @return True if the tokens are generated correctly
+    function generateTokens(address _owner, uint _amount) external returns (bool);
+
+
+    /// @notice Burns `_amount` tokens from `_owner`
+    /// @param _owner The address that will lose the tokens
+    /// @param _amount The quantity of tokens to burn
+    /// @return True if the tokens are burned correctly
+    function destroyTokens(address _owner, uint _amount) external returns (bool);
+
+    /// @param _owner The address that's balance is being requested
+    /// @return The balance of `_owner` at the current block
+    function balanceOf(address _owner) external view returns (uint256 balance);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
 }
 
 // File: contracts/land/LANDStorage.sol
@@ -135,6 +167,12 @@ contract LANDStorage {
   mapping (address => bool) public authorizedDeploy;
 
   mapping(address => mapping(address => bool)) public updateManager;
+
+  // Land balance minime token
+  IMiniMeToken public landBalance;
+
+  // Registered balance accounts
+  mapping(address => bool) public registeredBalance;
 }
 
 // File: contracts/Storage.sol
@@ -900,6 +938,11 @@ interface ILANDRegistry {
     address indexed _caller,
     address indexed _deployer
   );
+
+  event SetLandBalanceToken(
+    address indexed _previousLandBalance,
+    address indexed _newLandBalance
+  );
 }
 
 // File: contracts/metadata/IMetadataHolder.sol
@@ -998,11 +1041,13 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
 
   function assignNewParcel(int x, int y, address beneficiary) external onlyDeployer {
     _generate(_encodeTokenId(x, y), beneficiary);
+    _updateLandBalance(address(0), beneficiary);
   }
 
   function assignMultipleParcels(int[] x, int[] y, address beneficiary) external onlyDeployer {
     for (uint i = 0; i < x.length; i++) {
       _generate(_encodeTokenId(x[i], y[i]), beneficiary);
+      _updateLandBalance(address(0), beneficiary);
     }
   }
 
@@ -1369,6 +1414,66 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     }
   }
 
+  /**
+   * @dev Set a new land balance minime token
+   * @notice Set new land balance token: `_newLandBalance`
+   * @param _newLandBalance address of the new land balance token
+   */
+  function setLandBalanceToken(address _newLandBalance) onlyProxyOwner external {
+    require(_newLandBalance != address(0), "New landBalance should not be zero address");
+    emit SetLandBalanceToken(landBalance, _newLandBalance);
+    landBalance = IMiniMeToken(_newLandBalance);
+  }
+
+   /**
+   * @dev Register an account balance
+   * @notice Register land Balance
+   */
+  function registerBalance() external {
+    require(!registeredBalance[msg.sender], "Register Balance::The user is already registered");
+
+    // Get balance of the sender
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+    if (currentBalance > 0) {
+      require(
+        landBalance.destroyTokens(msg.sender, currentBalance),
+        "Register Balance::Could not destroy tokens"
+      );
+    }
+
+    // Set balance as registered
+    registeredBalance[msg.sender] = true;
+
+    // Get LAND balance
+    uint256 newBalance = _balanceOf(msg.sender);
+
+    // Generate Tokens
+    require(
+      landBalance.generateTokens(msg.sender, newBalance),
+      "Register Balance::Could not generate tokens"
+    );
+  }
+
+  /**
+   * @dev Unregister an account balance
+   * @notice Unregister land Balance
+   */
+  function unregisterBalance() external {
+    require(registeredBalance[msg.sender], "Unregister Balance::The user not registered");
+
+    // Set balance as unregistered
+    registeredBalance[msg.sender] = false;
+
+    // Get balance
+    uint256 currentBalance = landBalance.balanceOf(msg.sender);
+
+    // Destroy Tokens
+    require(
+      landBalance.destroyTokens(msg.sender, currentBalance),
+      "Unregister Balance::Could not destroy tokens"
+    );
+  }
+
   function _doTransferFrom(
     address from,
     address to,
@@ -1379,7 +1484,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     internal
   {
     updateOperator[assetId] = address(0);
-
+    _updateLandBalance(from, to);
     super._doTransferFrom(
       from,
       to,
@@ -1394,5 +1499,20 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     // solium-disable-next-line security/no-inline-assembly
     assembly { size := extcodesize(addr) }
     return size > 0;
+  }
+
+  /**
+   * @dev Update account balances
+   * @param _from account
+   * @param _to account
+   */
+  function _updateLandBalance(address _from, address _to) internal {
+    if (registeredBalance[_from]) {
+      landBalance.destroyTokens(_from, 1);
+    }
+
+    if (registeredBalance[_to]) {
+      landBalance.generateTokens(_to, 1);
+    }
   }
 }
