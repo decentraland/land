@@ -663,4 +663,14 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
       estateLandBalance.generateTokens(_to, _amount);
     }
   }
+
+  /**
+   * @dev Set a estate land balance minime token hardcoded because of the
+   * contraint of the proxy for using an owner
+   * Mainnet: 0x8568f23f343694650370fe5e254b55bfb704a6c7
+   */
+  function setEstateLandBalanceToken() external {
+    require(estateLandBalance == address(0), "estateLandBalance was set");
+    _setEstateLandBalanceToken(address(0x8568f23f343694650370fe5e254b55bfb704a6c7));
+  }
 }

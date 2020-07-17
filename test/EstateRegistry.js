@@ -1698,10 +1698,7 @@ contract('EstateRegistry', accounts => {
 
     describe('setBalanceToken', function() {
       it('should set balance token', async function() {
-        const { logs } = await estate.setEstateLandBalanceToken(
-          user,
-          sentByCreator
-        )
+        const { logs } = await estate.setEstateLandBalance(user, sentByCreator)
 
         // Event emitted
         logs.length.should.be.equal(1)
