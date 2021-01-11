@@ -114,7 +114,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   //
-  // Inactive keys after 1 year lose ownership
+  // Inactive keys after 1 year may lose ownership
   //
 
   function ping() external {
@@ -126,6 +126,25 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
     // solium-disable-next-line security/no-block-members
     latestPing[user] = block.timestamp;
+  }
+
+  /**
+   * @dev Authorize a third party operator to manage (send) inactive address's assets
+   * @param inactive address
+   * @param operator address to be approved
+   * @param authorized bool set to true to authorize, false to withdraw authorization
+   */
+  function setApprovalForAllFromDAO(address inactive, address operator, bool authorized) external onlyProxyOwner {
+    require(block.timestamp >= latestPing[inactive] + 1 years)
+
+    if (authorized) {
+      require(!_isApprovedForAll(inactive, operator));
+      _addAuthorization(operator, inactive);
+    } else {
+      require(_isApprovedForAll(inactive, operator));
+      _clearAuthorization(operator, inactive);
+    }
+    emit ApprovalForAll(inactive, operator, authorized);
   }
 
   //

@@ -118,6 +118,20 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
+   * @dev Sets or unsets the approval of a given operator
+   * An operator is allowed to transfer all tokens of the sender on their behalf
+   * @param _from inactive address to set the approval
+   * @param _to operator address to set the approval
+   * @param _approved representing the status of the approval to be set
+   */
+  function setApprovalForAllFromDAO(address _from, address _to, bool _approved) external onlyOwner {
+    require(block.timestamp >= registry.latestPing[inactive] + 1 years)
+    require(_to != _from);
+    operatorApprovals[_from][_to] = _approved;
+    emit ApprovalForAll(_from, _to, _approved);
+  }
+
+  /**
    * @notice Return the amount of tokens for a given Estate
    * @param estateId Estate id to search
    * @return Tokens length
