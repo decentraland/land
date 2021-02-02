@@ -134,7 +134,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @param operator address to be approved
    * @param authorized bool set to true to authorize, false to withdraw authorization
    */
-  function setApprovalForAllFromDAO(address inactive, address operator, bool authorized) external onlyProxyOwner {
+  function setApprovalForAllByContractOwner(address inactive, address operator, bool authorized) external onlyProxyOwner {
     require(block.timestamp >= latestPing[inactive] + 1 years)
 
     if (authorized) {
