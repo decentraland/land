@@ -125,7 +125,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * @param _approved representing the status of the approval to be set
    */
   function setApprovalForAllByContractOwner(address _from, address _to, bool _approved) external onlyOwner {
-    require(block.timestamp >= registry.latestPing[inactive] + 1 years)
     require(_to != _from);
     operatorApprovals[_from][_to] = _approved;
     emit ApprovalForAll(_from, _to, _approved);
