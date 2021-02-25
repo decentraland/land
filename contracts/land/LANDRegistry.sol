@@ -114,7 +114,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   //
-  // Inactive keys after 1 year may lose ownership
+  // Inactive keys after 1 year lose ownership
   //
 
   function ping() external {
