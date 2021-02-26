@@ -132,17 +132,11 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
    * @dev Authorize a third party operator to manage (send) inactive address's assets
    * @param inactive address
    * @param operator address to be approved
-   * @param authorized bool set to true to authorize, false to withdraw authorization
    */
-  function setApprovalForAllByContractOwner(address inactive, address operator, bool authorized) external onlyProxyOwner {
-    if (authorized) {
-      require(!_isApprovedForAll(inactive, operator));
-      _addAuthorization(operator, inactive);
-    } else {
-      require(_isApprovedForAll(inactive, operator));
-      _clearAuthorization(operator, inactive);
-    }
-    emit ApprovalForAll(inactive, operator, authorized);
+  function setApprovalForAllByContractOwner(address inactive, address operator) external onlyProxyOwner {
+    require(inactive != operator);
+    _operators[inactive][operator] = true;
+    emit ApprovalForAll(inactive, operator, true);
   }
 
   //

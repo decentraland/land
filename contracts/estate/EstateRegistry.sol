@@ -122,12 +122,11 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
    * An operator is allowed to transfer all tokens of the sender on their behalf
    * @param _from inactive address to set the approval
    * @param _to operator address to set the approval
-   * @param _approved representing the status of the approval to be set
    */
-  function setApprovalForAllByContractOwner(address _from, address _to, bool _approved) external onlyOwner {
+  function setApprovalForAllByContractOwner(address _from, address _to) external onlyOwner {
     require(_to != _from);
-    operatorApprovals[_from][_to] = _approved;
-    emit ApprovalForAll(_from, _to, _approved);
+    operatorApprovals[_from][_to] = true;
+    emit ApprovalForAll(_from, _to, true);
   }
 
   /**
