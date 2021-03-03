@@ -914,6 +914,90 @@ contract('LANDRegistry', accounts => {
     })
   })
 
+describe('Reclaim lost land', function() {
+
+    it('should set operator permissions for all land', async function() {
+      let landId = await land.encodeTokenId(0, 1)
+
+      const isUserAuthorized = await land.isAuthorized(user, landId)
+      isUserAuthorized.should.be.true
+
+      const isAuthorizedBefore = await land.isAuthorized(anotherUser, landId)
+      isAuthorizedBefore.should.be.false
+
+      const isApprovedForAllBefore = await land.isApprovedForAll(user, anotherUser)
+      isApprovedForAllBefore.should.be.false
+      
+      await land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+
+      const isAuthorizedAfter = await land.isAuthorized(anotherUser, landId)
+      isAuthorizedAfter.should.be.true
+
+      const isApprovedForAllAfter = await land.isApprovedForAll(user, anotherUser)
+      isApprovedForAllAfter.should.be.true
+    })
+
+    it('should only be called by the proxy owner', async function() {
+      await assertRevert(land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByUser
+      ))
+      await assertRevert(land.setApprovalForAllByContractOwner(
+          user,
+          anotherUser,
+          sentByAnotherUser
+      ))
+      await assertRevert(land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByHacker
+      ))
+      await land.setApprovalForAllByContractOwner(user, operator, sentByCreator)
+      const proxyOwner = await land.proxyOwner()
+      proxyOwner.should.be.equal(creator)
+    })
+
+    it('should emit ApproveForAll event', async function() {
+      const { logs } = await land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.equal('ApprovalForAll')
+      log.args.holder.should.be.bignumber.equal(user)
+      log.args.operator.should.be.equal(anotherUser)
+      log.args.authorized.should.be.equal(true)
+    })
+
+    it('should allow new opeator to update land data', async function() {
+      await land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+      await land.updateLandData(0, 1, 'newValue', sentByAnotherUser)
+    })
+
+    it('should allow new opeator to transfer land', async function() {
+      await land.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+      await land.transferLand(0, 1, anotherUser, sentByAnotherUser)
+    })
+  })
+
   describe('UpdateManager', function() {
     it('should set updateManager by owner', async function() {
       const { logs } = await land.setUpdateManager(

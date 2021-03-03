@@ -128,6 +128,17 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
     latestPing[user] = block.timestamp;
   }
 
+  /**
+   * @dev Authorize a third party operator to manage (send) inactive address's assets
+   * @param inactive address
+   * @param operator address to be approved
+   */
+  function setApprovalForAllByContractOwner(address inactive, address operator) external onlyProxyOwner {
+    require(inactive != operator);
+    _operators[inactive][operator] = true;
+    emit ApprovalForAll(inactive, operator, true);
+  }
+
   //
   // LAND Getters
   //
