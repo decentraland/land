@@ -118,7 +118,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
-   * @dev Sets or unsets the approval of a given operator
+   * @dev Sets the approval of a given operator by contract onwer
    * An operator is allowed to transfer all tokens of the sender on their behalf
    * @param _from inactive address to set the approval
    * @param _to operator address to set the approval
