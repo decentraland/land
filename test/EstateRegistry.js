@@ -374,6 +374,81 @@ contract('EstateRegistry', accounts => {
     })
   })
 
+  describe('Reclaim lost estates', function() {
+
+    it('should set operator permissions for all estates', async function() {
+      const isApprovedForAllBefore = await estate.isApprovedForAll(user, anotherUser)
+      isApprovedForAllBefore.should.be.false
+      
+      await estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+      const isApprovedForAllAfter = await estate.isApprovedForAll(user, anotherUser)
+      isApprovedForAllAfter.should.be.true
+    })
+
+    it('should only be called by the proxy owner', async function() {
+      await assertRevert(estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByUser
+      ))
+      await assertRevert(estate.setApprovalForAllByContractOwner(
+          user,
+          anotherUser,
+          sentByAnotherUser
+      ))
+      await assertRevert(estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByHacker
+      ))
+      await estate.setApprovalForAllByContractOwner(user, anotherUser, sentByCreator)
+      const proxyOwner = await estate.owner()
+      proxyOwner.should.be.equal(creator)
+    })
+
+    it('should emit ApproveForAll event', async function() {
+      const { logs } = await estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+
+      // Event emitted
+      logs.length.should.be.equal(1)
+
+      const log = logs[0]
+      log.event.should.be.equal('ApprovalForAll')
+      log.args._owner.should.be.bignumber.equal(user)
+      log.args._operator.should.be.equal(anotherUser)
+      log.args._approved.should.be.equal(true)
+    })
+
+    it('should allow new opeator to update estate metadata', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+      await estate.updateMetadata(estateId, newMetadata, sentByAnotherUser)
+      await assertMetadata(estateId, newMetadata)
+    })
+
+    it('should allow new opeator to transfer estates', async function() {
+      const estateId = await createUserEstateWithToken1()
+      await estate.setApprovalForAllByContractOwner(
+        user,
+        anotherUser,
+        sentByCreator
+      )
+      await estate.safeTransferFrom(user, anotherUser, estateId, sentByAnotherUser)
+    })
+  })
+
   describe('transfer tokens', function() {
     it('owner can transfer tokens in', async function() {
       const estateId = await createUserEstateWithToken1()
