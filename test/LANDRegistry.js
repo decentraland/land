@@ -329,6 +329,12 @@ contract('LANDRegistry', accounts => {
         data.should.be.equal('test_data')
       })
 
+      it('reverts when trying to approve a not authorized LAND :: approvalForAll', async function() {
+        await land.setApprovalForAll(user, true, sentByOperator)
+
+        await assertRevert(land.approve(anotherUser, 1, sentByOperator))
+      })
+
       it('updates the parcel data if authorized :: approve for all', async function() {
         await land.setApprovalForAll(operator, true, sentByUser)
         const originalData = await land.landData(0, 1, sentByUser)
