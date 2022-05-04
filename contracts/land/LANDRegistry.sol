@@ -123,7 +123,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
+    require(msg.sender == proxyOwner || _isApprovedForAll(user, msg.sender), "Unauthorized user");
     // solium-disable-next-line security/no-block-members
     latestPing[user] = block.timestamp;
   }

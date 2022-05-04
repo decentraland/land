@@ -496,7 +496,7 @@ contract ERC721Base is AssetRegistryStorage, IERC721Base, ERC165 {
    */
   function approve(address operator, uint256 assetId) external {
     address holder = _ownerOf(assetId);
-    require(msg.sender == holder || _isApprovedForAll(msg.sender, holder));
+    require(msg.sender == holder || _isApprovedForAll(holder, msg.sender));
     require(operator != holder);
 
     if (_getApprovedAddress(assetId) != operator) {
@@ -1061,7 +1061,7 @@ contract LANDRegistry is Storage, Ownable, FullAssetRegistry, ILANDRegistry {
   }
 
   function setLatestToNow(address user) external {
-    require(msg.sender == proxyOwner || _isApprovedForAll(msg.sender, user), "Unauthorized user");
+    require(msg.sender == proxyOwner || _isApprovedForAll(user, msg.sender), "Unauthorized user");
     // solium-disable-next-line security/no-block-members
     latestPing[user] = block.timestamp;
   }
