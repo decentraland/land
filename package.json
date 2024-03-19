@@ -30,7 +30,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
-    "buidler": "^0.1.4",
+    "buidler": "^0.1.5",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.1",
@@ -46,7 +46,7 @@
     "solium": "^1.1.8",
     "truffle": "^4.1.13",
     "truffle-flattener": "^1.6.0",
-    "truffle-hdwallet-provider": "0.0.3",
+    "truffle-hdwallet-provider": "1.0.17",
     "web3": "^0.20.4"
   }
 }
