@@ -21,11 +21,11 @@
   "dependencies": {
     "erc821": "^6.0.0",
     "openzeppelin-zos": "1.9.4",
-    "zos": "1.4.0",
+    "zos": "2.4.3",
     "zos-lib": "1.4.0"
   },
   "devDependencies": {
-    "babel-eslint": "^8.2.1",
+    "babel-eslint": "^10.1.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
