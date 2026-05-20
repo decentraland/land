@@ -4,7 +4,11 @@ import setupContracts, {
   ESTATE_SYMBOL
 } from './helpers/setupContracts'
 import createEstateFull from './helpers/createEstateFull'
-import { getSoliditySha3 } from './helpers/getSoliditySha3'
+import {
+  getEstateFingerprint,
+  getXorFingerprint
+} from './helpers/getSoliditySha3'
+import { increaseTimeTo } from './helpers/increaseTime'
 
 const BigNumber = web3.BigNumber
 
@@ -542,6 +546,26 @@ contract('EstateRegistry', accounts => {
   })
 
   describe('fingerprint management', function() {
+    // Matches the FINGERPRINT_V2_CUTOFF inlined in verifyFingerprint
+    // (2026-11-26 15:00:00 UTC).
+    const V2_CUTOFF = 1795705200
+
+    async function encodeLandIds(xCoords, yCoords) {
+      return Promise.all(
+        xCoords.map((x, i) => land.encodeTokenId(x, yCoords[i]))
+      )
+    }
+
+    async function createNumberedEstate(count, owner = user) {
+      const xs = Array.from({ length: count }, (_, i) => 100 + i)
+      const ys = Array.from({ length: count }, () => 100)
+      const params = owner === user ? sentByUser : sentByAnotherUser
+      await land.assignMultipleParcels(xs, ys, owner, sentByCreator)
+      const estateId = await createEstate(xs, ys, owner, params)
+      const landIds = await encodeLandIds(xs, ys)
+      return { estateId, landIds }
+    }
+
     it('supports verifyFingerprint interface', async function() {
       const isSupported = await estate.supportsInterface(
         web3.sha3('verifyFingerprint(uint256,bytes)')
@@ -549,17 +573,41 @@ contract('EstateRegistry', accounts => {
       expect(isSupported).be.true
     })
 
-    it('creates the fingerprint correctly', async function() {
+    it('getFingerprint returns the legacy XOR hash', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      const expectedHash = await getEstateHash(estateId, fiveX, fiveY)
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const expected = getXorFingerprint(estateId, landIds)
       const fingerprint = await estate.getFingerprint(estateId)
+      expect(fingerprint).to.be.equal(expected)
+    })
 
-      expect(fingerprint).to.be.equal(expectedHash)
+    it('getFingerprintV2 returns the abi.encode hash', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const expected = getEstateFingerprint(estateId, landIds)
+      const fingerprint = await estate.getFingerprintV2(estateId)
+      expect(fingerprint).to.be.equal(expected)
+    })
+
+    it('getFingerprintV2 does not match the legacy XOR construction (mitigates LR-XOR)', async function() {
+      // Regression test for the fingerprint vulnerability: the previous
+      // construction was XOR over keccak256(landId), which is linear over
+      // GF(2)^256. With ~257 LAND hashes a vanishing subset is guaranteed
+      // by Gaussian elimination, allowing a seller to substitute LAND sets
+      // without changing the fingerprint. getFingerprintV2 uses
+      // keccak256(abi.encode(...)) which is non-linear and binds length
+      // and order.
+      const estateId = await createUserEstateWithNumberedTokens()
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const xor = getXorFingerprint(estateId, landIds)
+      const v2 = await estate.getFingerprintV2(estateId)
+      expect(v2).to.not.be.equal(xor)
     })
 
     it('should change the fingerprint as the composable children change', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      const firstHash = await getEstateHash(estateId, fiveX, fiveY)
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const firstHash = getXorFingerprint(estateId, landIds)
 
       let fingerprint
 
@@ -589,61 +637,89 @@ contract('EstateRegistry', accounts => {
       const estateId = await createEstate([0], [0], user, sentByUser)
       await transferOut(estateId, 0, sentByUser)
 
-      const expectedHash = getSoliditySha3('estateId', estateId)
+      const expected = getXorFingerprint(estateId, [])
       const fingerprint = await estate.getFingerprint(estateId)
-
-      expect(fingerprint).to.be.equal(expectedHash)
+      expect(fingerprint).to.be.equal(expected)
     })
 
-    it('should generate the same hash even if the parcel order changes', async function() {
+    it('getFingerprintV2 changes when parcel order changes (sequence-bound)', async function() {
+      // Order-independence of the legacy XOR is exactly what let a seller
+      // swap LAND sets without changing the fingerprint. getFingerprintV2
+      // is sequence-bound: same set in a different order yields a
+      // different hash.
       await land.assignMultipleParcels(fiveX, fiveY, user, sentByCreator)
       const estateId = await createEstate(fiveX, fiveY, user, sentByUser)
 
-      const fingerprint = await estate.getFingerprint(estateId)
+      const fingerprint = await estate.getFingerprintV2(estateId)
 
-      // Remove LANDs
       for (const [index, x] of fiveX.entries()) {
         const y = fiveY[index]
         const landId = await land.encodeTokenId(x, y)
         await estate.transferLand(estateId, landId, user, sentByUser)
       }
 
-      // Reverse order
-      for (const [index, x] of fiveX.reverse().entries()) {
-        const y = fiveY[index]
+      for (const [index, x] of fiveX.slice().reverse().entries()) {
+        const y = fiveY.slice().reverse()[index]
         const landId = await land.encodeTokenId(x, y)
         await transferIn(estateId, landId, user)
       }
 
-      // Regenerate fingerprint
-      const reverseFingerprint = await estate.getFingerprint(estateId)
-
-      expect(fingerprint).to.be.equal(reverseFingerprint)
+      const reverseFingerprint = await estate.getFingerprintV2(estateId)
+      expect(fingerprint).to.not.be.equal(reverseFingerprint)
     })
 
-    it('verifies the fingerprint correctly', async function() {
+    it('verifyFingerprint accepts v2 for small estates (< 19 lands)', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      const expectedHash = await getEstateHash(estateId, fiveX, fiveY)
-      const result = await estate.verifyFingerprint(estateId, expectedHash)
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const v2 = getEstateFingerprint(estateId, landIds)
+      const result = await estate.verifyFingerprint(estateId, v2)
       expect(result).to.be.true
     })
 
-    async function getEstateHash(estateId, xCoords, yCoords) {
-      const firstLandId = await land.encodeTokenId(xCoords[0], yCoords[0])
+    it('verifyFingerprint accepts the v1 hash for small estates before the cutoff (legacy fallback)', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const v1 = getXorFingerprint(estateId, landIds)
+      const result = await estate.verifyFingerprint(estateId, v1)
+      expect(result).to.be.true
+    })
 
-      let expectedHash = await contracts.estate.calculateXor(
-        'estateId', // salt
-        estateId,
-        firstLandId
-      )
+    it('verifyFingerprint rejects a wrong fingerprint', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const bogus =
+        '0x' + 'de'.repeat(32) // arbitrary 32-byte value, not a valid fp
+      const result = await estate.verifyFingerprint(estateId, bogus)
+      expect(result).to.be.false
+    })
 
-      for (let i = 1; i < xCoords.length; i++) {
-        const landId = await land.encodeTokenId(xCoords[i], yCoords[i])
-        expectedHash = await contracts.estate.compoundXor(expectedHash, landId)
-      }
+    it('verifyFingerprint accepts v1 and v2 at the 18-land boundary (< 19)', async function() {
+      const { estateId, landIds } = await createNumberedEstate(18)
+      const v1 = getXorFingerprint(estateId, landIds)
+      const v2 = getEstateFingerprint(estateId, landIds)
 
-      return expectedHash
-    }
+      const v1Ok = await estate.verifyFingerprint(estateId, v1)
+      const v2Ok = await estate.verifyFingerprint(estateId, v2)
+      expect(v1Ok).to.be.true
+      expect(v2Ok).to.be.true
+    })
+
+    it('verifyFingerprint requires v2 at the 19-land boundary (>= 19)', async function() {
+      const { estateId, landIds } = await createNumberedEstate(19)
+      const v1 = getXorFingerprint(estateId, landIds)
+      const v2 = getEstateFingerprint(estateId, landIds)
+
+      const v1Ok = await estate.verifyFingerprint(estateId, v1)
+      const v2Ok = await estate.verifyFingerprint(estateId, v2)
+      expect(v1Ok).to.be.false
+      expect(v2Ok).to.be.true
+    })
+
+    it('verifyFingerprint requires v2 for large estates regardless of date', async function() {
+      const { estateId, landIds } = await createNumberedEstate(25)
+      const v2 = getEstateFingerprint(estateId, landIds)
+      const result = await estate.verifyFingerprint(estateId, v2)
+      expect(result).to.be.true
+    })
 
     it('should not have checksum collision with one LAND', async function() {
       const estateId1 = await createUserEstateWithToken2() // Estate Id: 1, Land Id: 2
@@ -659,6 +735,177 @@ contract('EstateRegistry', accounts => {
       const fingerprint1 = await estate.getFingerprint(estateId1)
       const fingerprint2 = await estate.getFingerprint(estateId2)
       expect(fingerprint1).to.not.be.equal(fingerprint2)
+    })
+
+    it('distinguishes geometrically-symmetric LAND sets (v2)', async function() {
+      // Diagonal {(0,0),(1,1)} vs anti-diagonal {(2,3),(3,2)} vs L-shape
+      // {(4,5),(4,6),(5,5)}. Pins each on-chain v2 fingerprint to its JS
+      // reference so a future change of algorithm is caught.
+      await land.assignMultipleParcels(
+        [0, 1, 2, 3, 4, 4, 5],
+        [0, 1, 3, 2, 5, 6, 5],
+        user,
+        sentByCreator
+      )
+
+      const idDiag = await createEstate([0, 1], [0, 1], user, sentByUser)
+      const idAnti = await createEstate([2, 3], [3, 2], user, sentByUser)
+      const idTri = await createEstate([4, 4, 5], [5, 6, 5], user, sentByUser)
+
+      const fpDiag = await estate.getFingerprintV2(idDiag)
+      const fpAnti = await estate.getFingerprintV2(idAnti)
+      const fpTri = await estate.getFingerprintV2(idTri)
+
+      const refDiag = getEstateFingerprint(idDiag, [
+        await land.encodeTokenId(0, 0),
+        await land.encodeTokenId(1, 1)
+      ])
+      const refAnti = getEstateFingerprint(idAnti, [
+        await land.encodeTokenId(2, 3),
+        await land.encodeTokenId(3, 2)
+      ])
+      const refTri = getEstateFingerprint(idTri, [
+        await land.encodeTokenId(4, 5),
+        await land.encodeTokenId(4, 6),
+        await land.encodeTokenId(5, 5)
+      ])
+
+      expect(fpDiag).to.be.equal(refDiag)
+      expect(fpAnti).to.be.equal(refAnti)
+      expect(fpTri).to.be.equal(refTri)
+
+      expect(fpDiag).to.not.be.equal(fpAnti)
+      expect(fpDiag).to.not.be.equal(fpTri)
+      expect(fpAnti).to.not.be.equal(fpTri)
+    })
+
+    // Cost(N) ≈ 23,779 + 343.75·N + 0.00785·N² gas (fitted from measured points).
+    //   - mainnet 30M-block verifyFingerprint ceiling: ~43,500 LANDs
+    //   - common 50M eth_call cap:                     ~60,000 LANDs
+    //   - full ~92K Decentraland supply:               ~98M gas (infeasible on-chain)
+
+    const CHUNK = 1000
+    // Pause after each heavy chunk so Ganache 6 (JS-based) gets a chance
+    // to GC and doesn't hang on the next RPC call.
+    const breathe = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+    // Disjoint coordinate ranges per iteration so deployments never collide.
+    const coordsFor = (iter, idx) => {
+      const xBase = (iter + 1) * 100
+      const xRel = Math.floor(idx / 1000)
+      const y = (idx % 1000) + 1
+      return { x: xBase + xRel, y }
+    }
+
+    const buildBatch = (iter, start, end) => {
+      const xs = []
+      const ys = []
+      for (let j = start; j < end; j++) {
+        const { x, y } = coordsFor(iter, j)
+        xs.push(x)
+        ys.push(y)
+      }
+      return { xs, ys }
+    }
+
+    async function measureGas(iter, size, breatheMs, gasParams) {
+      for (let start = 0; start < size; start += CHUNK) {
+        const end = Math.min(start + CHUNK, size)
+        const { xs, ys } = buildBatch(iter, start, end)
+        await land.assignMultipleParcels(xs, ys, user, gasParams.creator)
+        if (breatheMs && size >= CHUNK) await breathe(breatheMs)
+      }
+
+      const firstEnd = Math.min(CHUNK, size)
+      const first = buildBatch(iter, 0, firstEnd)
+      const estateId = await createEstate(
+        first.xs,
+        first.ys,
+        user,
+        gasParams.user
+      )
+      if (breatheMs && size >= CHUNK) await breathe(breatheMs)
+
+      for (let start = firstEnd; start < size; start += CHUNK) {
+        const end = Math.min(start + CHUNK, size)
+        const { xs, ys } = buildBatch(iter, start, end)
+        await land.transferManyLandToEstate(xs, ys, estateId, gasParams.user)
+        if (breatheMs && size >= CHUNK) await breathe(breatheMs)
+      }
+
+      const getFpGas = await estate.getFingerprint.estimateGas(estateId)
+      const fp = await estate.getFingerprint(estateId)
+      const verifyGas = await estate.verifyFingerprint.estimateGas(
+        estateId,
+        fp
+      )
+      return { getFpGas, verifyGas }
+    }
+
+    function printGasTable(rows) {
+      const fmt = n => Number(n).toLocaleString('en-US')
+      console.log('\n      Fingerprint gas usage (mainnet block ≈ 30,000,000):')
+      console.log('      ┌─────────┬─────────────────┬───────────────────┐')
+      console.log('      │ LANDs   │ getFingerprint  │ verifyFingerprint │')
+      console.log('      ├─────────┼─────────────────┼───────────────────┤')
+      for (const r of rows) {
+        console.log(
+          `      │ ${fmt(r.size).padStart(7)} │ ${fmt(r.getFpGas).padStart(15)} │ ${fmt(r.verifyGas).padStart(17)} │`
+        )
+      }
+      console.log('      └─────────┴─────────────────┴───────────────────┘')
+    }
+
+    it('measures gas at small estate sizes (informational)', async function() {
+      const sizes = [1, 100, 1000]
+      const gasParams = {
+        user: { ...creationParams, from: user, gas: 250e6 },
+        creator: { ...creationParams, gas: 250e6 }
+      }
+
+      const rows = []
+      for (let i = 0; i < sizes.length; i++) {
+        const size = sizes[i]
+        const r = await measureGas(i, size, 0, gasParams)
+        rows.push({ size, ...r })
+        console.log(
+          `        size=${size}: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
+        )
+      }
+      printGasTable(rows)
+    })
+
+    it('measures gas at 10,000 LANDs (heavy, isolated)', async function() {
+      // Heavy run separated from the small-size test because Ganache 6
+      // destabilises if you stack the smaller setups before this one in
+      // the same process. Run alone with --grep "10,000" if needed.
+      this.timeout(1500000) // 25 min
+      const gasParams = {
+        user: { ...creationParams, from: user, gas: 250e6 },
+        creator: { ...creationParams, gas: 250e6 }
+      }
+      const r = await measureGas(0, 10000, 5000, gasParams)
+      console.log(
+        `        size=10000: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
+      )
+      printGasTable([{ size: 10000, ...r }])
+    })
+
+    // Kept last in this describe block: evm_increaseTime is sticky in
+    // Ganache, so once we jump past the cutoff every later block.timestamp
+    // is also past it.
+    it('verifyFingerprint switches to v2 for small estates after the cutoff', async function() {
+      const estateId = await createUserEstateWithNumberedTokens()
+      const landIds = await encodeLandIds(fiveX, fiveY)
+      const v1 = getXorFingerprint(estateId, landIds)
+      const v2 = getEstateFingerprint(estateId, landIds)
+
+      await increaseTimeTo(V2_CUTOFF + 1)
+
+      const v1Ok = await estate.verifyFingerprint(estateId, v1)
+      const v2Ok = await estate.verifyFingerprint(estateId, v2)
+      expect(v1Ok).to.be.false
+      expect(v2Ok).to.be.true
     })
   })
 

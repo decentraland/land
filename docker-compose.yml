@@ -1,0 +1,14 @@
+services:
+  land:
+    build: .
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=8192"
+    volumes:
+      - .:/app
+      - land_node_modules:/app/node_modules
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  land_node_modules:

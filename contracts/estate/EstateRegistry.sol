@@ -312,6 +312,9 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
 
   /**
    * @dev Creates a checksum of the contents of the Estate
+   * @dev UNSAFE: Do not use. The XOR-based construction is linear over
+   *   GF(2)^256 and allows distinct LAND sets to collide. Kept for
+   *   backwards compatibility only — use verifyFingerprint instead.
    * @param estateId the estateId to be verified
    */
   function getFingerprint(uint256 estateId)
@@ -329,12 +332,31 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   }
 
   /**
+   * @dev Creates a collision-resistant checksum of the contents of the Estate.
+   * @param estateId the estateId to be verified
+   */
+  function getFingerprintV2(uint256 estateId) public view returns (bytes32) {
+    return keccak256(abi.encode("estateId", estateId, estateLandIds[estateId]));
+  }
+
+  /**
    * @dev Verifies a checksum of the contents of the Estate
    * @param estateId the estateid to be verified
    * @param fingerprint the user provided identification of the Estate contents
    */
   function verifyFingerprint(uint256 estateId, bytes fingerprint) public view returns (bool) {
-    return getFingerprint(estateId) == _bytesToBytes32(fingerprint);
+    bytes32 provided = _bytesToBytes32(fingerprint);
+    if (getFingerprintV2(estateId) == provided) {
+      return true;
+    }
+    // The legacy XOR fingerprint is only accepted as a fallback during
+    // the transition window — before 2026-11-26 15:00:00 UTC — and only
+    // for small estates (< 19 LANDs), where the linear-XOR collision
+    // attack is not yet exploitable.
+    if (block.timestamp < 1795705200 && estateLandIds[estateId].length < 19) {
+      return getFingerprint(estateId) == provided;
+    }
+    return false;
   }
 
   /**
