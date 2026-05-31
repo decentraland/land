@@ -1,4 +1,4 @@
-FROM node:10-alpine
+FROM node:24-alpine
 
 RUN apk add --no-cache python2 make g++ git bash
 
