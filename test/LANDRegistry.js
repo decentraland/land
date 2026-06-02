@@ -7,13 +7,12 @@ import createEstateFull from './helpers/createEstateFull'
 
 const MiniMeToken = artifacts.require('MiniMeToken')
 
-const BigNumber = web3.BigNumber
 
 const NONE = '0x0000000000000000000000000000000000000000'
 
 require('chai')
   .use(require('chai-as-promised'))
-  .use(require('chai-bignumber')(BigNumber))
+  .use(require('./helpers/chaiBn'))
   .should()
 
 function checkDeployAuthorizedLog(log, caller, deployer) {
@@ -51,7 +50,7 @@ contract('LANDRegistry', accounts => {
   }
 
   async function getLandOfUser() {
-    const [xUser, yUser] = await land.landOf(user)
+    const { 0: xUser, 1: yUser } = await land.landOf(user)
     xUser[0].should.be.bignumber.equal(0)
     xUser[1].should.be.bignumber.equal(0)
     yUser[0].should.be.bignumber.equal(1)
@@ -199,7 +198,7 @@ contract('LANDRegistry', accounts => {
     describe('encodeTokenId', function() {
       const encodeFn = value =>
         async function() {
-          const encoded = new BigNumber(value.encoded)
+          const encoded = web3.utils.toBN(value.encoded)
           const result = await land.encodeTokenId(value.x, value.y)
           result.should.bignumber.equal(encoded)
         }
@@ -211,10 +210,10 @@ contract('LANDRegistry', accounts => {
     describe('decodeTokenId', function() {
       const decodeFn = value =>
         async function() {
-          const encoded = new BigNumber(value.encoded)
+          const encoded = web3.utils.toBN(value.encoded)
           const result = await land.decodeTokenId(encoded)
 
-          const [x, y] = result
+          const { 0: x, 1: y } = result
 
           x.should.bignumber.equal(value.x)
           y.should.bignumber.equal(value.y)
@@ -245,7 +244,7 @@ contract('LANDRegistry', accounts => {
 
     describe('landOf', function() {
       it('gets the parcel coordinates for a certain owner', async function() {
-        const [x, y] = await land.landOf(user)
+        const { 0: x, 1: y } = await land.landOf(user)
         x[0].should.be.bignumber.equal(0)
         x[1].should.be.bignumber.equal(0)
         y[0].should.be.bignumber.equal(1)
@@ -489,8 +488,8 @@ contract('LANDRegistry', accounts => {
     describe('transferLand', function() {
       it('transfers LAND if it is called by owner', async function() {
         await land.transferLand(0, 1, creator, sentByUser)
-        const [xCreator, yCreator] = await land.landOf(creator)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xCreator, 1: yCreator } = await land.landOf(creator)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xCreator[0].should.be.bignumber.equal(0)
         yCreator[0].should.be.bignumber.equal(1)
@@ -506,8 +505,8 @@ contract('LANDRegistry', accounts => {
       it('transfers LAND if it is called by operator', async function() {
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferLand(0, 1, creator, sentByOperator)
-        const [xCreator, yCreator] = await land.landOf(creator)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xCreator, 1: yCreator } = await land.landOf(creator)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xCreator[0].should.be.bignumber.equal(0)
         yCreator[0].should.be.bignumber.equal(1)
@@ -534,8 +533,8 @@ contract('LANDRegistry', accounts => {
         const [xUser, yUser] = await getLandOfUser()
 
         await land.transferManyLand(xUser, yUser, creator, sentByUser)
-        const [xCreator, yCreator] = await land.landOf(creator)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xCreator, 1: yCreator } = await land.landOf(creator)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xCreator[0].should.be.bignumber.equal(0)
         xCreator[1].should.be.bignumber.equal(0)
@@ -553,8 +552,8 @@ contract('LANDRegistry', accounts => {
 
         await land.setApprovalForAll(operator, true, sentByUser)
         await land.transferManyLand(xUser, yUser, creator, sentByOperator)
-        const [xCreator, yCreator] = await land.landOf(creator)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xCreator, 1: yCreator } = await land.landOf(creator)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xCreator[0].should.be.bignumber.equal(0)
         xCreator[1].should.be.bignumber.equal(0)
@@ -568,7 +567,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('does not transfer LANDs if it is called by not authorized operator', async function() {
-        const [xUser, yUser] = await land.landOf(user)
+        const { 0: xUser, 1: yUser } = await land.landOf(user)
         await assertRevert(
           land.transferManyLand(xUser, yUser, creator, sentByOperator)
         )
@@ -607,8 +606,8 @@ contract('LANDRegistry', accounts => {
       it('transfers LAND to an Estate if it is called by owner', async function() {
         await land.transferLandToEstate(0, 1, estateId, sentByUser)
 
-        const [xEstate, yEstate] = await land.landOf(estate.address)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xEstate, 1: yEstate } = await land.landOf(estate.address)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xEstate[0].should.be.bignumber.equal(3)
         xEstate[1].should.be.bignumber.equal(0)
@@ -649,8 +648,8 @@ contract('LANDRegistry', accounts => {
 
         await land.transferManyLandToEstate(xUser, yUser, estateId, sentByUser)
 
-        const [xEstate, yEstate] = await land.landOf(estate.address)
-        const [xNewUser, yNewUser] = await land.landOf(user)
+        const { 0: xEstate, 1: yEstate } = await land.landOf(estate.address)
+        const { 0: xNewUser, 1: yNewUser } = await land.landOf(user)
 
         xEstate[0].should.be.bignumber.equal(3)
         xEstate[1].should.be.bignumber.equal(0)
@@ -666,7 +665,7 @@ contract('LANDRegistry', accounts => {
       })
 
       it('does not transfer LANDs if it is called by not authorized operator', async function() {
-        const [xUser, yUser] = await land.landOf(user)
+        const { 0: xUser, 1: yUser } = await land.landOf(user)
         await assertRevert(
           land.transferManyLandToEstate(xUser, yUser, estateId, {
             from: operator
@@ -1220,17 +1219,16 @@ contract('LANDRegistry', accounts => {
     let estateBalance
 
     async function getLandBalanceEvents(eventName) {
-      return new Promise((resolve, reject) => {
-        landBalance[eventName]().get(function(err, logs) {
-          if (err) reject(new Error(`Error fetching the ${eventName} events`))
-          resolve(logs)
-        })
+      const events = await landBalance.contract.getPastEvents(eventName, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
       })
+      return events.map(e => ({ event: e.event, args: e.returnValues }))
     }
 
     beforeEach(async function() {
-      landBalance = MiniMeToken.at(await land.landBalance())
-      estateBalance = MiniMeToken.at(await estate.estateLandBalance())
+      landBalance = await MiniMeToken.at(await land.landBalance())
+      estateBalance = await MiniMeToken.at(await estate.estateLandBalance())
     })
 
     describe('setBalanceToken', function() {

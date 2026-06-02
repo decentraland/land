@@ -3,7 +3,8 @@
   "version": "3.0.0",
   "description": "Contract for Decentraland's LAND",
   "scripts": {
-    "test": "scripts/test.sh",
+    "build": "hardhat compile",
+    "test": "hardhat test",
     "test:watch": "nodemon test/** contracts/** --exec 'npm test'",
     "lint": "npx eslint test && npx solium -d contracts",
     "lint:fix": "npx eslint --fix test && npx solium -d contracts --fix"
@@ -25,28 +26,21 @@
     "zos-lib": "1.4.0"
   },
   "devDependencies": {
-    "babel-eslint": "^8.2.1",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
-    "babel-register": "^6.26.0",
-    "buidler": "^0.1.4",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/register": "^7.23.7",
+    "@nomiclabs/hardhat-truffle5": "^2.0.7",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
-    "chai-bignumber": "^2.0.1",
     "eslint": "^4.18.2",
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-prettier": "^2.4.0",
     "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.1.0",
-    "mocha": "^3.5.3",
-    "npx": "^9.7.1",
+    "ethereumjs-util": "^6.2.1",
+    "hardhat": "^2.22.0",
     "prettier": "^1.11.1",
-    "solidity-sha3": "^0.4.1",
     "solium": "^1.1.8",
-    "truffle": "^4.1.13",
-    "truffle-flattener": "^1.2.4",
-    "truffle-hdwallet-provider": "0.0.3",
-    "web3": "^0.20.4"
+    "web3": "^1.10.0"
   }
 }

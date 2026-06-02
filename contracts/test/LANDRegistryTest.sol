@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "../contracts/land/LANDRegistry.sol";
+import "../land/LANDRegistry.sol";
 
 contract LANDRegistryTest is LANDRegistry {
   function safeTransferFromToEstate(address from, address to, uint256 assetId, uint256 estateId) external {

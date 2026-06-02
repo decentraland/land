@@ -1,18 +1,21 @@
 import assertRevert from './helpers/assertRevert'
-const BigNumber = web3.BigNumber
 
-const LANDRegistry = artifacts.require('LANDRegistry')
+const LANDRegistry = artifacts.require(
+  'contracts/land/LANDRegistry.sol:LANDRegistry'
+)
 const LANDProxy = artifacts.require('LANDProxy')
 
 function checkUpgradeLog(log, newContract, initializedWith) {
   log.event.should.be.eq('Upgrade')
-  log.args.newContract.should.be.equal(newContract)
-  log.args.initializedWith.should.be.equal(initializedWith)
+  log.args.newContract.toLowerCase().should.be.equal(newContract.toLowerCase())
+  log.args.initializedWith
+    .toLowerCase()
+    .should.be.equal(initializedWith.toLowerCase())
 }
 
 require('chai')
   .use(require('chai-as-promised'))
-  .use(require('chai-bignumber')(BigNumber))
+  .use(require('./helpers/chaiBn'))
   .should()
 
 contract('LANDProxy', accounts => {
@@ -69,7 +72,12 @@ contract('LANDProxy', accounts => {
     })
 
     it('should throw if transfering to address 0x0', async () => {
-      await assertRevert(proxy.transferOwnership(0x0, { from: creator }))
+      await assertRevert(
+        proxy.transferOwnership(
+          '0x0000000000000000000000000000000000000000',
+          { from: creator }
+        )
+      )
     })
 
     it('should throw if trying to transfer and not owner', async () => {
