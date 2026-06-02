@@ -10,13 +10,10 @@ import {
 } from './helpers/getSoliditySha3'
 import { increaseTimeTo } from './helpers/increaseTime'
 
-
-const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 const MiniMeToken = artifacts.require('MiniMeToken')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
-const CURRENT_OWNER = '0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce'
 
 require('chai')
   .use(require('chai-as-promised'))
@@ -656,7 +653,10 @@ contract('EstateRegistry', accounts => {
         await estate.transferLand(estateId, landId, user, sentByUser)
       }
 
-      for (const [index, x] of fiveX.slice().reverse().entries()) {
+      for (const [index, x] of fiveX
+        .slice()
+        .reverse()
+        .entries()) {
         const y = fiveY.slice().reverse()[index]
         const landId = await land.encodeTokenId(x, y)
         await transferIn(estateId, landId, user)
@@ -684,8 +684,7 @@ contract('EstateRegistry', accounts => {
 
     it('verifyFingerprint rejects a wrong fingerprint', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      const bogus =
-        '0x' + 'de'.repeat(32) // arbitrary 32-byte value, not a valid fp
+      const bogus = '0x' + 'de'.repeat(32) // arbitrary 32-byte value, not a valid fp
       const result = await estate.verifyFingerprint(estateId, bogus)
       expect(result).to.be.false
     })
@@ -833,10 +832,7 @@ contract('EstateRegistry', accounts => {
 
       const getFpGas = await estate.getFingerprint.estimateGas(estateId)
       const fp = await estate.getFingerprint(estateId)
-      const verifyGas = await estate.verifyFingerprint.estimateGas(
-        estateId,
-        fp
-      )
+      const verifyGas = await estate.verifyFingerprint.estimateGas(estateId, fp)
       return { getFpGas, verifyGas }
     }
 
@@ -848,7 +844,9 @@ contract('EstateRegistry', accounts => {
       console.log('      ├─────────┼─────────────────┼───────────────────┤')
       for (const r of rows) {
         console.log(
-          `      │ ${fmt(r.size).padStart(7)} │ ${fmt(r.getFpGas).padStart(15)} │ ${fmt(r.verifyGas).padStart(17)} │`
+          `      │ ${fmt(r.size).padStart(7)} │ ${fmt(r.getFpGas).padStart(
+            15
+          )} │ ${fmt(r.verifyGas).padStart(17)} │`
         )
       }
       console.log('      └─────────┴─────────────────┴───────────────────┘')
@@ -859,24 +857,29 @@ contract('EstateRegistry', accounts => {
     // 10,000-LAND run takes many minutes. Skipped by default; run on demand
     // with GAS_REPORT=1 (e.g. `GAS_REPORT=1 npx hardhat test --grep "gas"`).
     const gasIt = process.env.GAS_REPORT ? it : it.skip
-    gasIt('measures gas at small estate sizes (informational)', async function() {
-      const sizes = [1, 100, 1000]
-      const gasParams = {
-        user: { ...creationParams, from: user, gas: 250e6 },
-        creator: { ...creationParams, gas: 250e6 }
-      }
+    gasIt(
+      'measures gas at small estate sizes (informational)',
+      async function() {
+        const sizes = [1, 100, 1000]
+        const gasParams = {
+          user: { ...creationParams, from: user, gas: 250e6 },
+          creator: { ...creationParams, gas: 250e6 }
+        }
 
-      const rows = []
-      for (let i = 0; i < sizes.length; i++) {
-        const size = sizes[i]
-        const r = await measureGas(i, size, 0, gasParams)
-        rows.push({ size, ...r })
-        console.log(
-          `        size=${size}: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
-        )
+        const rows = []
+        for (let i = 0; i < sizes.length; i++) {
+          const size = sizes[i]
+          const r = await measureGas(i, size, 0, gasParams)
+          rows.push({ size, ...r })
+          console.log(
+            `        size=${size}: getFingerprint=${
+              r.getFpGas
+            }, verifyFingerprint=${r.verifyGas}`
+          )
+        }
+        printGasTable(rows)
       }
-      printGasTable(rows)
-    })
+    )
 
     gasIt('measures gas at 10,000 LANDs (heavy, isolated)', async function() {
       // Heavy run separated from the small-size test because Ganache 6
@@ -889,7 +892,9 @@ contract('EstateRegistry', accounts => {
       }
       const r = await measureGas(0, 10000, 5000, gasParams)
       console.log(
-        `        size=10000: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
+        `        size=10000: getFingerprint=${r.getFpGas}, verifyFingerprint=${
+          r.verifyGas
+        }`
       )
       printGasTable([{ size: 10000, ...r }])
     })

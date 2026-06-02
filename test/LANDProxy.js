@@ -73,10 +73,9 @@ contract('LANDProxy', accounts => {
 
     it('should throw if transfering to address 0x0', async () => {
       await assertRevert(
-        proxy.transferOwnership(
-          '0x0000000000000000000000000000000000000000',
-          { from: creator }
-        )
+        proxy.transferOwnership('0x0000000000000000000000000000000000000000', {
+          from: creator
+        })
       )
     })
 

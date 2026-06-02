@@ -1,6 +1,5 @@
 import assertRevert from './helpers/assertRevert'
 
-
 const LANDRegistry = artifacts.require('LANDRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 

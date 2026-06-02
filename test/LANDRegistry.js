@@ -7,7 +7,6 @@ import createEstateFull from './helpers/createEstateFull'
 
 const MiniMeToken = artifacts.require('MiniMeToken')
 
-
 const NONE = '0x0000000000000000000000000000000000000000'
 
 require('chai')

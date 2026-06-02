@@ -36,9 +36,29 @@ module.exports = function(chai, utils) {
       })
     )
 
-  overwrite(['equal', 'equals', 'eq'], (a, b) => a.eq(b), 'to equal', 'to not equal')
-  overwrite(['above', 'gt', 'greaterThan'], (a, b) => a.gt(b), 'to be above', 'to not be above')
-  overwrite(['least', 'gte'], (a, b) => a.gte(b), 'to be at least', 'to be below')
-  overwrite(['below', 'lt', 'lessThan'], (a, b) => a.lt(b), 'to be below', 'to not be below')
+  overwrite(
+    ['equal', 'equals', 'eq'],
+    (a, b) => a.eq(b),
+    'to equal',
+    'to not equal'
+  )
+  overwrite(
+    ['above', 'gt', 'greaterThan'],
+    (a, b) => a.gt(b),
+    'to be above',
+    'to not be above'
+  )
+  overwrite(
+    ['least', 'gte'],
+    (a, b) => a.gte(b),
+    'to be at least',
+    'to be below'
+  )
+  overwrite(
+    ['below', 'lt', 'lessThan'],
+    (a, b) => a.lt(b),
+    'to be below',
+    'to not be below'
+  )
   overwrite(['most', 'lte'], (a, b) => a.lte(b), 'to be at most', 'to be above')
 }
