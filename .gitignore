@@ -7,3 +7,5 @@ node_modules
 zos.local.json
 deploy/configuration.json
 deploy/.*.json
+
+estate-deploy

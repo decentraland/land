@@ -70,7 +70,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address destinatary
   )
     external
-    canTransfer(estateId)
   {
     return _transferLand(estateId, landId, destinatary);
   }
@@ -87,7 +86,6 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address destinatary
   )
     external
-    canTransfer(estateId)
   {
     uint length = landIds.length;
     for (uint i = 0; i < length; i++) {
@@ -429,8 +427,10 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
   function transferFrom(address _from, address _to, uint256 _tokenId)
   public
   {
+    uint256 estateSize = estateLandIds[_tokenId].length;
+    require(estateSize != 0, "The Estate should not be empty");
     updateOperator[_tokenId] = address(0);
-    _updateEstateLandBalance(_from, _to, estateLandIds[_tokenId].length);
+    _updateEstateLandBalance(_from, _to, estateSize);
     super.transferFrom(_from, _to, _tokenId);
   }
 
@@ -510,6 +510,7 @@ contract EstateRegistry is Migratable, IEstateRegistry, ERC721Token, ERC721Recei
     address destinatary
   )
     internal
+    canTransfer(estateId)
   {
     require(destinatary != address(0), "You can not transfer LAND to an empty address");
 
