@@ -15,6 +15,9 @@ const BigNumber = web3.BigNumber
 const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 const MiniMeToken = artifacts.require('MiniMeToken')
+const EstateSaleReentrancyAttacker = artifacts.require(
+  'EstateSaleReentrancyAttacker'
+)
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 const CURRENT_OWNER = '0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce'
@@ -508,6 +511,73 @@ contract('EstateRegistry', accounts => {
       await assertRevert(
         estate.transferManyLands(estateId, [1], anotherUser, sentByAnotherUser)
       )
+    })
+  })
+
+  describe('transferManyLands re-checks authorization per iteration', function() {
+    // `_transferLand` hands a call frame to a contract destinatary (through
+    // `registry.safeTransferFrom`) while the batch still has iterations pending, and it
+    // re-reads `ownerOf(estateId)` on each one. A single pre-loop check let the caller sell
+    // the Estate inside that frame and keep draining the new owner's Estate.
+    async function setupAttacker() {
+      const attacker = await EstateSaleReentrancyAttacker.new(
+        estate.address,
+        creationParams
+      )
+      await land.assignMultipleParcels([0, 0, 0], [1, 2, 3], user, sentByCreator)
+      const estateId = await createEstate(
+        [0, 0, 0],
+        [1, 2, 3],
+        attacker.address,
+        sentByUser
+      )
+      return { attacker, estateId }
+    }
+
+    it('reverts the whole batch when the Estate is sold inside the LAND receive hook', async function() {
+      const { attacker, estateId } = await setupAttacker()
+
+      await assertRevert(
+        attacker.attack(estateId, [1, 2, 3], anotherUser, true, sentByUser)
+      )
+
+      // Nothing moved: the revert unwinds the sale and every withdrawal with it.
+      await assertEstateSize(estateId, 3)
+      await assertNFTBalance(estate.address, 3)
+      await assertNFTBalance(attacker.address, 0)
+      const owner = await estate.ownerOf(estateId)
+      owner.should.be.equal(attacker.address)
+    })
+
+    it('still lets the owner withdraw the whole batch when no sale happens', async function() {
+      const { attacker, estateId } = await setupAttacker()
+
+      await attacker.attack(estateId, [1, 2, 3], anotherUser, false, sentByUser)
+
+      // Control case: identical batch, same contract destinatary and same receive hook.
+      // The only difference in the reverting test is the mid-loop ownership change, which
+      // pins the revert to the authorization check rather than to the harness.
+      await assertEstateSize(estateId, 0)
+      await assertNFTBalance(attacker.address, 3)
+      const landsReceived = await attacker.landsReceived()
+      landsReceived.toString().should.be.equal('3')
+    })
+
+    it('reverts as soon as ownership changes, before any further LAND leaves the Estate', async function() {
+      const { attacker, estateId } = await setupAttacker()
+
+      // Five parcels, sale on the first hook: iterations 2..5 must never run.
+      await land.assignMultipleParcels([0, 0], [4, 5], user, sentByCreator)
+      await transferIn(estateId, 4, user)
+      await transferIn(estateId, 5, user)
+      await assertEstateSize(estateId, 5)
+
+      await assertRevert(
+        attacker.attack(estateId, [1, 2, 3, 4, 5], anotherUser, true, sentByUser)
+      )
+
+      await assertEstateSize(estateId, 5)
+      await assertNFTBalance(attacker.address, 0)
     })
   })
 
