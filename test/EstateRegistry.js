@@ -10,9 +10,6 @@ import {
 } from './helpers/getSoliditySha3'
 import { increaseTimeTo } from './helpers/increaseTime'
 
-const BigNumber = web3.BigNumber
-
-const EstateRegistry = artifacts.require('EstateRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 const MiniMeToken = artifacts.require('MiniMeToken')
 const EstateSaleReentrancyAttacker = artifacts.require(
@@ -20,11 +17,10 @@ const EstateSaleReentrancyAttacker = artifacts.require(
 )
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
-const CURRENT_OWNER = '0x9a6ebe7e2a7722f8200d0ffb63a1f6406a0d7dce'
 
 require('chai')
   .use(require('chai-as-promised'))
-  .use(require('chai-bignumber')(BigNumber))
+  .use(require('./helpers/chaiBn'))
   .should()
 
 /**
@@ -171,21 +167,20 @@ contract('EstateRegistry', accounts => {
 
     for (let key in expectedArgs) {
       let value = args[key]
-      if (value instanceof BigNumber) {
-        value = value.toString()
-      }
+      let expected = expectedArgs[key]
+      if (web3.utils.isBN(value)) value = value.toString()
+      if (web3.utils.isBN(expected)) expected = expected.toString()
 
-      value.should.be.equal(expectedArgs[key], `[assertEvent] ${key}`)
+      value.should.be.equal(expected, `[assertEvent] ${key}`)
     }
   }
 
   async function getEstateEvents(eventName) {
-    return new Promise((resolve, reject) => {
-      estate[eventName]().get(function(err, logs) {
-        if (err) reject(new Error(`Error fetching the ${eventName} events`))
-        resolve(logs)
-      })
+    const events = await estate.contract.getPastEvents(eventName, {
+      fromBlock: 'latest',
+      toBlock: 'latest'
     })
+    return events.map(e => ({ event: e.event, args: e.returnValues }))
   }
 
   beforeEach(async function() {
@@ -638,7 +633,7 @@ contract('EstateRegistry', accounts => {
 
     it('supports verifyFingerprint interface', async function() {
       const isSupported = await estate.supportsInterface(
-        web3.sha3('verifyFingerprint(uint256,bytes)')
+        web3.utils.sha3('verifyFingerprint(uint256,bytes)').slice(0, 10)
       )
       expect(isSupported).be.true
     })
@@ -728,7 +723,10 @@ contract('EstateRegistry', accounts => {
         await estate.transferLand(estateId, landId, user, sentByUser)
       }
 
-      for (const [index, x] of fiveX.slice().reverse().entries()) {
+      for (const [index, x] of fiveX
+        .slice()
+        .reverse()
+        .entries()) {
         const y = fiveY.slice().reverse()[index]
         const landId = await land.encodeTokenId(x, y)
         await transferIn(estateId, landId, user)
@@ -756,8 +754,7 @@ contract('EstateRegistry', accounts => {
 
     it('verifyFingerprint rejects a wrong fingerprint', async function() {
       const estateId = await createUserEstateWithNumberedTokens()
-      const bogus =
-        '0x' + 'de'.repeat(32) // arbitrary 32-byte value, not a valid fp
+      const bogus = '0x' + 'de'.repeat(32) // arbitrary 32-byte value, not a valid fp
       const result = await estate.verifyFingerprint(estateId, bogus)
       expect(result).to.be.false
     })
@@ -905,10 +902,7 @@ contract('EstateRegistry', accounts => {
 
       const getFpGas = await estate.getFingerprint.estimateGas(estateId)
       const fp = await estate.getFingerprint(estateId)
-      const verifyGas = await estate.verifyFingerprint.estimateGas(
-        estateId,
-        fp
-      )
+      const verifyGas = await estate.verifyFingerprint.estimateGas(estateId, fp)
       return { getFpGas, verifyGas }
     }
 
@@ -920,32 +914,44 @@ contract('EstateRegistry', accounts => {
       console.log('      ├─────────┼─────────────────┼───────────────────┤')
       for (const r of rows) {
         console.log(
-          `      │ ${fmt(r.size).padStart(7)} │ ${fmt(r.getFpGas).padStart(15)} │ ${fmt(r.verifyGas).padStart(17)} │`
+          `      │ ${fmt(r.size).padStart(7)} │ ${fmt(r.getFpGas).padStart(
+            15
+          )} │ ${fmt(r.verifyGas).padStart(17)} │`
         )
       }
       console.log('      └─────────┴─────────────────┴───────────────────┘')
     }
 
-    it('measures gas at small estate sizes (informational)', async function() {
-      const sizes = [1, 100, 1000]
-      const gasParams = {
-        user: { ...creationParams, from: user, gas: 250e6 },
-        creator: { ...creationParams, gas: 250e6 }
-      }
+    // Informational gas benchmarks (no correctness assertions). They request
+    // ~250M gas per tx, which exceeds Hardhat's per-transaction cap, and the
+    // 10,000-LAND run takes many minutes. Skipped by default; run on demand
+    // with GAS_REPORT=1 (e.g. `GAS_REPORT=1 npx hardhat test --grep "gas"`).
+    const gasIt = process.env.GAS_REPORT ? it : it.skip
+    gasIt(
+      'measures gas at small estate sizes (informational)',
+      async function() {
+        const sizes = [1, 100, 1000]
+        const gasParams = {
+          user: { ...creationParams, from: user, gas: 250e6 },
+          creator: { ...creationParams, gas: 250e6 }
+        }
 
-      const rows = []
-      for (let i = 0; i < sizes.length; i++) {
-        const size = sizes[i]
-        const r = await measureGas(i, size, 0, gasParams)
-        rows.push({ size, ...r })
-        console.log(
-          `        size=${size}: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
-        )
+        const rows = []
+        for (let i = 0; i < sizes.length; i++) {
+          const size = sizes[i]
+          const r = await measureGas(i, size, 0, gasParams)
+          rows.push({ size, ...r })
+          console.log(
+            `        size=${size}: getFingerprint=${
+              r.getFpGas
+            }, verifyFingerprint=${r.verifyGas}`
+          )
+        }
+        printGasTable(rows)
       }
-      printGasTable(rows)
-    })
+    )
 
-    it('measures gas at 10,000 LANDs (heavy, isolated)', async function() {
+    gasIt('measures gas at 10,000 LANDs (heavy, isolated)', async function() {
       // Heavy run separated from the small-size test because Ganache 6
       // destabilises if you stack the smaller setups before this one in
       // the same process. Run alone with --grep "10,000" if needed.
@@ -956,7 +962,9 @@ contract('EstateRegistry', accounts => {
       }
       const r = await measureGas(0, 10000, 5000, gasParams)
       console.log(
-        `        size=10000: getFingerprint=${r.getFpGas}, verifyFingerprint=${r.verifyGas}`
+        `        size=10000: getFingerprint=${r.getFpGas}, verifyFingerprint=${
+          r.verifyGas
+        }`
       )
       printGasTable([{ size: 10000, ...r }])
     })
@@ -1156,7 +1164,7 @@ contract('EstateRegistry', accounts => {
     })
 
     it('should not support not defined interface', async function() {
-      const isSupported = await estate.supportsInterface('123456')
+      const isSupported = await estate.supportsInterface('0x12345678')
       expect(isSupported).be.false
     })
   })
@@ -1998,17 +2006,16 @@ contract('EstateRegistry', accounts => {
     let estateId1
 
     async function getEstateBalanceEvents(eventName) {
-      return new Promise((resolve, reject) => {
-        estateBalance[eventName]().get(function(err, logs) {
-          if (err) reject(new Error(`Error fetching the ${eventName} events`))
-          resolve(logs)
-        })
+      const events = await estateBalance.contract.getPastEvents(eventName, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
       })
+      return events.map(e => ({ event: e.event, args: e.returnValues }))
     }
 
     beforeEach(async function() {
-      landBalance = MiniMeToken.at(await land.landBalance())
-      estateBalance = MiniMeToken.at(await estate.estateLandBalance())
+      landBalance = await MiniMeToken.at(await land.landBalance())
+      estateBalance = await MiniMeToken.at(await estate.estateLandBalance())
 
       estateId1 = await createUserEstateWithNumberedTokens()
     })

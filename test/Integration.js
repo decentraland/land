@@ -1,13 +1,11 @@
 import assertRevert from './helpers/assertRevert'
 
-const BigNumber = web3.BigNumber
-
 const LANDRegistry = artifacts.require('LANDRegistryTest')
 const LANDProxy = artifacts.require('LANDProxy')
 
 require('chai')
   .use(require('chai-as-promised'))
-  .use(require('chai-bignumber')(BigNumber))
+  .use(require('./helpers/chaiBn'))
   .should()
 
 contract('LANDRegistry', accounts => {

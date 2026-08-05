@@ -1,5 +1,5 @@
 import abi from 'ethereumjs-abi'
-import util from 'ethereumjs-util'
+import * as util from 'ethereumjs-util'
 
 export function getSoliditySha3(salt, value) {
   return (
@@ -23,7 +23,7 @@ export function getEstateFingerprint(estateId, landIds) {
     ['string', 'uint256', 'uint256[]'],
     ['estateId', toDec(estateId), landIds.map(toDec)]
   )
-  return '0x' + util.sha3(encoded).toString('hex')
+  return '0x' + util.keccak(encoded).toString('hex')
 }
 
 // The pre-patch XOR construction. Kept so a test can assert the new

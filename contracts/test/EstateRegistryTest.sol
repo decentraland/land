@@ -1,6 +1,6 @@
 pragma solidity ^0.4.22;
 
-import '../contracts/estate/EstateRegistry.sol';
+import '../estate/EstateRegistry.sol';
 
 contract EstateRegistryTest is EstateRegistry {
   constructor(

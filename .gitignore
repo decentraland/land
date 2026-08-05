@@ -3,6 +3,10 @@ build
 node_modules
 .idea
 
+# Hardhat
+artifacts
+cache
+
 .zos.session
 zos.local.json
 deploy/configuration.json

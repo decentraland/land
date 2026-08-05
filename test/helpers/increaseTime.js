@@ -1,36 +1,24 @@
 // Returns the time of the last mined block in seconds
-export function latestTime() {
-  return web3.eth.getBlock('latest').timestamp
+export async function latestTime() {
+  const block = await web3.eth.getBlock('latest')
+  return Number(block.timestamp)
 }
 
-// Increases testrpc time by the passed duration in seconds
-export function increaseTime(duration) {
-  const id = Date.now()
-
+// Sends a single JSON-RPC call through the (Hardhat Network) provider.
+// web3 1.x renamed the provider's `sendAsync` to `send`.
+function rpcSend(method, params = []) {
   return new Promise((resolve, reject) => {
-    web3.currentProvider.sendAsync(
-      {
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [duration],
-        id: id
-      },
-      err1 => {
-        if (err1) return reject(err1)
-
-        web3.currentProvider.sendAsync(
-          {
-            jsonrpc: '2.0',
-            method: 'evm_mine',
-            id: id + 1
-          },
-          (err2, res) => {
-            return err2 ? reject(err2) : resolve(res)
-          }
-        )
-      }
+    web3.currentProvider.send(
+      { jsonrpc: '2.0', method, params, id: Date.now() },
+      (err, res) => (err ? reject(err) : resolve(res))
     )
   })
+}
+
+// Increases EVM time by the passed duration in seconds, then mines a block.
+export async function increaseTime(duration) {
+  await rpcSend('evm_increaseTime', [duration])
+  return rpcSend('evm_mine', [])
 }
 
 /**
@@ -40,8 +28,8 @@ export function increaseTime(duration) {
  *
  * @param target time in seconds
  */
-export function increaseTimeTo(target) {
-  let now = latestTime()
+export async function increaseTimeTo(target) {
+  let now = await latestTime()
   if (target < now)
     throw Error(
       `Cannot increase current time(${now}) to a moment in the past(${target})`
