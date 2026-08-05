@@ -21,7 +21,7 @@
   "dependencies": {
     "erc821": "^6.0.0",
     "openzeppelin-zos": "1.9.4",
-    "zos": "1.4.0",
+    "zos": "2.4.3",
     "zos-lib": "1.4.0"
   },
   "devDependencies": {
